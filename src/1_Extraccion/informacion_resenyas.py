@@ -2,10 +2,16 @@ import json
 import requests
 
 '''
-Este script guarda las reseñas de la primera página (en general 100 reseñas) de steam
-de un juego a partir de us appid
+Script que guarda la información procedente de appreviews
 
-Necesita una lista de juegos con appid
+Requesitos:
+Módulo requests para solicitar acceso a las APIs.
+
+Entrada:
+Necesita para su ejecución el archivo steam_apps.json
+
+Salida:
+Los datos se almacenan en la carpeta data/ en formato JSON.
 '''
 
 def cargar_datos_locales(ruta_archivo):
