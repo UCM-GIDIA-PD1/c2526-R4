@@ -84,6 +84,7 @@ def get_appdetails(str_id):
 
     appdetails["categories"] = data[str_id]["data"].get("categories")
     appdetails["genres"] = data[str_id]["data"].get("genres")
+    appdetails["metacritic"] = data[str_id]["data"].get("metacritic")
 
     appdetails["release_date"] = data[str_id]["data"].get("release_date")
 
