@@ -26,6 +26,7 @@ SteamPredictor/
 │   ├── 3_Análisis/            # 
 │   ├── 4_Modelos/             # 
 │   └── 5_Despliegue/          # 
+├── .gitignore                 # .gitignore
 └── README.md                  # Documentación
 ```
 
