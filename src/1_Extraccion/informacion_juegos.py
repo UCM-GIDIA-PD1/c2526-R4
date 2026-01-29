@@ -3,10 +3,16 @@ import requests
 from bs4 import BeautifulSoup
 
 '''
-Este script guarda tanto la información de appdetails (categorías, links de imágenes,
-precios...) y el número de reviews del primer mes.
+Script que guarda tanto la información de appdetails como de appreviewhistogram.
 
-Necesita una lista de juegos con appid
+Requesitos:
+- Módulo `requests` para solicitar acceso a las APIs.
+
+Entrada:
+- Necesita para su ejecución el archivo steam_apps.json
+
+Salida:
+- Los datos se almacenan en la carpeta data/ en formato JSON.
 '''
 
 def cargar_datos_locales(ruta_archivo):
@@ -21,7 +27,10 @@ def cargar_datos_locales(ruta_archivo):
         print("Error: El archivo no tiene un formato JSON válido.")
         return None
 
-def get_appdetails(id):
+def get_appdetails(str_id):
+    # Para que la sesión solo se tenga que abrir una sola vez
+    r = requests.Session()
+
     # Creamos la url
     str_id = str(id)
     url_begin = "https://store.steampowered.com/api/appdetails?appids="
@@ -30,7 +39,16 @@ def get_appdetails(id):
 
     # Hacemos el request a la página y creamos el json que va a almacenar la info
     appdetails = {}
-    data = requests.get(url).json()
+    response = r.get(url)
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print("HTTP error occurred:", e)
+        return appdetails
+    except requests.exceptions.RequestException as e:
+        print("A request error occurred:", e)
+        return appdetails
+    data = response.json()
 
     # Metemos la información útil
     appdetails["name"] = data[str_id]["data"].get("name")
@@ -51,9 +69,10 @@ def get_appdetails(id):
         appdetails["price_overview"] = data[str_id]["data"].get("price_overview")
 
     # Limpiamos los lenguajes a los que están traducidos el juego
-    languages_raw_bs4 = BeautifulSoup(data[str_id]["data"].get("supported_languages"), features="lxml").text
-    clean_text = str(languages_raw_bs4).replace("idiomas con localización de audio", "").replace("*", "")
-    appdetails["supported_languages"] = list({lang.strip() for lang in clean_text.split(",")})
+    if data[str_id]["data"].get("supported_languages"):
+        languages_raw_bs4 = BeautifulSoup(data[str_id]["data"].get("supported_languages"), features="lxml").text
+        clean_text = str(languages_raw_bs4).replace("idiomas con localización de audio", "").replace("*", "")
+        appdetails["supported_languages"] = list({lang.strip() for lang in clean_text.split(",")})
 
     # Copiamos más información
     appdetails["capsule_img"] = data[str_id]["data"].get("capsule_imagev5")
@@ -70,15 +89,27 @@ def get_appdetails(id):
 
     return appdetails
 
-def get_appreviewhistogram(id):
+def get_appreviewhistogram(str_id):
+    # Para que la sesión solo se tenga que abrir una sola vez
+    r = requests.Session()
+
     # Creamos la url
     url_begin = "https://store.steampowered.com/appreviewhistogram/"
     url_end = "?l=english"
-    url = url_begin + str(id) + url_end
+    url = url_begin + str_id + url_end
 
     # Hacemos el request a la página y creamos el json que va a almacenar la info
     appreviewhistogram = {}
-    data = requests.get(url).json()
+    response = r.get(url)
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print("HTTP error occurred:", e)
+        return appreviewhistogram
+    except requests.exceptions.RequestException as e:
+        print("A request error occurred:", e)
+        return appreviewhistogram
+    data = response.json()
 
     # Caso en el que no haya ninguna review: los rellups están vacíos
     if not data["results"].get("rollups"):
@@ -92,8 +123,9 @@ def get_appreviewhistogram(id):
     if appreviewhistogram["rollup_type"] == "week":
         l = {"date": data["results"]["rollups"][0].get("date"), "recommendations_up": 0, "recommendations_down": 0}
         for i in range(0, 4):
-            l["recommendations_up"] += data["results"]["rollups"][i].get("recommendations_up")
-            l["recommendations_down"] += data["results"]["rollups"][i].get("recommendations_down")
+            if data["results"]["rollups"].get(i):
+                l["recommendations_up"] += data["results"]["rollups"][i].get("recommendations_up")
+                l["recommendations_down"] += data["results"]["rollups"][i].get("recommendations_down")
         appreviewhistogram["rollups"] = l
     else:
         appreviewhistogram["rollups"] = {"date": data["results"]["rollups"][0].get("date"), 
@@ -103,9 +135,14 @@ def get_appreviewhistogram(id):
     return appreviewhistogram
 
 def descargar_datos_juego(id):
+    # Datos iniciales
     game_info = {"id": id, "appdetails": {}, "appreviewhistogram": {}}
-    game_info["appdetails"] = get_appdetails(id)
-    game_info["appreviewhistogram"] = get_appreviewhistogram(id)
+    str_id = str(id)
+
+    # Llamamos a funciones
+    game_info["appdetails"] = get_appdetails(str_id)
+    game_info["appreviewhistogram"] = get_appreviewhistogram(str_id)
+
     if game_info["appreviewhistogram"] == {}:
         # Si el appreviewhistogram está vacío, significa que el juego no tiene reseñas
         return {}
