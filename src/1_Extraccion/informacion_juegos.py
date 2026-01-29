@@ -150,9 +150,6 @@ def descargar_datos_juego(id):
         return game_info
 
 def main():
-    # Para que la sesión solo se tenga que abrir una sola vez
-    requests.Session()
-
     # Cargamos el json de la lista de juegos (archivo de lista_juegos.py)
     lista_juegos = cargar_datos_locales(r"data\steam_apps.json")
     
