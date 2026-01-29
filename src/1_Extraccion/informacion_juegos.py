@@ -23,18 +23,20 @@ def cargar_datos_locales(ruta_archivo):
 
 def get_appdetails(id):
     # Creamos la url
+    str_id = str(id)
     url_begin = "https://store.steampowered.com/api/appdetails?appids="
     url_end = "&cc=eur"
-    url = url_begin + str(id) + url_end
+    url = url_begin + str_id + url_end
 
     # Hacemos el request a la página y creamos el json que va a almacenar la info
     appdetails = {}
     data = requests.get(url).json()
 
     # Metemos la información útil
-    appdetails["name"] = data[str(id)]["data"].get("name")
-    appdetails["required_age"] = data[str(id)]["data"].get("required_age")
-    if not data[str(id)]["data"].get("price_overview"):
+    appdetails["name"] = data[str_id]["data"].get("name")
+    appdetails["required_age"] = data[str_id]["data"].get("required_age")
+    appdetails["short_description"] = data[str_id]["data"].get("short_description")
+    if not data[str_id]["data"].get("price_overview"):
         # Si el juego no tiene price_overview significa que es gratis, por lo que 
         # metemos nosotros los valores a 0
         appdetails["price_overview"] = {}
@@ -46,26 +48,25 @@ def get_appdetails(id):
         appdetails["price_overview"]["final_formatted"] = "0€"
     else:
         # Si el juego no es gratis copiamos el price_overview directamente de data
-        appdetails["price_overview"] = data[str(id)]["data"].get("price_overview")
+        appdetails["price_overview"] = data[str_id]["data"].get("price_overview")
 
     # Limpiamos los lenguajes a los que están traducidos el juego
-    languages_raw_bs4 = BeautifulSoup(data[str(id)]["data"].get("supported_languages"), features="lxml").text
+    languages_raw_bs4 = BeautifulSoup(data[str_id]["data"].get("supported_languages"), features="lxml").text
     clean_text = str(languages_raw_bs4).replace("idiomas con localización de audio", "").replace("*", "")
-    supported_languages = [lang.strip() for lang in clean_text.split(",")]
-    appdetails["supported_languages"] = list(set(supported_languages))
+    appdetails["supported_languages"] = list({lang.strip() for lang in clean_text.split(",")})
 
     # Copiamos más información
-    appdetails["capsule_img"] = data[str(id)]["data"].get("capsule_imagev5")
-    appdetails["header_img"] = data[str(id)]["data"].get("header_image")
-    appdetails["screenshots"] = data[str(id)]["data"].get("screenshots")
+    appdetails["capsule_img"] = data[str_id]["data"].get("capsule_imagev5")
+    appdetails["header_img"] = data[str_id]["data"].get("header_image")
+    appdetails["screenshots"] = data[str_id]["data"].get("screenshots")
 
-    appdetails["developers"] = data[str(id)]["data"].get("developers")
-    appdetails["publishers"] = data[str(id)]["data"].get("publishers")
+    appdetails["developers"] = data[str_id]["data"].get("developers")
+    appdetails["publishers"] = data[str_id]["data"].get("publishers")
 
-    appdetails["categories"] = data[str(id)]["data"].get("categories")
-    appdetails["genres"] = data[str(id)]["data"].get("genres")
+    appdetails["categories"] = data[str_id]["data"].get("categories")
+    appdetails["genres"] = data[str_id]["data"].get("genres")
 
-    appdetails["release_date"] = data[str(id)]["data"].get("release_date")
+    appdetails["release_date"] = data[str_id]["data"].get("release_date")
 
     return appdetails
 
@@ -112,6 +113,9 @@ def descargar_datos_juego(id):
         return game_info
 
 def main():
+    # Para que la sesión solo se tenga que abrir una sola vez
+    requests.Session()
+
     # Cargamos el json de la lista de juegos (archivo de lista_juegos.py)
     lista_juegos = cargar_datos_locales(r"data\steam_apps.json")
     
