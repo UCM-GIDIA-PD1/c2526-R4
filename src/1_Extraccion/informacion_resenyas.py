@@ -22,6 +22,9 @@ def cargar_datos_locales(ruta_archivo):
         return None
 
 def get_resenyas(id):
+    # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
+    r = requests.Session()
+    
     # Obtiene las reseñas de un juego, como parámetros tiene filtro por idioma, y aparecen ordenadas las reseñas por utilidad,
     # con un máximo de 100 reseñas por página. Por último se actualiza el cursor para obtener la url de la siguiente página
     url_begin = "https://store.steampowered.com/appreviews/"
@@ -30,17 +33,29 @@ def get_resenyas(id):
     resenyas_juego = {"datos_resumen": {}, "lista_resenyas": []}
     
     info = {"json":1, "languaje":"english", "purchase_type":"all", "filter":"all", "num_per_page":100,"cursor":"*"}
-    data = requests.get(url, params = info).json()
+    data = r.get(url, params = info)
     
-    resenyas_juego["datos_resumen"] = data["query_summary"]
+    # Comprobación de que el request ha tenido éxito, en caso contrario lanzar error del HPPT, del propio Reqest o error si se trata de otro tipo de error
+    try:
+        data.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print("HTTP error ocurred:", e)
+    except requests.exceptions.RequestException as e:
+        print("Request error ocurred:", e)
+    except:
+        print("Error")
+    
+    data_json = data.json()
+    
+    resenyas_juego["datos_resumen"] = data_json["query_summary"]
     
     # Contador para obtener sólo la primera página de resultados, en caso de querer obtener más páginas modificar el valor en
     # el while, si se quieren obtener todos los juegos, eliminar el parámetro cont
     cont = 0
     
-    while (data["query_summary"].get("num_reviews") > 0 and cont < 1):
+    while (data_json["query_summary"].get("num_reviews") > 0 and cont < 1):
         # Por cada review obtiene los valores más importantes
-        for review in data["reviews"]:
+        for review in data_json["reviews"]:
             resenya = {}
             resenya["id_resenya"] = review["recommendationid"]
             resenya["id_usuario"] = review["author"].get("steamid")
@@ -55,12 +70,26 @@ def get_resenyas(id):
             resenyas_juego["lista_resenyas"].append(resenya)
         
         # Actualiza el valor del cursor
-        info["cursor"] = data["cursor"]
+        info["cursor"] = data_json["cursor"]
         
         # se cargan los datos de la siguiente página
-        data = requests.get(url, params = info).json()
-        cont = cont + 1
+        data = r.get(url, params = info)
         
+        # Comprobación de que el request ha tenido éxito, en caso contrario lanzar error del HPPT, del propio Reqest o error si se trata de otro tipo de error
+        try:
+            data.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            print("HTTP error ocurred:", e)
+        except requests.exceptions.RequestException as e:
+            print("Request error ocurred:", e)
+        except:
+            print("Error")
+        
+        data_json = data.json()
+        
+        cont = cont + 1
+    
+    
     return resenyas_juego
 
 def descargar_datos_juego(id):
@@ -71,7 +100,7 @@ def descargar_datos_juego(id):
     return game_info
 
 def main():
-    lista_juegos = cargar_datos_locales(r"extraccion_datos\juegos_steam_99.json")
+    lista_juegos = cargar_datos_locales(r"juegos_steam_99.json")
     informacion_resenyas = {"data" : []}
     for juego in lista_juegos["response"].get("apps"):
         informacion_resenyas["data"].append(descargar_datos_juego(juego["appid"]))
