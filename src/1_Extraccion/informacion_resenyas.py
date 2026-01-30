@@ -108,12 +108,16 @@ def descargar_datos_juego(id):
 def main():
     lista_juegos = cargar_datos_locales(r"juegos_steam_99.json")
     informacion_resenyas = {"data" : []}
-    for juego in lista_juegos["response"].get("apps"):
-        informacion_resenyas["data"].append(descargar_datos_juego(juego["appid"]))
-    
-    # Escribe el contenido obtenido en un fichero json
-    with open("info_steam_games.json", "w", encoding = "utf-8") as f:
-        json.dump(informacion_resenyas, f, ensure_ascii = False, indent = 2)
+    if not lista_juegos:
+        print("No se pudieron cargar los datos de los juegos")
+        return
+    else:
+        for juego in lista_juegos["response"].get("apps"):
+            informacion_resenyas["data"].append(descargar_datos_juego(juego["appid"]))
+        
+        # Escribe el contenido obtenido en un fichero json
+        with open("info_steam_games.json", "w", encoding = "utf-8") as f:
+            json.dump(informacion_resenyas, f, ensure_ascii = False, indent = 2)
 
 if __name__ == "__main__":
     main()
