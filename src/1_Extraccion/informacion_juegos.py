@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
 
-Requesitos:
+Requisitos:
 - Módulo `requests` para solicitar acceso a las APIs.
 
 Entrada:

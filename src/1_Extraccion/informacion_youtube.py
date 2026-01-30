@@ -8,7 +8,7 @@ from datetime import datetime
 Este script puede cargar las estadisticas de los 10 videos mas vistos de los juegos indicados por un json y genera un nuevo
 json que contiene una lista con las estadisticas de cada video. 
 
-Requesitos:
+Requisitos:
 - Módulo `googleapiclient` para solicitar acceso a las API de YouTube de Python.
 - Módulo `dotenv`.
 

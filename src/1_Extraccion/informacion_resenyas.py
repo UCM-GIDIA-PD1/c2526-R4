@@ -4,7 +4,7 @@ import requests
 '''
 Script que guarda la información procedente de appreviews
 
-Requesitos:
+Requisitos:
 Módulo requests para solicitar acceso a las APIs.
 
 Entrada:
@@ -38,7 +38,7 @@ def get_resenyas(id):
     url = url_begin + str(id)
     resenyas_juego = {"datos_resumen": {}, "lista_resenyas": []}
     
-    info = {"json":1, "languaje":"english", "purchase_type":"all", "filter":"all", "num_per_page":100,"cursor":"*"}
+    info = {"json":1, "language":"english", "purchase_type":"all", "filter":"all", "num_per_page":100,"cursor":"*"}
     data = r.get(url, params = info)
     
     # Comprobación de que el request ha tenido éxito, en caso contrario lanzar error de HTTP, del propio request o error si se trata de otro tipo de error
@@ -48,8 +48,8 @@ def get_resenyas(id):
         print("HTTP error ocurred:", e)
     except requests.exceptions.RequestException as e:
         print("Request error ocurred:", e)
-    except:
-        print("Error")
+    except Exception as e:
+        print("Error:", e)
     
     data_json = data.json()
     
@@ -88,8 +88,8 @@ def get_resenyas(id):
             print("HTTP error ocurred:", e)
         except requests.exceptions.RequestException as e:
             print("Request error ocurred:", e)
-        except:
-            print("Error")
+        except Exception as e:
+            print("Error:", e)
         
         data_json = data.json()
         
