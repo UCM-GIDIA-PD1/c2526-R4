@@ -1,5 +1,6 @@
 import json
 import requests
+import Z_funciones
 
 '''
 Script que guarda la información procedente de appreviews
@@ -13,19 +14,6 @@ Necesita para su ejecución el archivo steam_apps.json
 Salida:
 Los datos se almacenan en la carpeta data/ en formato JSON.
 '''
-
-def cargar_datos_locales(ruta_archivo):
-    # Carga del archivo json
-    try:
-        with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
-            datos = json.load(archivo)
-        return datos
-    except FileNotFoundError:
-        print(f"Error: El archivo en {ruta_archivo} no existe.")
-        return None
-    except json.JSONDecodeError:
-        print("Error: El archivo no tiene un formato JSON válido.")
-        return None
 
 def get_resenyas(id):
     # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
@@ -106,7 +94,7 @@ def descargar_datos_juego(id):
     return game_info
 
 def main():
-    lista_juegos = cargar_datos_locales(r"juegos_steam_99.json")
+    lista_juegos = Z_funciones.cargar_datos_locales(r"juegos_steam_99.json")
     informacion_resenyas = {"data" : []}
     if not lista_juegos:
         print("No se pudieron cargar los datos de los juegos")

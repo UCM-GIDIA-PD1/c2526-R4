@@ -1,6 +1,7 @@
 import json
 import requests
 from bs4 import BeautifulSoup
+import Z_funciones
 
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
@@ -15,24 +16,11 @@ Salida:
 - Los datos se almacenan en la carpeta data/ en formato JSON.
 '''
 
-def cargar_datos_locales(ruta_archivo):
-    try:
-        with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
-            datos = json.load(archivo)
-        return datos
-    except FileNotFoundError:
-        print(f"Error: El archivo en {ruta_archivo} no existe.")
-        return None
-    except json.JSONDecodeError:
-        print("Error: El archivo no tiene un formato JSON válido.")
-        return None
-
 def get_appdetails(str_id):
     # Para que la sesión solo se tenga que abrir una sola vez
     r = requests.Session()
 
     # Creamos la url
-    str_id = str(id)
     url_begin = "https://store.steampowered.com/api/appdetails?appids="
     url_end = "&cc=eur"
     url = url_begin + str_id + url_end
@@ -152,7 +140,7 @@ def descargar_datos_juego(id):
 
 def main():
     # Cargamos el json de la lista de juegos (archivo de lista_juegos.py)
-    lista_juegos = cargar_datos_locales(r"data\steam_apps.json")
+    lista_juegos = Z_funciones.cargar_datos_locales(r"data\steam_apps.json")
     
     # Iteramos sobre la lista de juegos y lo metemos en un json nuevo
     informacion_juegos = {"data":[]}
