@@ -3,6 +3,7 @@ from googleapiclient.discovery import build # pip install google-api-python-clie
 from dotenv import load_dotenv
 import json
 from datetime import datetime
+import Z_funciones
 
 '''
 Este script puede cargar las estadisticas de los 10 videos mas vistos de los juegos indicados por un json y genera un nuevo
@@ -55,18 +56,6 @@ def convertir_fecha_steam(fecha_str):
         print(f"Error convirtiendo fecha '{fecha_str}': {e}")
         return None
 
-def cargar_datos_locales(ruta_archivo):
-    try:
-        with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
-            datos = json.load(archivo)
-        return datos
-    except FileNotFoundError:
-        print(f"Error: El archivo en {ruta_archivo} no existe.")
-        return None
-    except json.JSONDecodeError:
-        print("Error: El archivo no tiene un formato JSON válido.")
-        return None
-
 def procesar_juego(youtube_service, nombre_juego, fecha_limite, id_juego):
     # Devuelve una lista con las estadisticas de los 10 videos mas vistos de un juego antes de su lanzamiento
     try:
@@ -117,7 +106,7 @@ def main():
         print('API_KEY NO ENCONTRADA')
         return
 
-    juegos = cargar_datos_locales(ruta_json)
+    juegos = Z_funciones.cargar_datos_locales(ruta_json)
 
     if juegos:
         print('Juegos cargados correctamente')
@@ -152,7 +141,6 @@ def main():
 
         #with open("steam_apps_with_stats.json", "w", encoding = "utf-8") as f:
             #json.dump(juegos, f, ensure_ascii = False, indent = 2)
-
 
 if __name__ == "__main__":
     main()

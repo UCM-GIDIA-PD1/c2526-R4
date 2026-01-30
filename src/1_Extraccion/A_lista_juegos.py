@@ -2,9 +2,19 @@ import os
 import requests
 import json
 
-"""Necesario iterar ya que no devuelve todos los juegos, default -> 10000, ajustable
-hasta max_results = 50000, para obtener todos habrá que iterar, usando el parámetro last_appid
-para indicar el último que se extrajo"""
+"""
+Script que itera sobre la API de Steam y devuelve un JSON con todos los juegos y sus APPID.
+
+Requisitos:
+- Módulo `requests`.
+
+Información extra:
+- max_results tiene por defecto 10000 juegos, pero se puede ajustar hasta 50000.
+- Usamos el parámetro last_appid para indicar el último juego que se extrajo
+
+Salida:
+- Los datos se almacenan en la el directorio indicado.
+"""
 
 # url e info
 url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
