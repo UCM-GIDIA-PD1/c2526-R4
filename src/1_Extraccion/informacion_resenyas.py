@@ -31,7 +31,7 @@ def get_resenyas(id):
     # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
     r = requests.Session()
     
-    # Obtiene las reseñas de un juego, como parámetros tiene filtro por idioma, y aparecen ordenadas las reseñas por utilidad,
+    # Obtiene las reseñas de un juego, como parámetros tiene filtro por idioma, aparecen ordenadas las reseñas por utilidad,
     # con un máximo de 100 reseñas por página. Por último se actualiza el cursor para obtener la url de la siguiente página
     url_begin = "https://store.steampowered.com/appreviews/"
     
@@ -41,7 +41,7 @@ def get_resenyas(id):
     info = {"json":1, "languaje":"english", "purchase_type":"all", "filter":"all", "num_per_page":100,"cursor":"*"}
     data = r.get(url, params = info)
     
-    # Comprobación de que el request ha tenido éxito, en caso contrario lanzar error del HPPT, del propio Reqest o error si se trata de otro tipo de error
+    # Comprobación de que el request ha tenido éxito, en caso contrario lanzar error del HTTP, del propio request o error si se trata de otro tipo de error
     try:
         data.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -78,10 +78,10 @@ def get_resenyas(id):
         # Actualiza el valor del cursor
         info["cursor"] = data_json["cursor"]
         
-        # se cargan los datos de la siguiente página
+        # Se cargan los datos de la siguiente página
         data = r.get(url, params = info)
         
-        # Comprobación de que el request ha tenido éxito, en caso contrario lanzar error del HPPT, del propio Reqest o error si se trata de otro tipo de error
+        # Comprobación de que el request ha tenido éxito, en caso contrario lanzar error del HTTP, del propio request o Error si se trata de otro tipo de error
         try:
             data.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -99,7 +99,7 @@ def get_resenyas(id):
     return resenyas_juego
 
 def descargar_datos_juego(id):
-    # Obtiene las info de un juego
+    # Obtiene la info de un juego
     game_info = {"id": id, "resenyas": []}
     game_info["resenyas"] = get_resenyas(id)
 
@@ -111,6 +111,7 @@ def main():
     for juego in lista_juegos["response"].get("apps"):
         informacion_resenyas["data"].append(descargar_datos_juego(juego["appid"]))
     
+    # Escribe el contenido obtenido en un fichero json
     with open("info_steam_games.json", "w", encoding = "utf-8") as f:
         json.dump(informacion_resenyas, f, ensure_ascii = False, indent = 2)
 
