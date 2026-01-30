@@ -41,7 +41,7 @@ def get_resenyas(id):
     info = {"json":1, "languaje":"english", "purchase_type":"all", "filter":"all", "num_per_page":100,"cursor":"*"}
     data = r.get(url, params = info)
     
-    # Comprobación de que el request ha tenido éxito, en caso contrario lanzar error del HTTP, del propio request o error si se trata de otro tipo de error
+    # Comprobación de que el request ha tenido éxito, en caso contrario lanzar error de HTTP, del propio request o error si se trata de otro tipo de error
     try:
         data.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -56,7 +56,7 @@ def get_resenyas(id):
     resenyas_juego["datos_resumen"] = data_json["query_summary"]
     
     # Contador para obtener sólo la primera página de resultados, en caso de querer obtener más páginas modificar el valor en
-    # el while, si se quieren obtener todos los juegos, eliminar el parámetro cont
+    # el while, si se quieren obtener todos las reseñas del juego, eliminar el parámetro cont
     cont = 0
     
     while (data_json["query_summary"].get("num_reviews") > 0 and cont < 1):
@@ -67,7 +67,7 @@ def get_resenyas(id):
             resenya["id_usuario"] = review["author"].get("steamid")
             resenya["texto"] = review["review"]
             resenya["valoracion"] = review["voted_up"]
-            # El atributo peso determina la utilidad del comentario, cuánto mayor es este mayor utilidad tiene la review,
+            # El atributo peso determina la utilidad de la reseña, cuánto mayor es este mayor utilidad tiene la review,
             # el valor del peso puede ser string o int, esto debe ser tenido en cuenta a la hora de entrenar el modelo
             resenya["peso"] = review["weighted_vote_score"]
             
@@ -78,10 +78,10 @@ def get_resenyas(id):
         # Actualiza el valor del cursor
         info["cursor"] = data_json["cursor"]
         
-        # Se cargan los datos de la siguiente página
+        # Se cargan los datos de la siguiente página de reviews
         data = r.get(url, params = info)
         
-        # Comprobación de que el request ha tenido éxito, en caso contrario lanzar error del HTTP, del propio request o Error si se trata de otro tipo de error
+        # Comprobación de que el request ha tenido éxito, en caso contrario lanzar error de HTTP, del propio request o Error si se trata de otro tipo de error
         try:
             data.raise_for_status()
         except requests.exceptions.HTTPError as e:
