@@ -155,7 +155,7 @@ def main():
         else:
             print(f'Juego con entrada incompleta: {nombre}')
 
-        Z_funciones.guardar_datos_json("info_steam_games_and_youtube.json")
+    Z_funciones.guardar_datos_json(lista_juegos, "info_steam_games_and_youtube.json")
 
 if __name__ == "__main__":
     main()
