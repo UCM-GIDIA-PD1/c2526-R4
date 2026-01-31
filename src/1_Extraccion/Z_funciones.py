@@ -51,13 +51,13 @@ def solicitud_url(sesion, params_info, url):
         dict | None: Datos decodificados del JSON si la petición es exitosa. 
         Retorna None si ocurre un error de conexión o un estado HTTP erróneo.
     """
-    sesion.get(url, params=params_info)
     try:
-        sesion.raise_for_status()
+        r = sesion.get(url, params=params_info)
+        r.raise_for_status()
+        return r.json()
     except requests.exceptions.HTTPError as e:
         print("HTTP error occurred:", e)
         return
     except requests.exceptions.RequestException as e:
         print("A request error occurred:", e)
         return
-    return sesion.json()

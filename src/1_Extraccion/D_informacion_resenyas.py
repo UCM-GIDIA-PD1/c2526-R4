@@ -73,11 +73,14 @@ def main():
         return
     
     informacion_resenyas = {"data" : []}
-    for juego in lista_juegos["response"].get("apps"):
-        informacion_resenyas["data"].append(descargar_datos_juego(juego["appid"]), sesion)
+    for juego in lista_juegos.get("apps"):
+        data = descargar_datos_juego(juego["appid"], sesion)
+        if data != {}:
+            informacion_resenyas["data"].append(data)
+            print(f"{juego["appid"]}: {juego["name"]}")
     
     # Escribe el contenido obtenido en un fichero json
-    Z_funciones.guardar_datos_json(r"data\info_steam_resenyas.json")
+    Z_funciones.guardar_datos_json(informacion_resenyas, r"data\info_steam_resenyas.json")
 
 if __name__ == "__main__":
     main()

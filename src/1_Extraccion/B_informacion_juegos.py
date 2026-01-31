@@ -160,14 +160,16 @@ def main():
     lista_juegos = Z_funciones.cargar_datos_locales(r"data\steam_apps.json")
     
     # Iteramos sobre la lista de juegos y lo metemos en un json nuevo
+    print("Comenzando extraccion de juegos...\n")
     informacion_juegos = {"data":[]}
-    for juego in lista_juegos["response"].get("apps"):
+    for juego in lista_juegos.get("apps"):
         desc = descargar_datos_juego(juego.get("appid"), sesion)
         if desc != {}:
             informacion_juegos["data"].append(desc)
+            print(f"{juego["appid"]}: {juego["name"]}")
     
     # Metemos la información en un json
-    Z_funciones.guardar_datos_json(r"data\info_steam_games.json")
+    Z_funciones.guardar_datos_json(informacion_juegos, r"data\info_steam_games.json")
 
 if __name__ == "__main__":
     main()
