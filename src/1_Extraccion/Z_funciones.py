@@ -34,8 +34,15 @@ def guardar_datos_json(datos, ruta_archivo):
     Returns:
         None
     """
-    with open(ruta_archivo, "w", encoding = "utf-8") as f:
-        json.dump(datos, f, ensure_ascii = False, indent = 2)
+    try:
+        with open(ruta_archivo, "w", encoding = "utf-8") as f:
+            json.dump(datos, f, ensure_ascii = False, indent = 2)
+    except TypeError as e:
+        # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
+        print(f"Error de tipo en la serialización: {e}")
+    except Exception as e:
+        # Cualquier otro tipo de error
+        print(f"Error inesperado {e}")
 
 def solicitud_url(sesion, params_info, url):
     """
