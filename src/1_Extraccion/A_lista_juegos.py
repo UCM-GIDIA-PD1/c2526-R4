@@ -1,6 +1,6 @@
 import os
 import requests
-import json
+import Z_funciones
 
 """
 Script que itera sobre la API de Steam y devuelve un JSON con todos los juegos y sus APPID.
@@ -16,24 +16,34 @@ Salida:
 - Los datos se almacenan en la el directorio indicado.
 """
 
-# url e info
-url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
-info = {"key": os.environ.get("STEAM_API_KEY"), "max_results" : 50000, "last_appid": 0}
+def main():
+    # url e info
+    url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
+    info = {"key": os.environ.get("STEAM_API_KEY"), "max_results" : 50000, "last_appid": 0}
 
-# creamos el json que va a tener todos los datos
-j = {"apps": []}
+    # Creamos el json que va a tener todos los datos
+    j = {"apps": []}
 
-# hacemos el primer request a la API
-data = requests.get(url, params= info).json()
-j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", [])])
+    # Hacemos el primer request a la API
+    response = requests.Session()
+    data = Z_funciones.solicitud_url(response, info, url)
+    if data:
+        j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", [])])
+    else:
+        print("Carga fallida")
 
-# bucle que no para hasta que no hayan más resultados
-while data['response'].get('have_more_results'):
-    info["last_appid"] = data['response'].get('last_appid')
-    data = requests.get(url, params= info).json()
-    # insertamos los datos en nuestro json
-    j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", [])])
+    # Bucle que no para hasta que no hayan más resultados
+    while data['response'].get('have_more_results') and data:
+        info["last_appid"] = data['response'].get('last_appid')
+        data = Z_funciones.solicitud_url(response, info, url)
+        if data:
+            j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", [])])
+        else:
+            print("Carga fallida")
 
-# Escribir en un fichero json
-with open("steam_apps.json", "w", encoding = "utf-8") as f:
-    json.dump(j, f, ensure_ascii = False, indent = 2)
+    # Guardamos en un JSON
+    Z_funciones.guardar_datos_json(r"data\steam_apps.json")
+    print("Lista de juegos guardada correctamente")
+
+if __name__ == "__main__":
+    main()
