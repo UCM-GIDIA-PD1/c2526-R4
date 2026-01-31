@@ -1,10 +1,11 @@
 import os
-from googleapiclient.discovery import build # pip install google-api-python-client
+from googleapiclient.discovery import build
 import Z_funciones
 
 '''
-Este script puede cargar las estadisticas de los 10 videos mas vistos de los juegos indicados por un json y genera un nuevo
-json que contiene una lista con las estadisticas de cada video.
+Código que busca a partir de info_steam_games.json los juegos en YouTube, filtrando
+por popularidad, antes de una fecha determinada e itera por los resultados (los 
+vídeos), extrayendo sus estadísticas.
 
 Información:
 - Tenemos un límite por día de 10000 unidades para usar en la API de YouTube, de los cuales
@@ -12,7 +13,8 @@ Información:
 1 unidad.
 
 Requisitos:
-- Módulo `googleapiclient` para solicitar acceso a las API de YouTube de Python.
+- Módulo `googleapiclient` para solicitar acceso a las API de YouTube de Python 
+    (`pip install google-api-python-client`).
 
 Entrada:
 - Necesita para su ejecución el archivo info_steam_games.json.
@@ -24,18 +26,24 @@ Salida:
 def convertir_fecha_steam(fecha_str):
     """
     Convierte 'DD Mon, YYYY' -> 'YYYY-MM-DDT00:00:00Z'
-    """
 
+    Args:
+        fecha_str (str): Fecha en formato 'DD Mon, YYYY'.
+
+    Returns:
+        str | None: La fecha en formato RFC 3339 ('YYYY-MM-DDT00:00:00Z')
+        Retorna None si la fecha no se carga correctamente.
+    """
     if not fecha_str:
         return None
-    
-    # Para pasar de formato mes -> mes_num
-    meses = {
-        'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
-        'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
-    }
 
     try:
+        # Para pasar de formato mes -> mes_num
+        meses = {
+            'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
+            'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+        }
+
         # Dividimos el string en partes
         limpia = fecha_str.replace(',', '')
         partes = limpia.split()
@@ -61,15 +69,21 @@ def convertir_fecha_steam(fecha_str):
 
 def procesar_juego(youtube_service, nombre_juego, fecha_limite, id_juego):
     """
-    Devuelve una lista con las estadisticas de los 10 videos mas vistos de 
-    un juego antes de su lanzamiento.
-    
-    youtube_service: Objeto de servicio de Google API construido con la función build.
-    nombre_juego: String con el título del videojuego para filtrar la búsqueda en YouTube.
-    fecha_limite: String en formato RFC 3339 que define el límite temporal superior de los vídeos.
-    id_juego: Identificador numérico o string único del juego para indexar las estadísticas.
-    """
+    Devuelve una lista con las estadisticas de los 10 videos mas vistos de un juego 
+    antes de su lanzamiento.
 
+    Args:
+        youtube_service (googleapiclient.discovery.Resource): Objeto de servicio de Google API 
+            construido con la función build.
+        nombre_juego (str): Título del videojuego para filtrar la búsqueda en YouTube.
+        fecha_limite (str): Fecha en formato RFC 3339 que define el límite temporal superior de los vídeos.
+        id_juego (int): Identificador único del juego para indexar las estadísticas.
+
+    Returns:
+        list[dict]: Una lista de diccionarios, donde cada uno contiene el id del juego 
+        y las estadísticas (vistas, likes, etc.) del vídeo encontrado. Retorna una 
+        lista vacía si ocurre un error o no hay resultados.
+    """
     try:
         # Solicitud que gasta 100 unidades de cuota
         search_request = youtube_service.search().list(
@@ -78,9 +92,9 @@ def procesar_juego(youtube_service, nombre_juego, fecha_limite, id_juego):
             order="viewCount",
             publishedBefore=fecha_limite,
             type="video",
-            maxResults=10,
+            maxResults=10, # Limitado a 10 vídeos por búsqueda
             safeSearch='none',
-            videoCategoryId="20"
+            videoCategoryId="20" # Categoría de vídeo Gaming
         )
         search_response = search_request.execute()
         if not search_response.get('items'):
@@ -110,50 +124,38 @@ def procesar_juego(youtube_service, nombre_juego, fecha_limite, id_juego):
         return []
 
 def main():
-    # Encontramos la API del sistema
+    # Cargamos la API del sistema
     API_KEY = os.environ.get('API_KEY_YT')
     if not API_KEY:
-        print('API_KEY NO ENCONTRADA')
+        print('La API_KEY no ha sido cargada')
         return
 
-    # Cargamos los datos del JSON que contiene las fechas para hacer las búsqueda 
-    # correctamente
+    # Cargamos los datos del JSON que contiene las fechas para hacer las búsqueda correctamente
     ruta_json = r'data\info_steam_games.json'
     juegos = Z_funciones.cargar_datos_locales(ruta_json)
 
-    if juegos:
-        print('Juegos cargados correctamente')
+    if not juegos:
+        print('Error al cargar los juegos')
+        return
+    print('Juegos cargados correctamente')
 
-        youtube = build('youtube', 'v3', developerKey=API_KEY)
+    # Creamos el googleapiclient.discovery.Resource
+    youtube = build('youtube', 'v3', developerKey=API_KEY)
 
-        '''
-        for juego in juegos:
-
-            nombre = juego.get('nombre')
-            fecha = juego.get('fecha')
-            id = juego.get('id')
-
-            if nombre and fecha:
-                stats = procesar_juego(youtube, nombre, fecha, id)
-                juego['video_statistics'] = stats
-            else:
-                print(f'Entrada incompleta: {juego}')
-        '''
-
-        nombre = 'Counter-Strike 2'
-        fecha = convertir_fecha_steam('21 Aug, 2012')
-        id = 730
+    # Iteramos los juegos
+    lista_juegos = juegos.get("data")
+    for juego in lista_juegos:
+        id = juego.get("id")
+        nombre = juego.get('appdetails').get("name")
+        fecha = juego.get('appdetails').get("release_date").get("date")
 
         if nombre and fecha:
             stats = procesar_juego(youtube, nombre, fecha, id)
-            #juego['video_statistics'] = stats
-            print(stats)
+            juego['video_statistics'] = stats
         else:
-            #print(f'Entrada incompleta: {juego}')
-            print('no')
+            print(f'Juego con entrada incompleta: {nombre}')
 
-        #with open("steam_apps_with_stats.json", "w", encoding = "utf-8") as f:
-            #json.dump(juegos, f, ensure_ascii = False, indent = 2)
+        Z_funciones.guardar_datos_json("info_steam_games_and_youtube.json")
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,3 @@
-import json
 import requests
 from bs4 import BeautifulSoup
 import Z_funciones
@@ -16,27 +15,27 @@ Salida:
 - Los datos se almacenan en la carpeta data/ en formato JSON.
 '''
 
-def get_appdetails(str_id):
-    # Para que la sesión solo se tenga que abrir una sola vez
-    r = requests.Session()
+def get_appdetails(str_id, sesion):
+    """
+    Extrae y limpia los detalles técnicos y comerciales de un juego desde la API de Steam.
 
+    Args:
+        str_id (str): ID de la aplicación (AppID) en Steam.
+        sesion (requests.Session): Sesión persistente para realizar la petición HTTP.
+
+    Returns:
+        dict: Diccionario con la información procesada (nombre, precio, idiomas, etc.).
+        Retorna un diccionario vacío si la petición falla o el ID no es válido.
+    """
     # Creamos la url
-    url_begin = "https://store.steampowered.com/api/appdetails?appids="
-    url_end = "&cc=eur"
-    url = url_begin + str_id + url_end
+    url = "https://store.steampowered.com/api/appdetails?appids=" + str_id
 
     # Hacemos el request a la página y creamos el json que va a almacenar la info
+    params_info = {"cc": "eur"}
     appdetails = {}
-    response = r.get(url)
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        print("HTTP error occurred:", e)
+    data = Z_funciones.solicitud_url(sesion, params_info, url)
+    if not data:
         return appdetails
-    except requests.exceptions.RequestException as e:
-        print("A request error occurred:", e)
-        return appdetails
-    data = response.json()
 
     # Metemos la información útil
     appdetails["name"] = data[str_id]["data"].get("name")
@@ -78,31 +77,33 @@ def get_appdetails(str_id):
 
     return appdetails
 
-def get_appreviewhistogram(str_id):
-    # Para que la sesión solo se tenga que abrir una sola vez
-    r = requests.Session()
+def get_appreviewhistogram(str_id, sesion):
+    """
+    Obtiene y procesa estadísticas de reseñas de un juego en Steam. Extrae métricas
+    generales y calcula el agregado de recomendaciones (positivas y negativas)
+    correspondientes aproximadamente al primer mes de vida del juego.
 
+    Args:
+        str_id (str): El ID del juego en Steam (APPID).
+        sesion (requests.Session): Sesión ya abierta de requests.
+
+    Returns:
+        dict: Diccionario con las fechas de inicio/fin y los datos agregados de 'rollups'.
+        Retorna un diccionario vacío si no hay datos disponibles.
+    """
     # Creamos la url
-    url_begin = "https://store.steampowered.com/appreviewhistogram/"
-    url_end = "?l=english"
-    url = url_begin + str_id + url_end
-
+    url = "https://store.steampowered.com/appreviewhistogram/" + str_id
+    
     # Hacemos el request a la página y creamos el json que va a almacenar la info
+    params_info = {"l": "english"}
     appreviewhistogram = {}
-    response = r.get(url)
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        print("HTTP error occurred:", e)
-        return appreviewhistogram
-    except requests.exceptions.RequestException as e:
-        print("A request error occurred:", e)
-        return appreviewhistogram
-    data = response.json()
+    data = Z_funciones.solicitud_url(sesion, params_info, url)
 
     # Caso en el que no haya ninguna review: los rellups están vacíos
+    if not data:
+        return appreviewhistogram
     if not data["results"].get("rollups"):
-        return {}
+        return appreviewhistogram
 
     appreviewhistogram["start_date"] = data["results"]["start_date"]
     appreviewhistogram["end_date"] = data["results"]["end_date"]
@@ -123,35 +124,52 @@ def get_appreviewhistogram(str_id):
 
     return appreviewhistogram
 
-def descargar_datos_juego(id):
+def descargar_datos_juego(id, sesion):
+    """
+    Fusiona la descarga completa de información de un juego usando varias funciones.
+    Agrega los detalles del producto y el histograma de reseñas en un único objeto.
+    Si alguna de las fuentes de datos críticas está vacía, el juego se descarta.
+
+    Args:
+        id (int): Identificador numérico del juego en Steam.
+        sesion (requests.Session): Sesión persistente para las peticiones HTTP.
+
+    Returns:
+        dict: Diccionario estructurado con 'id', 'appdetails' y 'appreviewhistogram'.
+        Retorna un diccionario vacío si falla la obtención de cualquiera de las partes.
+    """
     # Datos iniciales
     game_info = {"id": id, "appdetails": {}, "appreviewhistogram": {}}
     str_id = str(id)
 
     # Llamamos a funciones
-    game_info["appdetails"] = get_appdetails(str_id)
-    game_info["appreviewhistogram"] = get_appreviewhistogram(str_id)
+    game_info["appdetails"] = get_appdetails(str_id, sesion)
+    game_info["appreviewhistogram"] = get_appreviewhistogram(str_id, sesion)
 
-    if game_info["appreviewhistogram"] == {}:
+    if game_info["appreviewhistogram"] == {} or game_info["appdetails"] == {}:
         # Si el appreviewhistogram está vacío, significa que el juego no tiene reseñas
         return {}
     else:
         return game_info
 
 def main():
+    # Abrimos sesión de requests
+    sesion = requests.Session()
+
     # Cargamos el json de la lista de juegos (archivo de lista_juegos.py)
     lista_juegos = Z_funciones.cargar_datos_locales(r"data\steam_apps.json")
     
     # Iteramos sobre la lista de juegos y lo metemos en un json nuevo
+    print("Comenzando extraccion de juegos...\n")
     informacion_juegos = {"data":[]}
-    for juego in lista_juegos["response"].get("apps"):
-        desc = descargar_datos_juego(juego.get("appid"))
+    for juego in lista_juegos.get("apps"):
+        desc = descargar_datos_juego(juego.get("appid"), sesion)
         if desc != {}:
             informacion_juegos["data"].append(desc)
+            print(f"{juego["appid"]}: {juego["name"]}")
     
     # Metemos la información en un json
-    with open(r"data\info_steam_games.json", "w", encoding = "utf-8") as f:
-        json.dump(informacion_juegos, f, ensure_ascii = False, indent = 2)
+    Z_funciones.guardar_datos_json(informacion_juegos, r"data\info_steam_games.json")
 
 if __name__ == "__main__":
     main()
