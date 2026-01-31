@@ -21,9 +21,15 @@ def main():
     # url e info
     url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
 
+    # Cogemos la API
+    API_KEY = os.environ.get('STEAM_API_KEY')
+    if not API_KEY:
+        print('La API_KEY no ha sido cargada')
+        return
+
     # Vamos a poner max_results = 99 para tener una muestra pequeña de prueba
     max_results = 99 # Poner a 50000 cuando se quiera extraer todo
-    info = {"key": os.environ.get("STEAM_API_KEY"), "max_results" : max_results, "last_appid": 0}
+    info = {"key": API_KEY, "max_results" : max_results, "last_appid": 0}
 
     # Creamos el json que va a tener todos los datos
     j = {"apps": []}
