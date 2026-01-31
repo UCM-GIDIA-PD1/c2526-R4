@@ -14,7 +14,20 @@ Salida:
 Los datos se almacenan en la carpeta data/ en formato JSON.
 '''
 
-def get_resenyas(id, sesion):    
+def get_resenyas(id, sesion):
+    """
+    Obtiene y procesa información relativa a las reseñas de un juego de Steam. Extrae
+    las métricas más importantes que almacena en un diccionario.
+
+    Args:
+        id (int): Identificador númerico único de cada juego de Steam.
+        sesion (requests.Session): Sesión persistente para las peticiones de HTTP.
+
+    Returns:
+        resenyas_juego (dict): Contiene un campo con la información general acerca de las 
+        reseñas del juego (datos_resumen) y un campo que contiene la lista de reseñas (lista_resenyas). 
+        En caso de que el request no se complete, se devuelve un diccionario vacío.
+    """    
     # Obtiene las reseñas de un juego, como parámetros tiene filtro por idioma, aparecen ordenadas las reseñas por utilidad,
     # con un máximo de 100 reseñas por página. Por último se actualiza el cursor para obtener la url de la siguiente página
     url_begin = "https://store.steampowered.com/appreviews/"
