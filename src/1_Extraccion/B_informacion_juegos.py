@@ -34,7 +34,7 @@ def get_appdetails(str_id, sesion):
     params_info = {"cc": "eur"}
     appdetails = {}
     data = Z_funciones.solicitud_url(sesion, params_info, url)
-    if not data:
+    if not data or not data[str_id]["success"]:
         return appdetails
 
     # Metemos la información útil
