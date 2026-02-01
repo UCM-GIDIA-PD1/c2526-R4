@@ -84,6 +84,7 @@ def main():
     if not lista_juegos:
         print("No se pudieron cargar los datos de los juegos")
         return
+    print('Buscando reseñas de los juegos...\n')
     
     informacion_resenyas = {"data" : []}
     for juego in lista_juegos.get("apps"):

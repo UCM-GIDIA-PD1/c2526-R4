@@ -163,7 +163,7 @@ def main():
             print(f'Juego con entrada incompleta: {nombre}')
         
         contador += 1
-        if contador == 30:
+        if contador == 99:
             break
 
     Z_funciones.guardar_datos_json(lista_juegos, r"data\info_steam_games_and_youtube.json")
