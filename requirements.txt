@@ -1,0 +1,6 @@
+# Fichero para instalar las librerías del proyecto ejecutando: pip install -r requirements.txt
+
+requests
+beautifulsoup4
+lxml
+google-api-python-client
