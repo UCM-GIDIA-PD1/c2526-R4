@@ -1,6 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 import Z_funciones
+import time
+import os
 
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
@@ -77,7 +79,7 @@ def get_appdetails(str_id, sesion):
 
     return appdetails
 
-def get_appreviewhistogram(str_id, sesion):
+def get_appreviewhistogram(str_id, sesion, fecha_salida_unix):
     """
     Obtiene y procesa estadísticas de reseñas de un juego en Steam. Extrae métricas
     generales y calcula el agregado de recomendaciones (positivas y negativas)
@@ -111,6 +113,9 @@ def get_appreviewhistogram(str_id, sesion):
 
     # Cogemos los datos de aproximadamente el primer mes (las valoraciones del primer mes)
     if appreviewhistogram["rollup_type"] == "week":
+        #if fecha_salida_unix:
+        # Falta terminar lógica de encontrar el primer més real
+
         l = {"date": data["results"]["rollups"][0].get("date"), "recommendations_up": 0, "recommendations_down": 0}
         for i in range(0, 4):
             if data["results"]["rollups"].get(i):
@@ -144,7 +149,8 @@ def descargar_datos_juego(id, sesion):
 
     # Llamamos a funciones
     game_info["appdetails"] = get_appdetails(str_id, sesion)
-    game_info["appreviewhistogram"] = get_appreviewhistogram(str_id, sesion)
+    fecha_salida_unix = Z_funciones.convertir_fecha_a_unix(game_info["appdetails"]["release_date"])
+    game_info["appreviewhistogram"] = get_appreviewhistogram(str_id, sesion, fecha_salida_unix)
 
     if game_info["appreviewhistogram"] == {} or game_info["appdetails"] == {}:
         # Si el appreviewhistogram está vacío, significa que el juego no tiene reseñas
@@ -155,9 +161,20 @@ def descargar_datos_juego(id, sesion):
 def main():
     # Abrimos sesión de requests
     sesion = requests.Session()
+    sesion.headers.update({'User-Agent': 'Mozilla/5.0'}) # Para evitar bloqueos simples (Se hace pasar por Mozilla)
 
+    ruta_origen = r"data\steam_apps.json"
+    ruta_destino = r"data\info_steam_games.json"
     # Cargamos el json de la lista de juegos (archivo de lista_juegos.py)
-    lista_juegos = Z_funciones.cargar_datos_locales(r"data\steam_apps.json")
+    lista_juegos = Z_funciones.cargar_datos_locales(ruta_origen)
+    if not lista_juegos:
+        print("No se encnotró la lista de appids")
+        return
+    
+    if os.path.exists(ruta_destino):
+        print('Reanudando progreso...')
+        informacion_juegos = Z_funciones.cargar_datos_locales(ruta_destino)
+
     
     # Iteramos sobre la lista de juegos y lo metemos en un json nuevo
     print("Comenzando extraccion de juegos...\n")

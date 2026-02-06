@@ -1,5 +1,6 @@
 import json
 import requests
+from datetime import datetime
 
 def cargar_datos_locales(ruta_archivo):
     """
@@ -68,3 +69,26 @@ def solicitud_url(sesion, params_info, url):
     except requests.exceptions.RequestException as e:
         print("A request error occurred:", e)
         return
+    
+def convertir_fecha_a_unix(fecha_str):
+    """
+    Convierte la fecha de texto de Steam a Unix.
+    Devuelve None si el formato no es correcto.
+    """
+    if not fecha_str:
+        return None
+    
+    formatos = [
+        "%d %b, %Y",
+        "%b %d, %Y",
+        "%b %Y",
+        "%Y"
+    ]
+    
+    for fmt in formatos:
+        try:
+            dt = datetime.strptime(fecha_str, fmt)
+            return int(dt.timestamp())
+        except ValueError:
+            continue
+    return None
