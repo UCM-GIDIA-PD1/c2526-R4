@@ -17,6 +17,32 @@ Salida:
 - Los datos se almacenan en la el directorio indicado.
 """
 
+def es_juego_valido(nombre):
+    """
+    Filtro preliminar para no gastar peticiones API en cosas que sabemos que no son juegos.
+    Devuelve False si detecta palabras clave de algo que no sea un juego
+    """
+
+    if not nombre: return False
+    
+    nombre_lower = nombre.lower()
+    
+    palabras_prohibidas = [
+        "dedicated server", "server", "servidor",
+        "soundtrack", " ost ", "original soundtrack",
+        "bonus content", "artbook",
+        "dlc", "expansion", "season pass",
+        "demo", "playtest", "beta", "trial",
+        "sdk", "editor", "tool", "driver", "wallpaper",
+        "trailer", "teaser", "video"
+    ]
+    
+    for palabra in palabras_prohibidas:
+        if palabra in nombre_lower:
+            return False
+            
+    return True
+
 def main():
     # url e info
     url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
@@ -41,7 +67,7 @@ def main():
     session = requests.Session()
     data = Z_funciones.solicitud_url(session, info, url)
     if data:
-        j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", [])])
+        j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", []) if es_juego_valido(a.get("name"))])
     else:
         print("Carga fallida")
         return
@@ -52,7 +78,7 @@ def main():
             info["last_appid"] = data['response'].get('last_appid')
             data = Z_funciones.solicitud_url(session, info, url)
             if data:
-                j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", [])])
+                j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", []) if es_juego_valido(a.get("name"))])
             else:
                 print("Carga fallida")
 
