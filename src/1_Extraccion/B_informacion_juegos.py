@@ -125,7 +125,7 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
     appreviewhistogram["end_date"] = data["results"]["end_date"]
     appreviewhistogram["rollup_type"] = data["results"]["rollup_type"]
 
-    # Buscamos que histograma hay que coger
+    # Buscamos que barra del histograma hay que coger
     idx = -1
     rollups = data["results"]["rollups"]
     for i in range(len(rollups)):
@@ -214,6 +214,7 @@ def main():
         print("No se encontró la lista de appids")
         return
     
+    # Para tener constancia de los ids ya procesados
     ids_procesados = set()
     if os.path.exists(ruta_destino):
         print('Reanudando progreso...')
@@ -246,10 +247,13 @@ def main():
                     
                     if len(batch_juegos) >= 20:
                         # Cada 20 juegos los añade al json para no saturar la RAM
-                        datos_totales = Z_funciones.cargar_datos_locales(ruta_destino)
-                        if not datos_totales:
-                            datos_totales = {"data": []}
-                        
+                        # Comprobar que existe la ruta destino
+                        if os.path.exists(ruta_destino):
+                            datos_totales = Z_funciones.cargar_datos_locales(ruta_destino)
+                            if not datos_totales:
+                                datos_totales = {"data": []}
+                        else:
+                            datos_totales = {"data": []}    
                         datos_totales["data"].extend(batch_juegos)
                         Z_funciones.guardar_datos_json(datos_totales, ruta_destino)
                         
