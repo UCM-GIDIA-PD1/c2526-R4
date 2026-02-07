@@ -70,25 +70,10 @@ def solicitud_url(sesion, params_info, url):
         print("A request error occurred:", e)
         return
     
-def convertir_fecha_a_unix(fecha_str):
-    """
-    Convierte la fecha de texto de Steam a Unix.
-    Devuelve None si el formato no es correcto.
-    """
-    if not fecha_str:
+def convertir_fecha_datetime(fecha_str):
+    """Convierte una fecha de formato "21 Nov, 1998" a objeto datetime"""
+    if not fecha_str: return None
+    try:
+        return datetime.strptime(fecha_str, "%d %b, %Y")
+    except ValueError:
         return None
-    
-    formatos = [
-        "%d %b, %Y",
-        "%b %d, %Y",
-        "%b %Y",
-        "%Y"
-    ]
-    
-    for fmt in formatos:
-        try:
-            dt = datetime.strptime(fecha_str, fmt)
-            return int(dt.timestamp())
-        except ValueError:
-            continue
-    return None
