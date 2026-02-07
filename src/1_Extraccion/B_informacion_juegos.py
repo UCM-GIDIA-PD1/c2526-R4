@@ -117,7 +117,7 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
     except Exception:
         return appreviewhistogram
 
-    # Caso en el que no haya ninguna review: los rellups están vacíos
+    # Caso en el que no haya ninguna review: los rollups están vacíos
     if not data or not data.get("results") or not data["results"].get("rollups"):
         return appreviewhistogram
 
