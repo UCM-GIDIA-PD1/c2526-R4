@@ -188,17 +188,16 @@ def descargar_datos_juego(id, sesion):
         return {}
     
     fecha_salida_datetime = Z_funciones.convertir_fecha_datetime(release_data.get("date"))
+    if fecha_salida_datetime.year < 2011:
+        return {}
     
     if not fecha_salida_datetime:
         return {}
 
     game_info["appreviewhistogram"] = get_appreviewhistogram(str_id, sesion, fecha_salida_datetime)
 
-    if game_info["appreviewhistogram"] == {}:
-        # Si el appreviewhistogram está vacío, significa que el juego no tiene reseñas
-        return {}
-    else:
-        return game_info
+    
+    return game_info
 
 def main():
     sesion = requests.Session()
@@ -228,11 +227,16 @@ def main():
     print("Comenzando extraccion de juegos...\n")
     
     batch_juegos = []
+    juego_ini = 'x' # appid a partir del cual se empieza a extraer
+    juego_fin = 'y' # ultimo appid a extraer
 
     try:
-        for juego in lista_juegos.get("apps"):
+        for juego in lista_juegos.get("apps") and juego.get("appid") <= juego_fin:
             appid = juego.get("appid")
             
+            if appid < juego_ini:
+                continue
+
             # Saltamos los procesados
             if appid in ids_procesados:
                 continue
