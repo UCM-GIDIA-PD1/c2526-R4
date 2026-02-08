@@ -231,10 +231,10 @@ def main():
     juego_fin = 'y' # ultimo appid a extraer
 
     try:
-        for juego in lista_juegos.get("apps") and juego.get("appid") <= juego_fin:
+        for juego in lista_juegos.get("apps") and int(juego.get("appid")) <= juego_fin:
             appid = juego.get("appid")
             
-            if appid < juego_ini:
+            if int(appid) < juego_ini:
                 continue
 
             # Saltamos los procesados
