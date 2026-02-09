@@ -89,7 +89,7 @@ def extraer_metadatos_imagenes():
 
     # Guardamos el json
     ruta_destino = r"data\info_imagenes.json"
-    Z_funciones.guardar_datos_json(resultados, ruta_destino)
+    Z_funciones.guardar_datos_dict(resultados, ruta_destino)
 
 if __name__ == "__main__":
     extraer_metadatos_imagenes()

@@ -259,7 +259,7 @@ def main():
                         else:
                             datos_totales = {"data": []}    
                         datos_totales["data"].extend(batch_juegos)
-                        Z_funciones.guardar_datos_json(datos_totales, ruta_destino)
+                        Z_funciones.guardar_datos_dict(datos_totales, ruta_destino)
                         
                         batch_juegos = [] # Vaciamos memoria
                         print(f"Progreso guardado automáticamente ({len(ids_procesados)} juegos)")
@@ -281,7 +281,7 @@ def main():
             if not datos_totales:
                 datos_totales = {"data": []}
             datos_totales["data"].extend(batch_juegos)
-            Z_funciones.guardar_datos_json(datos_totales, ruta_destino)
+            Z_funciones.guardar_datos_dict(datos_totales, ruta_destino)
         
         print("Sesión finalizada.")
 

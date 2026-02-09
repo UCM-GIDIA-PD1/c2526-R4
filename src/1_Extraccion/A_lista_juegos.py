@@ -83,7 +83,7 @@ def main():
                 print("Carga fallida")
 
     # Guardamos en un JSON
-    Z_funciones.guardar_datos_json(j, r"data\steam_apps.json")
+    Z_funciones.guardar_datos_dict(j, r"data\steam_apps.json")
     print("Lista de juegos guardada correctamente")
 
 if __name__ == "__main__":

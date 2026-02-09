@@ -2,9 +2,9 @@ import json
 import requests
 from datetime import datetime
 
-def cargar_datos_locales(ruta_archivo):
+def cargar_datos_locales(ruta_archivo, tipo_archivo='json'):
     """
-    Carga y decodifica un archivo JSON desde una ruta local.
+    Carga y decodifica un archivo desde una ruta local.
 
     Args:
         ruta_archivo (str): La ubicación física del archivo en el sistema.
@@ -13,20 +13,21 @@ def cargar_datos_locales(ruta_archivo):
         dict | None: Los datos contenidos en el JSON convertidos a tipos de Python. 
         Retorna None si el archivo no se encuentra o si el contenido no es un JSON válido.
     """
-    try:
-        with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
-            datos = json.load(archivo)
-        return datos
-    except FileNotFoundError:
-        print(f"Error: El archivo en {ruta_archivo} no existe.")
-        return None
-    except json.JSONDecodeError:
-        print("Error: El archivo no tiene un formato JSON válido.")
-        return None
+    if tipo_archivo == 'json':
+        try:
+            with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
+                datos = json.load(archivo)
+            return datos
+        except FileNotFoundError:
+            print(f"Error: El archivo en {ruta_archivo} no existe.")
+            return None
+        except json.JSONDecodeError:
+            print("Error: El archivo no tiene un formato JSON válido.")
+            return None
 
-def guardar_datos_json(datos, ruta_archivo):
+def guardar_datos_dict(datos, ruta_archivo, tipo_archivo='json'):
     """
-    Guarda un diccionario en formato JSON en la ruta especificada.
+    Guarda un diccionario en el formato indicado en la ruta especificada.
 
     Args:
         datos (dict): Diccionario con la información a exportar.
@@ -35,15 +36,16 @@ def guardar_datos_json(datos, ruta_archivo):
     Returns:
         None
     """
-    try:
-        with open(ruta_archivo, "w", encoding = "utf-8") as f:
-            json.dump(datos, f, ensure_ascii = False, indent = 2)
-    except TypeError as e:
-        # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
-        print(f"Error de tipo en la serialización: {e}")
-    except Exception as e:
-        # Cualquier otro tipo de error
-        print(f"Error inesperado {e}")
+    if tipo_archivo == 'json':
+        try:
+            with open(ruta_archivo, "w", encoding = "utf-8") as f:
+                json.dump(datos, f, ensure_ascii = False, indent = 2)
+        except TypeError as e:
+            # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
+            print(f"Error de tipo en la serialización: {e}")
+        except Exception as e:
+            # Cualquier otro tipo de error
+            print(f"Error inesperado {e}")
 
 def solicitud_url(sesion, params_info, url):
     """
