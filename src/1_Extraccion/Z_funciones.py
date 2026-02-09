@@ -77,3 +77,30 @@ def convertir_fecha_datetime(fecha_str):
         return datetime.strptime(fecha_str, "%d %b, %Y")
     except ValueError:
         return None
+    
+import sys
+
+def barra_progreso(iterable):
+    """
+    Para tener una barra de carga fancy en la terminal en los bucles for.
+
+    Args:
+        iterable: elemento sobre el que se va a ejecutar el for.
+    
+    Returns:
+        None
+    """
+    total = len(iterable)
+    
+    def imprimir_barra(iteracion):
+        porcentaje = int(100 * (iteracion / total))
+        llenado = int(50 * iteracion // total)
+        barra = '█' * llenado + '-' * (50 - llenado)
+
+        print(f'\r{barra}| {porcentaje}%', end='', flush=True)
+
+    imprimir_barra(0)
+    for i, item in enumerate(iterable):
+        yield item 
+        imprimir_barra(i + 1)
+    print()
