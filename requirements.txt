@@ -4,3 +4,8 @@ requests
 beautifulsoup4
 lxml
 google-api-python-client
+
+# Para análisis de Imágenes
+torch
+torchvision
+pillow

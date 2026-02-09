@@ -17,6 +17,18 @@ Salida:
 """
 
 def analiza_imagen(img_path, trans, model):
+        
+        """
+        Analiza las características de una imagen
+
+        Args:
+            img_path: ruta de la imagen a analizar
+            trans: transformaciones para aplicar a la imagen antes de meterla al modelo
+            model: modelo preentrenado para obtener el vector de características
+    
+        Returns:
+            caracteristicas (dict): diccionario con el brillo medio y vector de características de la imagen
+        """
             
         img = Image.open(img_path).convert('RGB')
             
@@ -33,9 +45,21 @@ def analiza_imagen(img_path, trans, model):
             # Convertimos el tensor a una lista de Python para el JSON
             vector = embedding.flatten().tolist()
 
-        return {"brillo_medio": brillo,"vector_caracteristicas": vector} # Vector de 512 elementos
+        caracteristicas = {"brillo_medio": brillo,"vector_caracteristicas": vector} # Vector de 512 elementos
+        return caracteristicas
     
 def extraer_metadatos_imagenes():
+
+    """
+        Itera por todas las imágenes en data/images y obtiene sus características, guardándolas en data/info_imagenes.json
+
+        Args:
+            None
+    
+        Returns:
+            None
+    """
+    
     os.environ['TORCH_HOME'] = r'data\torch_cache'
 
     # Se configura el modelo (ResNet18, preentrenado para reconocer formas).
