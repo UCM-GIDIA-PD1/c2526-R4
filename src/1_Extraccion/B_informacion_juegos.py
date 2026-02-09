@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 import Z_funciones
 import time
 import os
-import json
 from datetime import datetime
 
 '''
