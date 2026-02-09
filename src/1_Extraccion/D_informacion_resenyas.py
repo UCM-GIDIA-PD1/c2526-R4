@@ -94,7 +94,7 @@ def main():
             print(f"{juego["appid"]}: {juego["name"]}")
     
     # Escribe el contenido obtenido en un fichero json
-    Z_funciones.guardar_datos_json(informacion_resenyas, r"data\info_steam_resenyas.json")
+    Z_funciones.guardar_datos_dict(informacion_resenyas, r"data\info_steam_resenyas.json")
 
 if __name__ == "__main__":
     main()

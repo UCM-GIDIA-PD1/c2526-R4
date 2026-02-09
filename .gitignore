@@ -1,5 +1,11 @@
+# Carpetas
 __pycache__
+.venv
+.vscode
 
 # Extensiones de archivos
 *.csv
 *.json
+*.jpg
+*.parquet
+*.json.gzip
