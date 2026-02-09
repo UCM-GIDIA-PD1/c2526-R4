@@ -1,3 +1,4 @@
+# Carpetas
 __pycache__
 .venv
 .vscode
@@ -6,3 +7,5 @@ __pycache__
 *.csv
 *.json
 *.jpg
+*.parquet
+*.json.gzip
