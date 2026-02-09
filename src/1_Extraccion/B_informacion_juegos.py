@@ -5,6 +5,7 @@ import time
 import os
 import json
 from datetime import datetime
+from calendar import monthrange
 
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
@@ -152,10 +153,33 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
                 l["recommendations_down"] += rollups[idx + i].get("recommendations_down", 0)
         appreviewhistogram["rollups"] = l
     else:
+        # Si el dia es mayor que 15 y el primer mes no es el último del que se tiene información, se cogen también las del mes siguiente
+        fecha = datetime.fromtimestamp(rollups[idx].get("date"))
+        if fecha.day > 15 and idx < len(rollups) - 1:
+            # Número de dias que se tienen en cuenta
+            # monthrange() devuelve (diaDeLaSemana, numDiasMes)
+            dias_mes_actual = monthrange(fecha.year, fecha.month)[1] - fecha.day + 1
+            fecha_sig = datetime.fromtimestamp(rollups[idx + 1].get("date"))
+            dias_mes_siguiente = monthrange(fecha_sig.year, fecha_sig.month)[1]
+            dias = dias_mes_actual + dias_mes_siguiente
+            rec_up = int(rollups[idx].get("recommendations_up", 0)) + int(rollups[idx + 1].get("recommendations_up", 0))
+            rec_down = int(rollups[idx].get("recommendations_down", 0)) + int(rollups[idx + 1].get("recommendations_down", 0))
+        else:
+            dias = monthrange(fecha.year, fecha.month)[1] - fecha.day + 1
+            rec_up = int(rollups[idx].get("recommendations_up", 0))
+            rec_down = int(rollups[idx].get("recommendations_down", 0))
+        
+        if dias == 0: dias = 1
+            
         appreviewhistogram["rollups"] = {
             "date": rollups[idx].get("date"), 
-            "recommendations_up": rollups[idx].get("recommendations_up", 0), 
-            "recommendations_down": rollups[idx].get("recommendations_down", 0)
+            "recommendations_up": rec_up, 
+            "recommendations_down": rec_down,
+            "recommendations_up_per_day": rec_up / dias,
+            "recommendations_down_per_day": rec_down / dias,
+            "total_recommendations": rec_up + rec_down,
+            "total_recommendations_per_day": (rec_up + rec_down) / dias,
+            "dias":dias
         }
 
     return appreviewhistogram
@@ -231,10 +255,10 @@ def main():
     juego_fin = 'y' # ultimo appid a extraer
 
     try:
-        for juego in lista_juegos.get("apps") and int(juego.get("appid")) <= juego_fin:
+        for juego in lista_juegos.get("apps"):
             appid = juego.get("appid")
             
-            if int(appid) < juego_ini:
+            if int(appid) < juego_ini or appid > juego_fin:
                 continue
 
             # Saltamos los procesados
