@@ -1,8 +1,10 @@
 import json
 import requests
 from datetime import datetime
+import gzip
+import pandas as pd
 
-def cargar_datos_locales(ruta_archivo, tipo_archivo='json'):
+def cargar_datos_locales(ruta_archivo):
     """
     Carga y decodifica un archivo desde una ruta local.
 
@@ -13,19 +15,32 @@ def cargar_datos_locales(ruta_archivo, tipo_archivo='json'):
         dict | None: Los datos contenidos en el JSON convertidos a tipos de Python. 
         Retorna None si el archivo no se encuentra o si el contenido no es un JSON válido.
     """
-    if tipo_archivo == 'json':
-        try:
+    try:
+        if ruta_archivo.endswith('.json'):
             with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
                 datos = json.load(archivo)
             return datos
-        except FileNotFoundError:
-            print(f"Error: El archivo en {ruta_archivo} no existe.")
-            return None
-        except json.JSONDecodeError:
-            print("Error: El archivo no tiene un formato JSON válido.")
-            return None
+        elif ruta_archivo.endswith('.json.gzip'):
+            with gzip.open(ruta_archivo, 'r', encoding='utf-8') as archivo:
+                datos = json.load(archivo)
+            return datos
+        elif ruta_archivo.endswith('.parquet'):
+            datos = pd.read_parquet(ruta_archivo)
+            return datos
+    except FileNotFoundError:
+        print(f"Error: El archivo en {ruta_archivo} no existe.")
+        return None
+    except json.JSONDecodeError:
+        print("Error: El archivo no tiene un formato JSON válido.")
+        return None
+    except gzip.BadGzipFile:
+        print("Error: El archivo no tiene un formato gzip.JSON válido.")
+        return None
+    except Exception:
+        print("Error desconocido al cargar el archivo")
+        return None
 
-def guardar_datos_dict(datos, ruta_archivo, tipo_archivo='json'):
+def guardar_datos_dict(datos, ruta_archivo):
     """
     Guarda un diccionario en el formato indicado en la ruta especificada.
 
@@ -36,16 +51,21 @@ def guardar_datos_dict(datos, ruta_archivo, tipo_archivo='json'):
     Returns:
         None
     """
-    if tipo_archivo == 'json':
-        try:
+    try:
+        if ruta_archivo.endswith('.json'):
             with open(ruta_archivo, "w", encoding = "utf-8") as f:
                 json.dump(datos, f, ensure_ascii = False, indent = 2)
-        except TypeError as e:
-            # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
-            print(f"Error de tipo en la serialización: {e}")
-        except Exception as e:
-            # Cualquier otro tipo de error
-            print(f"Error inesperado {e}")
+        elif ruta_archivo.endswith('.json.gzip'):
+            with gzip.open(ruta_archivo, "w", encoding = "utf-8") as f:
+                json.dump(datos, f, ensure_ascii = False, indent = 2)
+        elif ruta_archivo.endswith('.parquet'):
+            pd.DataFrame(datos).to_parquet(ruta_archivo)
+    except TypeError as e:
+        # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
+        print(f"Error de tipo en la serialización: {e}")
+    except Exception as e:
+        # Cualquier otro tipo de error
+        print(f"Error inesperado {e}")
 
 def solicitud_url(sesion, params_info, url):
     """
