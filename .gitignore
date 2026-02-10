@@ -10,3 +10,7 @@ torch_cache
 *.jpg
 *.parquet
 *.json.gzip
+*.jsonl
+
+# Archivos concretos
+config_rango.txt

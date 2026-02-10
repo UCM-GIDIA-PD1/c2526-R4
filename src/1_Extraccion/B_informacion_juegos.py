@@ -5,6 +5,7 @@ import time
 import os
 import json
 from datetime import datetime
+from calendar import monthrange
 
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
@@ -152,10 +153,33 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
                 l["recommendations_down"] += rollups[idx + i].get("recommendations_down", 0)
         appreviewhistogram["rollups"] = l
     else:
+        # Si el dia es mayor que 15 y el primer mes no es el último del que se tiene información, se cogen también las del mes siguiente
+        fecha = datetime.fromtimestamp(rollups[idx].get("date"))
+        if fecha.day > 15 and idx < len(rollups) - 1:
+            # Número de dias que se tienen en cuenta
+            # monthrange() devuelve (diaDeLaSemana, numDiasMes)
+            dias_mes_actual = monthrange(fecha.year, fecha.month)[1] - fecha.day + 1
+            fecha_sig = datetime.fromtimestamp(rollups[idx + 1].get("date"))
+            dias_mes_siguiente = monthrange(fecha_sig.year, fecha_sig.month)[1]
+            dias = dias_mes_actual + dias_mes_siguiente
+            rec_up = int(rollups[idx].get("recommendations_up", 0)) + int(rollups[idx + 1].get("recommendations_up", 0))
+            rec_down = int(rollups[idx].get("recommendations_down", 0)) + int(rollups[idx + 1].get("recommendations_down", 0))
+        else:
+            dias = monthrange(fecha.year, fecha.month)[1] - fecha.day + 1
+            rec_up = int(rollups[idx].get("recommendations_up", 0))
+            rec_down = int(rollups[idx].get("recommendations_down", 0))
+        
+        if dias == 0: dias = 1
+            
         appreviewhistogram["rollups"] = {
             "date": rollups[idx].get("date"), 
-            "recommendations_up": rollups[idx].get("recommendations_up", 0), 
-            "recommendations_down": rollups[idx].get("recommendations_down", 0)
+            "recommendations_up": rec_up, 
+            "recommendations_down": rec_down,
+            "recommendations_up_per_day": rec_up / dias,
+            "recommendations_down_per_day": rec_down / dias,
+            "total_recommendations": rec_up + rec_down,
+            "total_recommendations_per_day": (rec_up + rec_down) / dias,
+            "dias":dias
         }
 
     return appreviewhistogram
@@ -188,81 +212,69 @@ def descargar_datos_juego(id, sesion):
         return {}
     
     fecha_salida_datetime = Z_funciones.convertir_fecha_datetime(release_data.get("date"))
-    if fecha_salida_datetime.year < 2011:
-        return {}
-    
+
     if not fecha_salida_datetime:
         return {}
 
+    if fecha_salida_datetime.year < 2011:
+        return {}
+    
     game_info["appreviewhistogram"] = get_appreviewhistogram(str_id, sesion, fecha_salida_datetime)
 
     
     return game_info
 
 def main():
+    # PARA TERMINAR SESIÓN: CTRL + C
     sesion = requests.Session()
     # User-Agent para parecer un navegador
     sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 
 
-    ruta_origen = r"data\steam_apps.json"
-    ruta_destino = r"data\info_steam_games.json"
+    ruta_origen = r"data\steam_apps.json.gzip"
+    ruta_config = r"data\config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
+
+    # Cargamos los puntos de inicio y final
+    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config)
+
+    # Archivo temporal jsonlines en el que guardaremos la informacion
+    ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
+
+    if os.path.exists(ruta_temp_jsonl):
+        os.remove(ruta_temp_jsonl)
+
+    ruta_final_gzip = f"data\\info_steam_games.json.gzip"
     
-    # Cargamos el json de la lista de juegos
+    # Cargamos el json de la lista de appids
     lista_juegos = Z_funciones.cargar_datos_locales(ruta_origen)
     if not lista_juegos:
         print("No se encontró la lista de appids")
         return
     
-    # Para tener constancia de los ids ya procesados
-    ids_procesados = set()
-    if os.path.exists(ruta_destino):
-        print('Reanudando progreso...')
-        data_existente = Z_funciones.cargar_datos_locales(ruta_destino)
-        if data_existente and "data" in data_existente:
-            ids_procesados = {j["id"] for j in data_existente["data"]}
-
-    print(f"Total juegos: {len(lista_juegos['apps'])} | Ya procesados: {len(ids_procesados)}")
+    apps = lista_juegos.get("apps", [])
+    if juego_fin >= len(apps):
+        juego_fin = len(apps) - 1
+    
+    juegos_a_procesar = apps[juego_ini : juego_fin + 1]
     
     # Iteramos sobre la lista de juegos y lo metemos en un json nuevo
+    print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
     print("Comenzando extraccion de juegos...\n")
     
-    batch_juegos = []
-    juego_ini = 'x' # appid a partir del cual se empieza a extraer
-    juego_fin = 'y' # ultimo appid a extraer
-
+    idx_actual = juego_ini - 1
+    ultimo_idx_guardado = juego_ini - 1
     try:
-        for juego in lista_juegos.get("apps") and int(juego.get("appid")) <= juego_fin:
+        for i, juego in enumerate(juegos_a_procesar):
             appid = juego.get("appid")
+            idx_actual = i + juego_ini
             
-            if int(appid) < juego_ini:
-                continue
-
-            # Saltamos los procesados
-            if appid in ids_procesados:
-                continue
-
             try:
                 desc = descargar_datos_juego(appid, sesion)
                 
-                if desc != {}:
-                    batch_juegos.append(desc)
-                    ids_procesados.add(appid)
+                if desc:
                     print(f"{appid}: {juego.get('name')}")
                     
-                    if len(batch_juegos) >= 20:
-                        # Cada 20 juegos los añade al json para no saturar la RAM
-                        # Comprobar que existe la ruta destino
-                        if os.path.exists(ruta_destino):
-                            datos_totales = Z_funciones.cargar_datos_locales(ruta_destino)
-                            if not datos_totales:
-                                datos_totales = {"data": []}
-                        else:
-                            datos_totales = {"data": []}    
-                        datos_totales["data"].extend(batch_juegos)
-                        Z_funciones.guardar_datos_dict(datos_totales, ruta_destino)
-                        
-                        batch_juegos = [] # Vaciamos memoria
-                        print(f"Progreso guardado automáticamente ({len(ids_procesados)} juegos)")
+                    Z_funciones.guardar_datos_dict(desc, ruta_temp_jsonl)
+                    ultimo_idx_guardado = idx_actual
 
                 # Pausa para respetar la API
                 time.sleep(1.5)
@@ -276,14 +288,19 @@ def main():
         print("\nDetenido por el usuario. Guardando antes de salir...")
     finally:
         # Guardado final de lo que quede en el batch
-        if batch_juegos:
-            datos_totales = Z_funciones.cargar_datos_locales(ruta_destino)
-            if not datos_totales:
-                datos_totales = {"data": []}
-            datos_totales["data"].extend(batch_juegos)
-            Z_funciones.guardar_datos_dict(datos_totales, ruta_destino)
+        print("Cerrando sesión...")
+        exito = Z_funciones.guardar_sesion_final(ruta_temp_jsonl, ruta_final_gzip)
         
-        print("Sesión finalizada.")
+        if exito:
+            nuevo_inicio = ultimo_idx_guardado + 1 
+            if nuevo_inicio > juego_fin:
+                print("¡Rango completado!")
+                Z_funciones.actualizar_configuracion(ruta_config, juego_fin + 1, juego_fin)
+            else:
+                Z_funciones.actualizar_configuracion(ruta_config, nuevo_inicio, juego_fin)
+            print(f"Archivo guardado: {ruta_final_gzip}")
+        else:
+            print("No se generaron datos nuevos o hubo un error en el guardado final")
 
 if __name__ == "__main__":
     main()
