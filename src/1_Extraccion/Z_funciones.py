@@ -99,8 +99,6 @@ def convertir_fecha_datetime(fecha_str):
         return datetime.strptime(fecha_str, "%d %b, %Y")
     except ValueError:
         return None
-    
-import sys
 
 def barra_progreso(iterable):
     """
@@ -126,3 +124,47 @@ def barra_progreso(iterable):
         yield item 
         imprimir_barra(i + 1)
     print()
+
+def convertir_fecha_steam(fecha_str):
+    """
+    Convierte 'DD Mon, YYYY' -> 'YYYY-MM-DD'
+
+    Args:
+        fecha_str (str): Fecha en formato 'DD Mon, YYYY'.
+
+    Returns:
+        str | None: La fecha en formato RFC 3339 ('YYYY-MM-DD')
+        Retorna None si la fecha no se carga correctamente.
+    """
+    if not fecha_str:
+        return None
+
+    try:
+        # Para pasar de formato mes -> mes_num
+        meses = {
+            'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
+            'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+        }
+
+        # Dividimos el string en partes
+        limpia = fecha_str.replace(',', '')
+        partes = limpia.split()
+
+        # Nos aseguramos de que partes tenga longitud 3
+        if len(partes) != 3:
+            return None
+
+        # Pasamos a formato numérico
+        dia, mes_texto, anio = partes[0], partes[1], partes[2]
+        dia = dia.zfill(2)
+        mes_numero = meses.get(mes_texto)
+        
+        if not mes_numero:
+            return None
+
+        # Devolvemos en el formato necesario
+        return f"{anio}-{mes_numero}-{dia}"
+
+    except Exception as e:
+        print(f"Error convirtiendo fecha '{fecha_str}': {e}")
+        return None

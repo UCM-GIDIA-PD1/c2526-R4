@@ -24,50 +24,6 @@ Salida:
 - Los datos se almacenan en la el directorio indicado.
 '''
 
-def convertir_fecha_steam(fecha_str):
-    """
-    Convierte 'DD Mon, YYYY' -> 'YYYY-MM-DDT00:00:00Z'
-
-    Args:
-        fecha_str (str): Fecha en formato 'DD Mon, YYYY'.
-
-    Returns:
-        str | None: La fecha en formato RFC 3339 ('YYYY-MM-DDT00:00:00Z')
-        Retorna None si la fecha no se carga correctamente.
-    """
-    if not fecha_str:
-        return None
-
-    try:
-        # Para pasar de formato mes -> mes_num
-        meses = {
-            'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
-            'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
-        }
-
-        # Dividimos el string en partes
-        limpia = fecha_str.replace(',', '')
-        partes = limpia.split()
-
-        # Nos aseguramos de que partes tenga longitud 3
-        if len(partes) != 3:
-            return None
-
-        # Pasamos a formato numérico
-        dia, mes_texto, anio = partes[0], partes[1], partes[2]
-        dia = dia.zfill(2)
-        mes_numero = meses.get(mes_texto)
-        
-        if not mes_numero:
-            return None
-
-        # Devolvemos en el formato necesario
-        return f"{anio}-{mes_numero}-{dia}T00:00:00Z"
-
-    except Exception as e:
-        print(f"Error convirtiendo fecha '{fecha_str}': {e}")
-        return None
-
 def procesar_juego(youtube_service, nombre_juego, fecha_limite):
     """
     Devuelve una lista con las estadisticas de los 10 videos mas vistos de un juego 
@@ -147,18 +103,17 @@ def main():
 
     # Creamos el googleapiclient.discovery.Resource
     youtube = build('youtube', 'v3', developerKey=API_KEY)
-    print("oiahfiashfioeashf")
     # Iteramos los juegos
     lista_juegos = juegos.get("data")
     contador = 0
     for juego in lista_juegos:
         nombre = juego.get('appdetails').get("name")
         fecha = juego.get('appdetails').get("release_date").get("date")
-        fecha_formateada = convertir_fecha_steam(fecha)
+        fecha_formateada = Z_funciones.convertir_fecha_steam(fecha)
 
         if nombre and fecha_formateada:
             print(f"{nombre}: {fecha}")
-            juego['video_statistics'] = procesar_juego(youtube, nombre, fecha_formateada)
+            juego['video_statistics'] = procesar_juego(youtube, nombre, fecha_formateada + "T00:00:00Z")
         else:
             print(f'Juego con entrada incompleta: {nombre}')
         
