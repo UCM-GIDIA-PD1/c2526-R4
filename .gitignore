@@ -2,6 +2,7 @@
 __pycache__
 .venv
 .vscode
+torch_cache
 
 # Extensiones de archivos
 *.csv
@@ -9,3 +10,7 @@ __pycache__
 *.jpg
 *.parquet
 *.json.gzip
+*.jsonl
+
+# Archivos concretos
+config_rango.txt
