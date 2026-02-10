@@ -212,81 +212,75 @@ def descargar_datos_juego(id, sesion):
         return {}
     
     fecha_salida_datetime = Z_funciones.convertir_fecha_datetime(release_data.get("date"))
-    if fecha_salida_datetime.year < 2011:
-        return {}
-    
+
     if not fecha_salida_datetime:
         return {}
 
+    if fecha_salida_datetime.year < 2011:
+        return {}
+    
     game_info["appreviewhistogram"] = get_appreviewhistogram(str_id, sesion, fecha_salida_datetime)
 
     
     return game_info
 
 def main():
+    # PARA TERMINAR SESIÓN: CTRL + C
     sesion = requests.Session()
     # User-Agent para parecer un navegador
     sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 
 
     ruta_origen = r"data\steam_apps.json"
-    ruta_destino = r"data\info_steam_games.json"
+    ruta_config = r"config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
+
+    # Cargamos los puntos de inicio y final
+    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config)
+
+    # Archivo temporal jsonlines en el que guardaremos la informacion
+    ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
+
+    if os.path.exists(ruta_temp_jsonl):
+        os.remove(ruta_temp_jsonl)
+
+    ruta_final_gzip = f"data\\info_steam_games.json.gzip"
     
-    # Cargamos el json de la lista de juegos
+    # Cargamos el json de la lista de appids
     lista_juegos = Z_funciones.cargar_datos_locales(ruta_origen)
     if not lista_juegos:
         print("No se encontró la lista de appids")
         return
     
-    # Para tener constancia de los ids ya procesados
-    ids_procesados = set()
-    if os.path.exists(ruta_destino):
-        print('Reanudando progreso...')
-        data_existente = Z_funciones.cargar_datos_locales(ruta_destino)
-        if data_existente and "data" in data_existente:
-            ids_procesados = {j["id"] for j in data_existente["data"]}
-
-    print(f"Total juegos: {len(lista_juegos['apps'])} | Ya procesados: {len(ids_procesados)}")
+    apps = lista_juegos.get("apps", [])
+    if juego_fin >= len(apps):
+        juego_fin = len(apps) - 1
+    
+    juegos_a_procesar = apps[juego_ini : juego_fin + 1]
     
     # Iteramos sobre la lista de juegos y lo metemos en un json nuevo
+    print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
     print("Comenzando extraccion de juegos...\n")
     
     batch_juegos = []
-    juego_ini = 'x' # appid a partir del cual se empieza a extraer
-    juego_fin = 'y' # ultimo appid a extraer
-
+    idx_actual = juego_ini - 1
+    ultimo_idx_guardado = juego_ini - 1
     try:
-        for juego in lista_juegos.get("apps"):
+        for i, juego in enumerate(juegos_a_procesar):
             appid = juego.get("appid")
+            idx_actual = i + juego_ini
             
-            if int(appid) < juego_ini or appid > juego_fin:
-                continue
-
-            # Saltamos los procesados
-            if appid in ids_procesados:
-                continue
-
             try:
                 desc = descargar_datos_juego(appid, sesion)
                 
-                if desc != {}:
+                if desc:
                     batch_juegos.append(desc)
-                    ids_procesados.add(appid)
                     print(f"{appid}: {juego.get('name')}")
                     
                     if len(batch_juegos) >= 20:
                         # Cada 20 juegos los añade al json para no saturar la RAM
                         # Comprobar que existe la ruta destino
-                        if os.path.exists(ruta_destino):
-                            datos_totales = Z_funciones.cargar_datos_locales(ruta_destino)
-                            if not datos_totales:
-                                datos_totales = {"data": []}
-                        else:
-                            datos_totales = {"data": []}    
-                        datos_totales["data"].extend(batch_juegos)
-                        Z_funciones.guardar_datos_dict(datos_totales, ruta_destino)
-                        
+                        Z_funciones.guardar_datos_dict(batch_juegos, ruta_temp_jsonl)
+                        ultimo_idx_guardado = idx_actual
                         batch_juegos = [] # Vaciamos memoria
-                        print(f"Progreso guardado automáticamente ({len(ids_procesados)} juegos)")
 
                 # Pausa para respetar la API
                 time.sleep(1.5)
@@ -300,14 +294,22 @@ def main():
         print("\nDetenido por el usuario. Guardando antes de salir...")
     finally:
         # Guardado final de lo que quede en el batch
+        print("Cerrando sesión...")
         if batch_juegos:
-            datos_totales = Z_funciones.cargar_datos_locales(ruta_destino)
-            if not datos_totales:
-                datos_totales = {"data": []}
-            datos_totales["data"].extend(batch_juegos)
-            Z_funciones.guardar_datos_dict(datos_totales, ruta_destino)
+            Z_funciones.guardar_datos_dict(batch_juegos, ruta_temp_jsonl)
+            ultimo_idx_guardado = idx_actual
+        exito = Z_funciones.guardar_sesion_final(ruta_temp_jsonl, ruta_final_gzip)
         
-        print("Sesión finalizada.")
+        if exito:
+            nuevo_inicio = ultimo_idx_guardado + 1 
+            if nuevo_inicio > juego_fin:
+                print("¡Rango completado!")
+                Z_funciones.actualizar_configuracion(ruta_config, juego_fin + 1, juego_fin)
+            else:
+                Z_funciones.actualizar_configuracion(ruta_config, nuevo_inicio, juego_fin)
+            print(f"Archivo guardado: {ruta_final_gzip}")
+        else:
+            print("No se generaron datos nuevos o hubo un error en el guardado final")
 
 if __name__ == "__main__":
     main()
