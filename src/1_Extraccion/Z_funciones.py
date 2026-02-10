@@ -53,7 +53,7 @@ def guardar_datos_dict(datos, ruta_archivo):
     Guarda un diccionario en el formato indicado en la ruta especificada.
 
     Args:
-        datos (dict | list(dict)): Diccionario con la información a exportar. (Lista de diccionarios en caso de ser un jsonl)
+        datos (dict): Diccionario con la información a exportar. (Lista de diccionarios en caso de ser un jsonl)
         ruta_archivo (str): Ruta del sistema de archivos.
     
     Returns:
@@ -70,8 +70,7 @@ def guardar_datos_dict(datos, ruta_archivo):
             pd.DataFrame(datos).to_parquet(ruta_archivo)
         elif ruta_archivo.endswith('.jsonl'):
             with open(ruta_archivo, 'a', encoding='utf-8') as f:
-                for d in datos:
-                    f.write(json.dumps(d, ensure_ascii=False) + '\n')
+                f.write(json.dumps(datos, ensure_ascii=False) + '\n')
     except TypeError as e:
         # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
         print(f"Error de tipo en la serialización: {e}")

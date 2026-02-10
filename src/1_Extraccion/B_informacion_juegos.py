@@ -260,7 +260,6 @@ def main():
     print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
     print("Comenzando extraccion de juegos...\n")
     
-    batch_juegos = []
     idx_actual = juego_ini - 1
     ultimo_idx_guardado = juego_ini - 1
     try:
@@ -272,15 +271,10 @@ def main():
                 desc = descargar_datos_juego(appid, sesion)
                 
                 if desc:
-                    batch_juegos.append(desc)
                     print(f"{appid}: {juego.get('name')}")
                     
-                    if len(batch_juegos) >= 20:
-                        # Cada 20 juegos los añade al json para no saturar la RAM
-                        # Comprobar que existe la ruta destino
-                        Z_funciones.guardar_datos_dict(batch_juegos, ruta_temp_jsonl)
-                        ultimo_idx_guardado = idx_actual
-                        batch_juegos = [] # Vaciamos memoria
+                    Z_funciones.guardar_datos_dict(desc, ruta_temp_jsonl)
+                    ultimo_idx_guardado = idx_actual
 
                 # Pausa para respetar la API
                 time.sleep(1.5)
@@ -295,9 +289,6 @@ def main():
     finally:
         # Guardado final de lo que quede en el batch
         print("Cerrando sesión...")
-        if batch_juegos:
-            Z_funciones.guardar_datos_dict(batch_juegos, ruta_temp_jsonl)
-            ultimo_idx_guardado = idx_actual
         exito = Z_funciones.guardar_sesion_final(ruta_temp_jsonl, ruta_final_gzip)
         
         if exito:

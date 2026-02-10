@@ -10,3 +10,4 @@ data/torch_cache/
 *.jpg
 *.parquet
 *.json.gzip
+*.jsonl
