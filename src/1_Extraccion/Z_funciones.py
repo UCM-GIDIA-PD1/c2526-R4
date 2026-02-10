@@ -117,8 +117,6 @@ def convertir_fecha_datetime(fecha_str):
         return datetime.strptime(fecha_str, "%d %b, %Y")
     except ValueError:
         return None
-    
-import sys
 
 def barra_progreso(iterable):
     """

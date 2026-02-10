@@ -230,8 +230,8 @@ def main():
     # User-Agent para parecer un navegador
     sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 
 
-    ruta_origen = r"data\steam_apps.json"
-    ruta_config = r"config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
+    ruta_origen = r"data\steam_apps.json.gzip"
+    ruta_config = r"data\config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
 
     # Cargamos los puntos de inicio y final
     juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config)
