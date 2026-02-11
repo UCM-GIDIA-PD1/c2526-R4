@@ -5,6 +5,7 @@ import time
 import os
 from datetime import datetime
 from calendar import monthrange
+from random import uniform
 
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
@@ -261,7 +262,7 @@ def main():
     idx_actual = juego_ini - 1
     ultimo_idx_guardado = juego_ini - 1
     try:
-        for i, juego in enumerate(juegos_a_procesar):
+        for i, juego in enumerate(Z_funciones.barra_progreso(juegos_a_procesar)):
             appid = juego.get("appid")
             idx_actual = i + juego_ini
             
@@ -269,13 +270,14 @@ def main():
                 desc = descargar_datos_juego(appid, sesion)
                 
                 if desc:
-                    print(f"{appid}: {juego.get('name')}")
+                    # print(f"{appid}: {juego.get('name')}")
                     
                     Z_funciones.guardar_datos_dict(desc, ruta_temp_jsonl)
                     ultimo_idx_guardado = idx_actual
 
                 # Pausa para respetar la API
-                time.sleep(1.5)
+                wait = uniform(1.3, 1.7)
+                time.sleep(wait)
 
             except Exception as e:
                 # Si falla un juego específico, lo logueamos y seguimos con el siguiente
