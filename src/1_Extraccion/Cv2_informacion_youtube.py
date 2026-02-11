@@ -6,6 +6,7 @@ import subprocess
 import time
 import Z_funciones
 import random
+import os
 
 """
 Script que tiene como objetivo conseguir información YouTube scrapeando directamente de 
@@ -171,46 +172,86 @@ def main():
     # Iniciamos TOR: es recomendable hacer sesion.get() aquí para comprobar red TOR: https://check.torproject.org
     start_tor()
 
-    # Cargamos los datos del JSON que contiene las fechas para hacer las búsqueda correctamente
-    ruta_json = r'data\info_steam_games.json.gzip'
-    juegos = Z_funciones.cargar_datos_locales(ruta_json)
+    # Cargamos los puntos de inicio y final
+    ruta_config = r"data\config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
+    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config)
 
+    # Rutas que van a ser usadas
+    ruta_origen = r'data\info_steam_games.json.gzip'
+    ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
+    ruta_final_gzip = r"data\info_steam_games_and_semiyoutube.json.gzip"
+
+    if os.path.exists(ruta_temp_jsonl):
+        os.remove(ruta_temp_jsonl)
+
+    # Cargamos el JSON comprimido de la información de los juegos
+    juegos = Z_funciones.cargar_datos_locales(ruta_origen)
     if not juegos:
         print('Error al cargar los juegos')
         return
-    print('Buscando juegos en YouTube...\n')
-    lista_juegos = juegos.get("data")
+
+    j = juegos.get("data", [])
+    if juego_fin >= len(j):
+        juego_fin = len(j) - 1
+    
+    juegos_a_procesar = j[juego_ini : juego_fin + 1]
+
+    print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
+    print('Comenzando extracción de juegos en YouTube...\n')
 
     # Definimos las opciones del navegador y cargamos la sesión
     sesion = new_configured_chromium_page()
 
     # Iteramos sobre la lista de juegos
     ultima_marca_tiempo = time.time()
-    intervalo = 60 * np.random.uniform(2, 3) # Cambio de IP manual cada 5-6 minutos
-    for juego in lista_juegos:
-        nombre = juego.get('appdetails').get("name")
-        fecha = juego.get('appdetails').get("release_date").get("date")
-        fecha_formateada = Z_funciones.convertir_fecha_steam(fecha)
-        
-        if nombre and fecha_formateada:
-            print(f"{nombre}: {fecha}")
-            lista_ids = busqueda_youtube(nombre, fecha_formateada, sesion)
-            juego["video_statistics"] = lista_ids
-        else:
-            print(f'Juego con entrada incompleta: {nombre}')
-        
-        sesion.wait(4, scope=0.4)
-        tiempo_actual = time.time()
-        if tiempo_actual - ultima_marca_tiempo >= intervalo:
-            ultima_marca_tiempo = tiempo_actual
-            intervalo = 60 * np.random.uniform(5, 6) # Cambio de IP manual cada 5-6 minutos
-            sesion = renew_tor_ip(sesion)
-            if not sesion:
-                break
+    intervalo = 60 * np.random.uniform(5, 6) # Cambio de IP manual cada 5-6 minutos
 
-    # Guardamos datos y cerramos la sesión
-    Z_funciones.guardar_datos_dict(lista_juegos, r"data\info_steam_games_and_semiyoutube.json.gzip")
-    sesion.quit()
+    idx_actual = juego_ini - 1
+    ultimo_idx_guardado = juego_ini - 1
+    try:
+        for i, juego in enumerate(juegos_a_procesar):
+            nombre = juego.get('appdetails').get("name")
+            fecha = juego.get('appdetails').get("release_date").get("date")
+            fecha_formateada = Z_funciones.convertir_fecha_steam(fecha)
+            idx_actual = i + juego_ini
+        
+            if nombre and fecha_formateada:
+                print(f"{nombre}: {fecha}")
+                lista_ids = busqueda_youtube(nombre, fecha_formateada, sesion)
+                juego["video_statistics"] = lista_ids
+                Z_funciones.guardar_datos_dict(juego, ruta_temp_jsonl)
+                ultimo_idx_guardado = idx_actual
+            else:
+                print(f'Juego con entrada incompleta: {nombre}')
+        
+            sesion.wait(4, scope=0.4)
+            tiempo_actual = time.time()
+            if tiempo_actual - ultima_marca_tiempo >= intervalo:
+                ultima_marca_tiempo = tiempo_actual
+                intervalo = 60 * np.random.uniform(5, 6) # Cambio de IP manual cada 5-6 minutos
+                sesion = renew_tor_ip(sesion)
+                if not sesion:
+                    break
+    except KeyboardInterrupt:
+        print("\nDetenido por el usuario. Guardando antes de salir...")
+    finally:
+        # Guardado final
+        print("Cerrando sesión...")
+
+        exito = Z_funciones.guardar_sesion_final(ruta_temp_jsonl, ruta_final_gzip)
+        
+        if exito:
+            nuevo_inicio = ultimo_idx_guardado + 1 
+            if nuevo_inicio > juego_fin:
+                print("¡Rango completado!")
+                Z_funciones.actualizar_configuracion(ruta_config, juego_fin + 1, juego_fin)
+            else:
+                Z_funciones.actualizar_configuracion(ruta_config, nuevo_inicio, juego_fin)
+            print(f"Archivo guardado: {ruta_final_gzip}")
+        else:
+            print("No se generaron datos nuevos o hubo un error en el guardado final")
+        
+        sesion.quit()
 
 if __name__ == "__main__":
     main()

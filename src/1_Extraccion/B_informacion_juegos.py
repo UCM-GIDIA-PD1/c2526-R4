@@ -229,21 +229,19 @@ def main():
     # User-Agent para parecer un navegador
     sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 
 
-    ruta_origen = r"data\steam_apps.json.gzip"
-    ruta_config = r"data\config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
-
     # Cargamos los puntos de inicio y final
+    ruta_config = r"data\config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
     juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config)
 
-    # Archivo temporal jsonlines en el que guardaremos la informacion
+    # Rutas que van a ser usadas
+    ruta_origen = r"data\steam_apps.json.gzip"
     ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
+    ruta_final_gzip = r"data\info_steam_games.json.gzip"
 
     if os.path.exists(ruta_temp_jsonl):
         os.remove(ruta_temp_jsonl)
-
-    ruta_final_gzip = f"data\\info_steam_games.json.gzip"
     
-    # Cargamos el json de la lista de appids
+    # Cargamos el JSON comprimido de la lista de appids
     lista_juegos = Z_funciones.cargar_datos_locales(ruta_origen)
     if not lista_juegos:
         print("No se encontró la lista de appids")
@@ -255,7 +253,7 @@ def main():
     
     juegos_a_procesar = apps[juego_ini : juego_fin + 1]
     
-    # Iteramos sobre la lista de juegos y lo metemos en un json nuevo
+    # Iteramos sobre la lista de juegos y lo metemos en un JSON nuevo
     print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
     print("Comenzando extraccion de juegos...\n")
     
@@ -286,7 +284,7 @@ def main():
     except KeyboardInterrupt:
         print("\nDetenido por el usuario. Guardando antes de salir...")
     finally:
-        # Guardado final de lo que quede en el batch
+        # Guardado final
         print("Cerrando sesión...")
         exito = Z_funciones.guardar_sesion_final(ruta_temp_jsonl, ruta_final_gzip)
         

@@ -17,14 +17,13 @@ Salida:
 """
 
 def analiza_imagen(img_path, trans, model):
-        
         """
         Analiza las características de una imagen
 
         Args:
-            img_path: ruta de la imagen a analizar
-            trans: transformaciones para aplicar a la imagen antes de meterla al modelo
-            model: modelo preentrenado para obtener el vector de características
+            img_path (str): ruta del archivo de imagen.
+            trans (callable): transformaciones de preprocesamiento (ej. Resize, Normalize).
+            model (torch.nn.Module): modelo preentrenado para extracción de embeddings.
     
         Returns:
             caracteristicas (dict): diccionario con el brillo medio y vector de características de la imagen
@@ -49,7 +48,6 @@ def analiza_imagen(img_path, trans, model):
         return caracteristicas
     
 def extraer_metadatos_imagenes():
-
     """
         Itera por todas las imágenes en data/images y obtiene sus características, guardándolas en data/info_imagenes.json
 
