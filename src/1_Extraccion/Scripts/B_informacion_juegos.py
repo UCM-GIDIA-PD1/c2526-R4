@@ -234,12 +234,8 @@ def main():
 
     # Rutas que van a ser usadas
     ruta_origen = r"data\steam_apps.json.gzip"
-    ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
     ruta_final_gzip = f"data\\info_steam_games_{identif}.json.gzip"
 
-    if os.path.exists(ruta_temp_jsonl):
-        os.remove(ruta_temp_jsonl)
-    
     # Cargamos el JSON comprimido de la lista de appids
     lista_juegos = Z_funciones.cargar_datos_locales(ruta_origen)
     if not lista_juegos:
@@ -257,6 +253,11 @@ def main():
         juego_fin = len(apps) - 1
 
     juegos_a_procesar = apps[juego_ini : juego_fin + 1]
+
+    ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
+
+    if os.path.exists(ruta_temp_jsonl):
+        os.remove(ruta_temp_jsonl)
     
     # Iteramos sobre la lista de juegos y lo metemos en un JSON nuevo
     print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
