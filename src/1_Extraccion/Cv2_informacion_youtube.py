@@ -235,22 +235,7 @@ def main():
     except KeyboardInterrupt:
         print("\nDetenido por el usuario. Guardando antes de salir...")
     finally:
-        # Guardado final
-        print("Cerrando sesión...")
-
-        exito = Z_funciones.guardar_sesion_final(ruta_temp_jsonl, ruta_final_gzip)
-        
-        if exito:
-            nuevo_inicio = ultimo_idx_guardado + 1 
-            if nuevo_inicio > juego_fin:
-                print("¡Rango completado!")
-                Z_funciones.actualizar_configuracion(ruta_config, juego_fin + 1, juego_fin)
-            else:
-                Z_funciones.actualizar_configuracion(ruta_config, nuevo_inicio, juego_fin)
-            print(f"Archivo guardado: {ruta_final_gzip}")
-        else:
-            print("No se generaron datos nuevos o hubo un error en el guardado final")
-        
+        Z_funciones.cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)        
         sesion.quit()
 
 if __name__ == "__main__":
