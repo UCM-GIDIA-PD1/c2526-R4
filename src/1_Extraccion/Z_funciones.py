@@ -287,3 +287,33 @@ def guardar_sesion_final(ruta_jsonl, ruta_final_gzip):
     except Exception as e:
         print(f"Error en guardar_sesion_final: {e}")
         return False
+
+def cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin):
+    """
+    Cierra la sesión de extracción de datos: guarda datos temporales en un JSON comprimido, borra
+    el archivo temporal y actualiza el archivo de configuración.
+
+    Args:
+        ruta_temp_jsonl (str): Ruta del archivo jsonl temporal con los datos de la sesión
+        ruta_final_gzip (str): Ruta del archivo gzip final donde se consolidarán los datos
+        ruta_config (str): Ruta del archivo txt que describe la configuración usada
+        ultimo_idx_guardado (): ID de fila del último juego cargado
+        juego_fin (): Límite superior del archivo de configuración
+    
+    Returns:
+        None
+    """
+    print("Cerrando sesión...")
+
+    exito = guardar_sesion_final(ruta_temp_jsonl, ruta_final_gzip)
+    
+    if exito:
+        nuevo_inicio = ultimo_idx_guardado + 1 
+        if nuevo_inicio > juego_fin:
+            print("¡Rango completado!")
+            actualizar_configuracion(ruta_config, juego_fin + 1, juego_fin)
+        else:
+            actualizar_configuracion(ruta_config, nuevo_inicio, juego_fin)
+        print(f"Archivo guardado: {ruta_final_gzip}")
+    else:
+        print("No se generaron datos nuevos o hubo un error en el guardado final")
