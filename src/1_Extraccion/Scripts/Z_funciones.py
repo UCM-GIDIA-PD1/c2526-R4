@@ -199,24 +199,41 @@ def convertir_fecha_steam(fecha_str):
         print(f"Error convirtiendo fecha '{fecha_str}': {e}")
         return None
 
-def leer_configuracion(ruta_txt):
+def leer_configuracion(ruta_txt, identif, longitud):
     """Lee el inicio y fin de una sesión de scrapping desde un archivo de texto
     Los indices que se guardan corresponden a los de una lista, no corresponden con un appid concreto
+    Si no existe el archivo se asigna la parte correspondiente a identif
 
     Args:
         ruta_txt: ruta del fichero de texto. Debe contener los datos en formato: 'index_inicial,index_final'
+        identif: Parte de los datos que se va a extraer
+        longitud: Numero de elementos del archivo
     
     Returns:
         Tupla de enteros con los valores de inicio y fin
     """
-    try:
-        with open(ruta_txt, 'r') as f:
-            contenido = f.read().strip()
-            partes = contenido.split(',')
-            return int(partes[0]), int(partes[1])
-    except Exception as e:
-        print(f"Error leyendo txt: {e}. Se usarán valores por defecto.")
-        return 0, 0
+    if os.path.exists(ruta_txt):
+        try:
+            with open(ruta_txt, 'r') as f:
+                contenido = f.read().strip()
+                partes = contenido.split(',')
+                return int(partes[0]), int(partes[1])
+        except Exception as e:
+            print(f"Error leyendo txt: {e}. Se usarán valores por defecto.")
+            return 0, 0
+    else:
+        assert isinstance(identif, int), "El identificador debe ser un número entero."
+        assert 1 <= identif <= 6, f"El identificador debe estar entre 1 y 6 (valor actual: {identif})."
+
+        bloque = longitud // 6
+        inicio = (identif - 1) * bloque
+        
+        if identif == 6:
+            fin = longitud - 1
+        else:
+            fin = (identif * bloque) - 1
+            
+        return inicio, fin
 
 def actualizar_configuracion(ruta_txt, nuevo_inicio, mismo_fin):
     """Sobrescribe el archivo txt con el nuevo punto de partida
