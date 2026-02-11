@@ -262,7 +262,7 @@ def main():
     idx_actual = juego_ini - 1
     ultimo_idx_guardado = juego_ini - 1
     try:
-        for i, juego in enumerate(Z_funciones.barra_progreso(juegos_a_procesar)):
+        for i, juego in enumerate(Z_funciones.barra_progreso(juegos_a_procesar, keys=['appid', 'name'])):
             appid = juego.get("appid")
             idx_actual = i + juego_ini
             
@@ -270,8 +270,6 @@ def main():
                 desc = descargar_datos_juego(appid, sesion)
                 
                 if desc:
-                    # print(f"{appid}: {juego.get('name')}")
-                    
                     Z_funciones.guardar_datos_dict(desc, ruta_temp_jsonl)
                     ultimo_idx_guardado = idx_actual
 
@@ -285,7 +283,7 @@ def main():
                 continue
 
     except KeyboardInterrupt:
-        print("\nDetenido por el usuario. Guardando antes de salir...")
+        print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
         Z_funciones.cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)
 

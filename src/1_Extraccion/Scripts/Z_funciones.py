@@ -119,13 +119,14 @@ def convertir_fecha_datetime(fecha_str):
         return None
 
 
-def barra_progreso(iterable, total=None):
-    """Barra de progreso para meter a los for
+def barra_progreso(iterable, total=None, keys=None):
+    """Barra de progreso para meter a los bucles for.
     
     Args:
         iterable (iterable): Colección de elementos sobre la que se va a iterar.
         total (int, opcional): El número total de elementos. Necesario si el iterable 
-                               no tiene len() (como en enumerate).
+            no tiene len() (como en enumerate).
+        attrs (list, opcional): Lista de strings con los nombres de los atributos a mostrar.
     
     Returns:
         any: Los elementos del iterable original de forma secuencial.
@@ -136,16 +137,22 @@ def barra_progreso(iterable, total=None):
         except TypeError:
             raise TypeError("El iterable no tiene longitud. Pasa el argumento 'total' manualmente.")
 
-    def imprimir_barra(iteracion):
-        porcentaje = int(100 * (iteracion / total))
-        llenado = int(50 * iteracion // total)
+    def imprimir_barra(i, item=None, keys=None):
+        porcentaje = int(100 * (i / total))
+        llenado = int(50 * i // total)
         barra = '█' * llenado + '-' * (50 - llenado)
-        print(f'\r{barra}| {porcentaje}%', end='', flush=True)
+
+        info_extra = ""
+        if item and keys:
+            detalles = [f"{k}: {item.get(k, 'N/A')}" for k in keys]
+            info_extra = " | " + " | ".join(detalles)
+
+        print(f'\r{barra}| {porcentaje}%{info_extra}', end='', flush=True)
 
     imprimir_barra(0)
     for i, item in enumerate(iterable):
         yield item 
-        imprimir_barra(i + 1)
+        imprimir_barra(i + 1, item, keys)
     print()
 
 def convertir_fecha_steam(fecha_str):

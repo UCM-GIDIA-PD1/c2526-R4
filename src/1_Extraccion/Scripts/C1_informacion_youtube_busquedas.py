@@ -211,7 +211,7 @@ def main():
     idx_actual = juego_ini - 1
     ultimo_idx_guardado = juego_ini - 1
     try:
-        for i, juego in enumerate(juegos_a_procesar):
+        for i, juego in enumerate(Z_funciones.barra_progreso(juegos_a_procesar, keys=['id'])):
             id = juego.get('id')
             nombre = juego.get('appdetails').get("name")
             fecha = juego.get('appdetails').get("release_date").get("date")
@@ -219,7 +219,6 @@ def main():
             idx_actual = i + juego_ini
         
             if nombre and fecha_formateada:
-                print(f"{nombre}: {fecha}")
                 lista_ids = busqueda_youtube(nombre, fecha_formateada, sesion)
                 Z_funciones.guardar_datos_dict({'id':id,'name':nombre,'video_statistics':lista_ids}, ruta_temp_jsonl)
                 ultimo_idx_guardado = idx_actual
