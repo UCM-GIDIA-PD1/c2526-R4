@@ -23,16 +23,26 @@
 ```
 SteamPredictor/
 ├── data/
-│   └── GoogleDrive.txt
+│   └── [Drive de datos](https://drive.google.com/drive/folders/1BIC7hrgvBLbDqTDKP1Cg0qdcjAiJjNSI?usp=drive_link)
+│   └── [Servidor de datos](https://minio.fdi.ucm.es/)
 ├── src/
-│   ├── 1_Extracción/          # Captura de datos
-│   ├── 2_Transformacion/      # 
-│   ├── 3_Análisis/            # 
-│   ├── 4_Modelos/             # 
-│   └── 5_Despliegue/          # 
-├── .gitignore                 # .gitignore
-├── README.md                  # Documentación
-└── requirements.txt           # Para instalar facilmente todas las dependencias del proyecto 
+│   ├── 1_Extraccion/                             # Captura de datos
+│   │   ├── Scripts/
+│   │   │   ├── A_lista_juegos.py
+│   │   │   ├── B_informacion_juegos.py
+│   │   │   ├── C1_informacion_youtube_busqueda.py
+│   │   │   ├── C2_informacion_youtube_video.py
+│   │   │   ├── D_informacion_resenyas.py
+│   │   │   ├── E_metadatos_imagenes.py
+│   │   │   └── Z_funciones.py
+│   │   └── main.py                               
+│   └── 2_Analisis/                               # Estudio de distribución de datos
+│       └── Analisis_distribucion_popularidad.py  
+├── .gitignore
+├── .python-version
+├── README.md
+├── pyproject.toml
+└── uv.lock
 ```
 
 ---
