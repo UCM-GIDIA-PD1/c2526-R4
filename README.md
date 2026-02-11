@@ -23,8 +23,7 @@
 ```
 SteamPredictor/
 ├── data/
-│   └── [Drive de datos](https://drive.google.com/drive/folders/1BIC7hrgvBLbDqTDKP1Cg0qdcjAiJjNSI?usp=drive_link)
-│   └── [Servidor de datos](https://minio.fdi.ucm.es/)
+│   └── server.txt
 ├── src/
 │   ├── 1_Extraccion/                             # Captura de datos
 │   │   ├── Scripts/
