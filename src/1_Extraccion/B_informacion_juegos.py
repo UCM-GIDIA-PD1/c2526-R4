@@ -13,10 +13,10 @@ Requisitos:
 - Módulo `requests` para solicitar acceso a las APIs.
 
 Entrada:
-- Necesita para su ejecución el archivo steam_apps.json
+- Necesita para su ejecución el archivo steam_apps.json.gzip
 
 Salida:
-- Los datos se almacenan en la carpeta data/ en formato JSON.
+- Los datos se almacenan en la carpeta data/ en formato JSON comprimido.
 '''
 
 def get_appdetails(str_id, sesion):
@@ -220,11 +220,11 @@ def descargar_datos_juego(id, sesion):
     
     game_info["appreviewhistogram"] = get_appreviewhistogram(str_id, sesion, fecha_salida_datetime)
 
-    
     return game_info
 
 def main():
     # PARA TERMINAR SESIÓN: CTRL + C
+    
     sesion = requests.Session()
     # User-Agent para parecer un navegador
     sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 

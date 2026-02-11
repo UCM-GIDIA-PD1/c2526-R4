@@ -120,13 +120,15 @@ def convertir_fecha_datetime(fecha_str):
 
 def barra_progreso(iterable):
     """
-    Para tener una barra de carga fancy en la terminal en los bucles for.
+    Generador que envuelve un iterable para visualizar una barra de progreso en la terminal.
+    Yields significa que la función produce una serie de valores de manera iterativa.
 
     Args:
-        iterable: elemento sobre el que se va a ejecutar el for.
+        iterable (iterable): Colección de elementos sobre la que se va a iterar. Debe soportar 
+            la función len().
     
-    Returns:
-        None
+    Yields:
+        any: Los elementos del iterable original de forma secuencial.
     """
     total = len(iterable)
     

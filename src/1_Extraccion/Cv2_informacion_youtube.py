@@ -5,19 +5,22 @@ import psutil
 import subprocess
 import time
 import Z_funciones
-import time
+import random
 
 """
 Script que tiene como objetivo conseguir información YouTube scrapeando directamente de 
 Youtube. Además, usa TOR para evitar baneos de IP por conexiones excesivas al buscar, 
 ya que es una petición costosa.
 
+TOR es muy importante, a no ser que queráis baneos de IP de YouTube.
+
 Requisitos:
 - Módulo `DrissionPage`.
+- Módulo `stem`.
 - Tener TOR Bundle descargado.
 
 Entrada:
-- Archivo de info_steam_games.json
+- Archivo de info_steam_games.json.gzip.
 
 Salida:
 - Los datos se almacenan en la el directorio indicado.
@@ -33,6 +36,12 @@ user_agents = [
 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0',
 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0',
 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/115.0.0.0'
+]
+
+# Resoluciones de pantalla comunes:
+resoluciones_comunes = [
+    (1920, 1080), (1366, 768), (1536, 864), 
+    (1440, 900), (1280, 720), (1600, 900)
 ]
 
 def is_tor_running():
@@ -68,9 +77,10 @@ def start_tor():
         print("Ejecutando TOR...")
         # Cambiar PATH de donde hayáis descargado TOR
         TOR_PATH = r"C:\PROGRAMS\TOR\tor\tor.exe"
+        TORRC_PATH = r"C:\PROGRAMS\TOR\data\torrc"
 
         # Abrimos TOR
-        subprocess.Popen(TOR_PATH, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen([TOR_PATH, '-f', TORRC_PATH], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(10)
     else:
         print("TOR ya está siendo ejecutado")
@@ -92,14 +102,37 @@ def renew_tor_ip(sesion):
     sesion.quit()
 
     # Rotación de IP
-    with stem.control.Controller.from_port(port=9051) as controller:
-        controller.authenticate()
-        controller.signal(stem.Signal.NEWNYM)
+    try:
+        with stem.control.Controller.from_port(port=9051) as controller:
+            controller.authenticate()
+            controller.signal(stem.Signal.NEWNYM)
+    except stem.SocketError:
+        print("Error: No se pudo conectar con el puerto de control de Tor (9051).")
+        return None
     
     # Configuramos la nueva sesion de DrissionPage
+    return new_configured_chromium_page()
+
+def new_configured_chromium_page():
+    """
+    Abre una nueva sesión configurada de ChromiumPage y la devuelve para intentar
+    tener anonimizar la huella del navegador.
+
+    Args:
+        Ninguno.
+
+    Returns:
+        ChromiumPage: Nueva sesión de ChromiumPage ya configurada.
+    """
     co = ChromiumOptions()
+    
+    # Configuramos el nuevo ChromiumPage
     co.set_user_agent(np.random.choice(user_agents))
-    co.set_argument('--proxy-server=socks5://127.0.0.1:9050')
+    co.set_argument('--proxy-server=socks5://127.0.0.1:9050') # Puerto que usa TOR
+    ancho_base, alto_base = random.choice(resoluciones_comunes)
+    alto = alto_base + np.random.randint(-20, 0) # Simulamos el tamaño de la barra de tareas de manera aleatoria
+    co.set_argument(f'--window-size={ancho_base},{alto}')
+
     return ChromiumPage(co)
 
 def busqueda_youtube(nombre_juego, fecha, sesion):
@@ -149,14 +182,11 @@ def main():
     lista_juegos = juegos.get("data")
 
     # Definimos las opciones del navegador y cargamos la sesión
-    co = ChromiumOptions()
-    co.set_user_agent(np.random.choice(user_agents))
-    co.set_argument('--proxy-server=socks5://127.0.0.1:9050') # Puerto que usa TOR
-    sesion = ChromiumPage(co)
+    sesion = new_configured_chromium_page()
 
     # Iteramos sobre la lista de juegos
     ultima_marca_tiempo = time.time()
-    intervalo = 60 * np.random.uniform(1, 2)
+    intervalo = 60 * np.random.uniform(2, 3) # Cambio de IP manual cada 5-6 minutos
     for juego in lista_juegos:
         nombre = juego.get('appdetails').get("name")
         fecha = juego.get('appdetails').get("release_date").get("date")
@@ -173,7 +203,10 @@ def main():
         tiempo_actual = time.time()
         if tiempo_actual - ultima_marca_tiempo >= intervalo:
             ultima_marca_tiempo = tiempo_actual
-            intervalo = 60 * np.random.uniform(5, 6)
+            intervalo = 60 * np.random.uniform(5, 6) # Cambio de IP manual cada 5-6 minutos
+            sesion = renew_tor_ip(sesion)
+            if not sesion:
+                break
 
     # Guardamos datos y cerramos la sesión
     Z_funciones.guardar_datos_dict(lista_juegos, r"data\info_steam_games_and_semiyoutube.json.gzip")

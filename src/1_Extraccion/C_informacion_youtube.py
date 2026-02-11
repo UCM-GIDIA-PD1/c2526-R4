@@ -3,7 +3,11 @@ from googleapiclient.discovery import build
 import Z_funciones
 
 '''
-Código que busca a partir de info_steam_games.json los juegos en YouTube, filtrando
+A priori este código no será usado, ya que vamos a hacer las búsquedas scrapeando, que es
+mucho más rápido y son ilimitadas. De todas formas deberemos seguir usando la API de YouTube 
+para buscar las estadísticas de los vídeos.
+
+Código que busca a partir de info_steam_games.json.gzip los juegos en YouTube, filtrando
 por popularidad, antes de una fecha determinada e itera por los resultados (los 
 vídeos), extrayendo sus estadísticas.
 
@@ -18,7 +22,7 @@ Requisitos:
 - Tener la API de YouTube de desarrollador.
 
 Entrada:
-- Necesita para su ejecución el archivo info_steam_games.json.
+- Necesita para su ejecución el archivo info_steam_games.json.gzip.
 
 Salida:
 - Los datos se almacenan en la el directorio indicado.
@@ -93,7 +97,7 @@ def main():
         return
 
     # Cargamos los datos del JSON que contiene las fechas para hacer las búsqueda correctamente
-    ruta_json = r'data\info_steam_games.json'
+    ruta_json = r'data\info_steam_games.json.gzip'
     juegos = Z_funciones.cargar_datos_locales(ruta_json)
 
     if not juegos:
@@ -121,7 +125,7 @@ def main():
         if contador == 99:
             break
 
-    Z_funciones.guardar_datos_dict(lista_juegos, r"data\info_steam_games_and_youtube.json")
+    Z_funciones.guardar_datos_dict(lista_juegos, r"data\info_steam_games_and_youtube.json.gzip")
 
 if __name__ == "__main__":
     main()

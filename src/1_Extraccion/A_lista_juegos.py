@@ -3,7 +3,7 @@ import requests
 import Z_funciones
 
 """
-Script que itera sobre la API de Steam y devuelve un JSON con todos los juegos y sus APPID.
+Script que itera sobre la API de Steam y devuelve un JSON comprimido con todos los juegos y sus APPID.
 
 Requisitos:
 - Módulo `requests`.
@@ -11,7 +11,10 @@ Requisitos:
 
 Información extra:
 - max_results tiene por defecto 10000 juegos, pero se puede ajustar hasta 50000.
-- Usamos el parámetro last_appid para indicar el último juego que se extrajo
+- Usamos el parámetro last_appid para indicar el último juego que se extrajo.
+
+Entrada:
+- Ninguna.
 
 Salida:
 - Los datos se almacenan en la el directorio indicado.
@@ -53,11 +56,8 @@ def main():
         print('La API_KEY no ha sido cargada')
         return
 
-    # Vamos a poner max_results = 99 para tener una muestra pequeña de prueba
-    # Además, para que funcionen las búsquedas de YouTube vamos a poner la 
-    # last_appid = 105600, la de Terraria
-    max_results = 50000 # Poner a 50000 cuando se quiera extraer todo
-    appid = 0 # Poner a 0 cuando se quiera extraer todo
+    max_results = 50000 # Poner a 50000 cuando se quiera extraer todo, 99 cuando se quiera extraer una prueba
+    appid = 0 # Poner a 0 cuando se quiera extraer todo, otra APPID cuando se quiera empezar por un juego específico
     info = {"key": API_KEY, "max_results" : max_results, "last_appid": appid}
 
     # Creamos el json que va a tener todos los datos
@@ -67,7 +67,8 @@ def main():
     session = requests.Session()
     data = Z_funciones.solicitud_url(session, info, url)
     if data:
-        j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", []) if es_juego_valido(a.get("name"))])
+        j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", []) 
+                          if es_juego_valido(a.get("name"))])
     else:
         print("Carga fallida")
         return
@@ -78,7 +79,8 @@ def main():
             info["last_appid"] = data['response'].get('last_appid')
             data = Z_funciones.solicitud_url(session, info, url)
             if data:
-                j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", []) if es_juego_valido(a.get("name"))])
+                j["apps"].extend([{"appid": a["appid"], "name": a["name"]} for a in data["response"].get("apps", []) 
+                                  if es_juego_valido(a.get("name"))])
             else:
                 print("Carga fallida")
 
