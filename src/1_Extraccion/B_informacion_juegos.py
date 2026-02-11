@@ -5,6 +5,7 @@ import time
 import os
 from datetime import datetime
 from calendar import monthrange
+from random import uniform
 
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
@@ -275,7 +276,8 @@ def main():
                     ultimo_idx_guardado = idx_actual
 
                 # Pausa para respetar la API
-                time.sleep(1.5)
+                wait = uniform(1.3, 1.7)
+                time.sleep(wait)
 
             except Exception as e:
                 # Si falla un juego específico, lo logueamos y seguimos con el siguiente
