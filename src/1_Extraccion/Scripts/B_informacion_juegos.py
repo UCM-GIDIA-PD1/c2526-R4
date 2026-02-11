@@ -226,19 +226,16 @@ def descargar_datos_juego(id, sesion):
 
 def main():
     # PARA TERMINAR SESIÓN: CTRL + C
+    identif = 1 # NECESARIO indicar que parte de las 6 de los juegos se va a scrappear
     
     sesion = requests.Session()
     # User-Agent para parecer un navegador
     sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 
 
-    # Cargamos los puntos de inicio y final
-    ruta_config = r"data\config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
-    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config)
-
     # Rutas que van a ser usadas
     ruta_origen = r"data\steam_apps.json.gzip"
     ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
-    ruta_final_gzip = r"data\info_steam_games.json.gzip"
+    ruta_final_gzip = f"data\\info_steam_games_{identif}.json.gzip"
 
     if os.path.exists(ruta_temp_jsonl):
         os.remove(ruta_temp_jsonl)
@@ -250,9 +247,15 @@ def main():
         return
     
     apps = lista_juegos.get("apps", [])
+
+    # Cargamos los puntos de inicio y final
+    ruta_config = r"data\config_rango.txt"
+    num_juegos = len(apps)
+    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, identif, num_juegos)
+
     if juego_fin >= len(apps):
         juego_fin = len(apps) - 1
-    
+
     juegos_a_procesar = apps[juego_ini : juego_fin + 1]
     
     # Iteramos sobre la lista de juegos y lo metemos en un JSON nuevo
