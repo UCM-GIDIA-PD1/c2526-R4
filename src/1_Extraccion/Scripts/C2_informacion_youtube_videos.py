@@ -88,9 +88,7 @@ def procesar_juego(youtube_service, nombre_juego, fecha_limite):
 def main():
     # Cargamos la API del sistema
     API_KEY = os.environ.get('API_KEY_YT')
-    if not API_KEY:
-        print('La API_KEY no ha sido cargada')
-        return
+    assert API_KEY, "La API_KEY no ha sido cargada"
 
     # Cargamos los datos del JSON que contiene las fechas para hacer las búsqueda correctamente
     ruta_json = r'data\info_steam_games.json.gzip'

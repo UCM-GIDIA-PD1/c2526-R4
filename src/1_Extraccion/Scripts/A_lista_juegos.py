@@ -57,9 +57,7 @@ def main():
 
     # Cogemos la API
     API_KEY = os.environ.get('STEAM_API_KEY')
-    if not API_KEY:
-        print('La API_KEY no ha sido cargada')
-        return
+    assert API_KEY, "La API_KEY no ha sido cargada"
 
     max_results = 50000 # Poner a 50000 cuando se quiera extraer todo, 99 cuando se quiera extraer una prueba
     appid = 0 # Poner a 0 cuando se quiera extraer todo, otra APPID cuando se quiera empezar por un juego específico
