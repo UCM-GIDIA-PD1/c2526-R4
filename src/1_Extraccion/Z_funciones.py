@@ -118,25 +118,28 @@ def convertir_fecha_datetime(fecha_str):
     except ValueError:
         return None
 
-def barra_progreso(iterable):
-    """
-    Generador que envuelve un iterable para visualizar una barra de progreso en la terminal.
-    Yields significa que la función produce una serie de valores de manera iterativa.
 
-    Args:
-        iterable (iterable): Colección de elementos sobre la que se va a iterar. Debe soportar 
-            la función len().
+def barra_progreso(iterable, total=None):
+    """Barra de progreso para meter a los for
     
-    Yields:
+    Args:
+        iterable (iterable): Colección de elementos sobre la que se va a iterar.
+        total (int, opcional): El número total de elementos. Necesario si el iterable 
+                               no tiene len() (como en enumerate).
+    
+    Returns:
         any: Los elementos del iterable original de forma secuencial.
     """
-    total = len(iterable)
-    
+    if total is None:
+        try:
+            total = len(iterable)
+        except TypeError:
+            raise TypeError("El iterable no tiene longitud. Pasa el argumento 'total' manualmente.")
+
     def imprimir_barra(iteracion):
         porcentaje = int(100 * (iteracion / total))
         llenado = int(50 * iteracion // total)
         barra = '█' * llenado + '-' * (50 - llenado)
-
         print(f'\r{barra}| {porcentaje}%', end='', flush=True)
 
     imprimir_barra(0)

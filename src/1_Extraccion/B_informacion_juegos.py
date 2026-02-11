@@ -261,7 +261,7 @@ def main():
     idx_actual = juego_ini - 1
     ultimo_idx_guardado = juego_ini - 1
     try:
-        for i, juego in enumerate(juegos_a_procesar):
+        for i, juego in enumerate(Z_funciones.barra_progreso(juegos_a_procesar)):
             appid = juego.get("appid")
             idx_actual = i + juego_ini
             
@@ -269,7 +269,7 @@ def main():
                 desc = descargar_datos_juego(appid, sesion)
                 
                 if desc:
-                    print(f"{appid}: {juego.get('name')}")
+                    # print(f"{appid}: {juego.get('name')}")
                     
                     Z_funciones.guardar_datos_dict(desc, ruta_temp_jsonl)
                     ultimo_idx_guardado = idx_actual
