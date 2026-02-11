@@ -1,0 +1,6 @@
+# Puerto para la navegación (Proxy SOCKS)
+SocksPort 9050
+# Puerto de control para que Python (stem) pueda dar órdenes
+ControlPort 9051
+# Habilitar la autenticación por cookie para el controlador
+CookieAuthentication 1
