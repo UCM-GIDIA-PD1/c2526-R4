@@ -60,13 +60,13 @@ def analiza_imagen(img_path, url,  trans, model):
     
 def extraer_metadatos_imagenes():
     """
-        Itera por todas las imágenes en data/images y obtiene sus características, guardándolas en data/info_imagenes.json
+    Itera por todas las imágenes en data/images y obtiene sus características, guardándolas en data/info_imagenes.json
 
-        Args:
-            None
+    Args:
+        None
     
-        Returns:
-            None
+    Returns:
+        None
     """
     
     os.environ['TORCH_HOME'] = r'data\torch_cache'

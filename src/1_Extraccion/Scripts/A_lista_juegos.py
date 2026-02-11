@@ -23,9 +23,14 @@ Salida:
 def es_juego_valido(nombre):
     """
     Filtro preliminar para no gastar peticiones API en cosas que sabemos que no son juegos.
-    Devuelve False si detecta palabras clave de algo que no sea un juego
-    """
 
+    Args:
+        nombre (str): Nombre completo del juego
+    
+    Returns:
+        bool : Devuelve False si detecta palabras clave de algo que no sea un juego, True en
+            caso contrario
+    """
     if not nombre: return False
     
     nombre_lower = nombre.lower()

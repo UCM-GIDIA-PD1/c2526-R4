@@ -9,6 +9,8 @@ import random
 import os
 
 """
+Primera parte de la extracción de información de YouTube: búsqueda.
+
 Script que tiene como objetivo conseguir información YouTube scrapeando directamente de 
 Youtube. Además, usa TOR para evitar baneos de IP por conexiones excesivas al buscar, 
 ya que es una petición costosa.
@@ -179,7 +181,7 @@ def main():
     # Rutas que van a ser usadas
     ruta_origen = r'data\info_steam_games.json.gzip'
     ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
-    ruta_final_gzip = r"data\info_steam_games_and_semiyoutube.json.gzip"
+    ruta_final_gzip = r"data\info_steam_youtube_1.json.gzip"
 
     if os.path.exists(ruta_temp_jsonl):
         os.remove(ruta_temp_jsonl)
@@ -210,6 +212,7 @@ def main():
     ultimo_idx_guardado = juego_ini - 1
     try:
         for i, juego in enumerate(juegos_a_procesar):
+            id = juego.get('id')
             nombre = juego.get('appdetails').get("name")
             fecha = juego.get('appdetails').get("release_date").get("date")
             fecha_formateada = Z_funciones.convertir_fecha_steam(fecha)
@@ -218,8 +221,7 @@ def main():
             if nombre and fecha_formateada:
                 print(f"{nombre}: {fecha}")
                 lista_ids = busqueda_youtube(nombre, fecha_formateada, sesion)
-                juego["video_statistics"] = lista_ids
-                Z_funciones.guardar_datos_dict(juego, ruta_temp_jsonl)
+                Z_funciones.guardar_datos_dict({'id':id,'name':nombre,'video_statistics':lista_ids}, ruta_temp_jsonl)
                 ultimo_idx_guardado = idx_actual
             else:
                 print(f'Juego con entrada incompleta: {nombre}')

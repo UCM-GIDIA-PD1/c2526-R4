@@ -3,18 +3,14 @@ from googleapiclient.discovery import build
 import Z_funciones
 
 '''
-A priori este código no será usado, ya que vamos a hacer las búsquedas scrapeando, que es
-mucho más rápido y son ilimitadas. De todas formas deberemos seguir usando la API de YouTube 
-para buscar las estadísticas de los vídeos.
+Segunda parte de la extracción de YouTube: videos.
 
-Código que busca a partir de info_steam_games.json.gzip los juegos en YouTube, filtrando
-por popularidad, antes de una fecha determinada e itera por los resultados (los 
-vídeos), extrayendo sus estadísticas.
+Habiendo ya sacado la información de las búsquedas, este script busca las estadísticas relativas
+a los vídeos de cada juego buscado, mediante la API de YouTube.
 
 Información:
-- Tenemos un límite por día de 10000 unidades para usar en la API de YouTube, de los cuales
-99900 se irán en búsquedas, y otros 99 en hacer consultas de vídeos, dejando sin usar solo 
-1 unidad.
+- Tenemos un límite por día de 10000 unidades para usar en la API de YouTube, por lo que podemos sacar
+    la información de 10000 juegos por día.
 
 Requisitos:
 - Módulo `googleapiclient` para solicitar acceso a las API de YouTube de Python 
@@ -22,7 +18,7 @@ Requisitos:
 - Tener la API de YouTube de desarrollador.
 
 Entrada:
-- Necesita para su ejecución el archivo info_steam_games.json.gzip.
+- Necesita para su ejecución el archivo info_steam_games_and_semiyoutube.json.gzip.
 
 Salida:
 - Los datos se almacenan en la el directorio indicado.
