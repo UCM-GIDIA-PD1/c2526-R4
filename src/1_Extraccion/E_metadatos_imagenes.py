@@ -4,6 +4,7 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image, ImageStat
 import Z_funciones
+import requests
 
 """
 Script que extrae de las imágenes el brillo medio y un vector de embeddings mediante una red neuronal
@@ -16,7 +17,7 @@ Salida:
 - Los datos se almacenan en la el directorio indicado.
 """
 
-def analiza_imagen(img_path, trans, model):
+def analiza_imagen(img_path, url,  trans, model):
         """
         Analiza las características de una imagen
 
@@ -28,8 +29,14 @@ def analiza_imagen(img_path, trans, model):
         Returns:
             caracteristicas (dict): diccionario con el brillo medio y vector de características de la imagen
         """
-            
-        img = Image.open(img_path).convert('RGB')
+        # Descargamos imagen y la metemos en la ruta    
+        ruta_temporal = os.path.join(img_path, "header.jpg")
+    
+        with open(ruta_temporal, 'wb') as f:
+            f.write(requests.get(url).content)
+
+        # Análisis de la imagen
+        img = Image.open(ruta_temporal).convert('RGB')
             
         # Extraer el brillo medio
         stat = ImageStat.Stat(img)
@@ -44,6 +51,10 @@ def analiza_imagen(img_path, trans, model):
             # Convertimos el tensor a una lista de Python para el JSON
             vector = embedding.flatten().tolist()
 
+        # Borramos la imagen
+        img.close() 
+        os.remove(ruta_temporal)
+        
         caracteristicas = {"brillo_medio": brillo,"vector_caracteristicas": vector} # Vector de 512 elementos
         return caracteristicas
     
@@ -73,7 +84,10 @@ def extraer_metadatos_imagenes():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    ruta_origen = r"data\images"
+    ruta_origen = r"data\info_steam_games.json.gzip"
+    ruta_imagenes = r"data\images"
+
+    data = Z_funciones.cargar_datos_locales(ruta_origen)
     resultados = {}
 
     if not os.path.exists(ruta_origen):
@@ -81,9 +95,13 @@ def extraer_metadatos_imagenes():
         return
 
     # Análisis de las imágenes
-    for archivo in Z_funciones.barra_progreso(os.listdir(ruta_origen)):
-        ruta = os.path.join(ruta_origen, archivo)
-        resultados[archivo] = analiza_imagen(ruta, trans, model)
+    for juego in Z_funciones.barra_progreso(data["data"]):
+        
+        appid = juego.get("id")
+        url = juego.get("appdetails", {}).get("header_url")
+
+        resultados[appid] = analiza_imagen(ruta_imagenes, url, trans, model)
+
 
     # Guardamos el json
     ruta_destino = r"data\info_imagenes.json"
