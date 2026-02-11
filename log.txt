@@ -1,0 +1,5 @@
+11/02/2026 - Zhixian Zhou
+
+- Cambio extension archivo .gzip por .gz (añadido al gitignore)
+- Quitado function es_juego_valido(): No hace falta, por defecto el request solo devuelve appids de juegos, tiene otros parametros por si se quiere incluir dlcs, videos, etc
+- Cambio del bucle en lista_juegos. Ahora se especifica el numero de appids que se quiere

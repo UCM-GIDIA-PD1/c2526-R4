@@ -10,6 +10,7 @@ torch_cache
 *.jpg
 *.parquet
 *.json.gzip
+*.json.gz
 *.jsonl
 
 # Archivos concretos

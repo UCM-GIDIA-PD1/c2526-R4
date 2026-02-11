@@ -63,7 +63,7 @@ def guardar_datos_dict(datos, ruta_archivo):
         if ruta_archivo.endswith('.json'):
             with open(ruta_archivo, "w", encoding = "utf-8") as f:
                 json.dump(datos, f, ensure_ascii = False, indent = 2)
-        elif ruta_archivo.endswith('.json.gzip'):
+        elif ruta_archivo.endswith('.json.gz'):
             with gzip.open(ruta_archivo, "wt", encoding = "utf-8") as f:
                 json.dump(datos, f, ensure_ascii = False, indent = 2)
         elif ruta_archivo.endswith('.parquet'):
@@ -95,6 +95,7 @@ def solicitud_url(sesion, params_info, url):
     try:
         r = sesion.get(url, params=params_info)
         r.raise_for_status()
+        assert "application/json" in r.headers.get("content-type"), "The request does not return a json"
         return r.json()
     except requests.exceptions.HTTPError as e:
         print("HTTP error occurred:", e)
