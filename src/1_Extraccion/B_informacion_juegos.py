@@ -52,6 +52,7 @@ def get_appdetails(str_id, sesion):
     appdetails["name"] = data_game.get("name")
     appdetails["required_age"] = data_game.get("required_age")
     appdetails["short_description"] = data_game.get("short_description")
+    appdetails["header_url"] = data_game.get("header_image")
     if not data_game.get("price_overview"):
         # Si el juego no tiene price_overview significa que es gratis, por lo que 
         # metemos nosotros los valores a 0
