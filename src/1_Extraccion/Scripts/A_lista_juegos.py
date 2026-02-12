@@ -20,7 +20,7 @@ Salida:
 - Los datos se almacenan en la el directorio indicado.
 """
 
-def main():
+def A_lista_juegos():
     # url e info
     url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
 
@@ -65,4 +65,4 @@ def main():
     print("Lista de juegos guardada correctamente")
 
 if __name__ == "__main__":
-    main()
+    A_lista_juegos()

@@ -77,7 +77,7 @@ def descargar_datos_juego(id, sesion):
 
     return game_info
 
-def main():
+def D_informacion_resenyas():
     # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
     sesion = requests.Session()
     lista_juegos = Z_funciones.cargar_datos_locales(r"data\steam_apps.json.gz")
@@ -97,4 +97,4 @@ def main():
     Z_funciones.guardar_datos_dict(informacion_resenyas, r"data\info_steam_resenyas.json.gz")
 
 if __name__ == "__main__":
-    main()
+    D_informacion_resenyas()

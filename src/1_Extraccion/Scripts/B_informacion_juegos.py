@@ -224,7 +224,7 @@ def descargar_datos_juego(id, sesion):
 
     return game_info
 
-def main():
+def B_informacion_juegos():
     # PARA TERMINAR SESIÓN: CTRL + C
     identif = 1 # NECESARIO indicar que parte de las 6 de los juegos se va a scrappear
     
@@ -292,4 +292,4 @@ def main():
         Z_funciones.cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)
 
 if __name__ == "__main__":
-    main()
+    B_informacion_juegos()

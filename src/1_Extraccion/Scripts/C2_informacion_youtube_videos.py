@@ -85,7 +85,7 @@ def procesar_juego(youtube_service, nombre_juego, fecha_limite):
         print(f"Error buscando '{nombre_juego}': {e}")
         return []
 
-def main():
+def C2_informacion_youtube_videos():
     # Cargamos la API del sistema
     API_KEY = os.environ.get('API_KEY_YT')
     assert API_KEY, "La API_KEY no ha sido cargada"
@@ -122,4 +122,4 @@ def main():
     Z_funciones.guardar_datos_dict(lista_juegos, r"data\info_steam_games_and_youtube.json.gz")
 
 if __name__ == "__main__":
-    main()
+    C2_informacion_youtube_videos()

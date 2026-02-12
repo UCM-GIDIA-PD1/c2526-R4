@@ -170,7 +170,7 @@ def busqueda_youtube(nombre_juego, fecha, sesion):
     
     return lista_enlaces
 
-def main():
+def C1_informacion_youtube_busquedas():
     # Iniciamos TOR: es recomendable hacer sesion.get() aquí para comprobar red TOR: https://check.torproject.org
     start_tor()
 
@@ -240,4 +240,4 @@ def main():
         sesion.quit()
 
 if __name__ == "__main__":
-    main()
+    C1_informacion_youtube_busquedas()
