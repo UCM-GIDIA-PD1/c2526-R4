@@ -14,7 +14,7 @@ Requisitos:
 - Módulo `requests` para solicitar acceso a las APIs.
 
 Entrada:
-- Necesita para su ejecución el archivo steam_apps.json.gzip
+- Necesita para su ejecución el archivo steam_apps.json.gz
 
 Salida:
 - Los datos se almacenan en la carpeta data/ en formato JSON comprimido.
@@ -233,8 +233,8 @@ def main():
     sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 
 
     # Rutas que van a ser usadas
-    ruta_origen = r"data\steam_apps.json.gzip"
-    ruta_final_gzip = f"data\\info_steam_games_{identif}.json.gzip"
+    ruta_origen = r"data\steam_apps.json.gz"
+    ruta_final_gzip = f"data\\info_steam_games_{identif}.json.gz"
 
     # Cargamos el JSON comprimido de la lista de appids
     lista_juegos = Z_funciones.cargar_datos_locales(ruta_origen)

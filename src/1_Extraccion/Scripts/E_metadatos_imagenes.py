@@ -84,7 +84,7 @@ def extraer_metadatos_imagenes():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    ruta_origen = r"data\info_steam_games.json.gzip"
+    ruta_origen = r"data\info_steam_games.json.gz"
     ruta_imagenes = r"data\images"
     os.makedirs(ruta_imagenes, exist_ok=True)
 
@@ -105,7 +105,7 @@ def extraer_metadatos_imagenes():
 
 
     # Guardamos el json
-    ruta_destino = r"data\info_imagenes.json.gzip"
+    ruta_destino = r"data\info_imagenes.json.gz"
     Z_funciones.guardar_datos_dict(resultados, ruta_destino)
 
 if __name__ == "__main__":

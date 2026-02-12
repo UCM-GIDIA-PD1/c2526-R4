@@ -18,7 +18,7 @@ Requisitos:
 - Tener la API de YouTube de desarrollador.
 
 Entrada:
-- Necesita para su ejecución el archivo info_steam_games_and_semiyoutube.json.gzip.
+- Necesita para su ejecución el archivo info_steam_games_and_semiyoutube.json.gz.
 
 Salida:
 - Los datos se almacenan en la el directorio indicado.
@@ -91,7 +91,7 @@ def main():
     assert API_KEY, "La API_KEY no ha sido cargada"
 
     # Cargamos los datos del JSON que contiene las fechas para hacer las búsqueda correctamente
-    ruta_json = r'data\info_steam_games.json.gzip'
+    ruta_json = r'data\info_steam_games.json.gz'
     juegos = Z_funciones.cargar_datos_locales(ruta_json)
 
     if not juegos:
@@ -119,7 +119,7 @@ def main():
         if contador == 99:
             break
 
-    Z_funciones.guardar_datos_dict(lista_juegos, r"data\info_steam_games_and_youtube.json.gzip")
+    Z_funciones.guardar_datos_dict(lista_juegos, r"data\info_steam_games_and_youtube.json.gz")
 
 if __name__ == "__main__":
     main()

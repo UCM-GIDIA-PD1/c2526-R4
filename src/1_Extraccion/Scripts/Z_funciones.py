@@ -21,7 +21,7 @@ def cargar_datos_locales(ruta_archivo):
             with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
                 datos = json.load(archivo)
             return datos
-        elif ruta_archivo.endswith('.json.gzip'):
+        elif ruta_archivo.endswith('.json.gz'):
             with gzip.open(ruta_archivo, 'rt', encoding='utf-8') as archivo:
                 datos = json.load(archivo)
             return datos
@@ -252,11 +252,11 @@ def actualizar_configuracion(ruta_txt, nuevo_inicio, mismo_fin):
 
 def guardar_sesion_final(ruta_jsonl, ruta_final_gzip):
     """
-    Borra un archivo jsonl pasando su contenido al json.gzip especificado
+    Borra un archivo jsonl pasando su contenido al json.gz especificado
 
     Args:
         ruta_jsonl (str): Ruta del archivo jsonl temporal con los datos de la sesión
-        ruta_final_gzip (str): Ruta del archivo gzip final donde se consolidarán los datos
+        ruta_final_gzip (str): Ruta del archivo gz final donde se consolidarán los datos
     
     Returns:
         bool: True si la operación fue exitosa, False en caso contrario
@@ -271,7 +271,7 @@ def guardar_sesion_final(ruta_jsonl, ruta_final_gzip):
             return False
         
         
-        # Si ya existe el archivo gzip final
+        # Si ya existe el archivo gz final
         if os.path.exists(ruta_final_gzip):
             datos_existentes = cargar_datos_locales(ruta_final_gzip)
             
@@ -285,7 +285,7 @@ def guardar_sesion_final(ruta_jsonl, ruta_final_gzip):
                     print("Formato inesperado en archivo existente. Se crearán datos desde cero.")
                     datos_existentes = []
             
-            # Control de duplicados. Para confirmar que no se añaden datos duplicados al json.gzip
+            # Control de duplicados. Para confirmar que no se añaden datos duplicados al json.gz
             ids_existentes = {juego.get("id") for juego in datos_existentes if isinstance(juego, dict)}
             datos_nuevos_filtrados = [j for j in datos_nuevos if j.get("id") not in ids_existentes]
             
@@ -323,7 +323,7 @@ def cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_gu
 
     Args:
         ruta_temp_jsonl (str): Ruta del archivo jsonl temporal con los datos de la sesión
-        ruta_final_gzip (str): Ruta del archivo gzip final donde se consolidarán los datos
+        ruta_final_gzip (str): Ruta del archivo gz final donde se consolidarán los datos
         ruta_config (str): Ruta del archivo txt que describe la configuración usada
         ultimo_idx_guardado (): ID de fila del último juego cargado
         juego_fin (): Límite superior del archivo de configuración

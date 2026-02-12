@@ -23,7 +23,7 @@ Requisitos:
 - Tener TOR Bundle descargado.
 
 Entrada:
-- Archivo de info_steam_games.json.gzip.
+- Archivo de info_steam_games.json.gz.
 
 Salida:
 - Los datos se almacenan en la el directorio indicado.
@@ -179,9 +179,9 @@ def main():
     juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config)
 
     # Rutas que van a ser usadas
-    ruta_origen = r'data\info_steam_games.json.gzip'
+    ruta_origen = r'data\info_steam_games.json.gz'
     ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
-    ruta_final_gzip = r"data\info_steam_youtube_1.json.gzip"
+    ruta_final_gzip = r"data\info_steam_youtube_1.json.gz"
 
     if os.path.exists(ruta_temp_jsonl):
         os.remove(ruta_temp_jsonl)
