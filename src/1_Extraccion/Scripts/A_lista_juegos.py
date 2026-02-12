@@ -75,7 +75,7 @@ def A_lista_juegos():
         data = Z_funciones.solicitud_url(session, info, url)
 
         if data:
-            content["apps"].extend([{"appid": app["appid"], "name": app["name"]} for app in data["response"].get("apps",[]) if not es_juego_valido(app.get("name"))])
+            content["apps"].extend([{"appid": app["appid"], "name": app["name"]} for app in data["response"].get("apps",[]) if es_juego_valido(app.get("name"))])
         else:
             print("Carga fallida")
             return
@@ -92,7 +92,7 @@ def A_lista_juegos():
         
 
     # Guardamos en un JSON
-    Z_funciones.guardar_datos_dict(content, r"data\steam_apps_no_validos.json")
+    Z_funciones.guardar_datos_dict(content, r"data\steam_apps.json.gz")
     print("Lista de juegos guardada correctamente")
 
 if __name__ == "__main__":
