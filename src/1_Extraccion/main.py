@@ -86,7 +86,6 @@ def ejecutar_scripts():
 
 def main():
     while True:
-        print("HOLA")
         mostrar_menu()
         opcion = input("\nSelección > ").upper().strip()
         

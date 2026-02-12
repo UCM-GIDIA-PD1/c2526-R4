@@ -58,7 +58,7 @@ def analiza_imagen(img_path, url,  trans, model):
     caracteristicas = {"brillo_medio": brillo,"vector_caracteristicas": vector} # Vector de 512 elementos
     return caracteristicas
     
-def extraer_metadatos_imagenes():
+def E_metadatos_imagenes():
     """
         Itera por todas las imágenes en data/images y obtiene sus características, guardándolas en data/info_imagenes.json
 
@@ -109,4 +109,4 @@ def extraer_metadatos_imagenes():
     Z_funciones.guardar_datos_dict(resultados, ruta_destino)
 
 if __name__ == "__main__":
-    extraer_metadatos_imagenes()
+    E_metadatos_imagenes()
