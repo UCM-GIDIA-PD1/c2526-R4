@@ -278,7 +278,7 @@ def B_informacion_juegos():
                     ultimo_idx_guardado = idx_actual
 
                 # Pausa para respetar la API
-                wait = uniform(1.3, 1.7)
+                wait = uniform(1.5, 1.6)
                 time.sleep(wait)
 
             except Exception as e:

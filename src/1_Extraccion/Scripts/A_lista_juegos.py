@@ -20,6 +20,37 @@ Salida:
 - Los datos se almacenan en la el directorio indicado.
 """
 
+def es_juego_valido(nombre):
+    """
+    Filtro preliminar para no gastar peticiones API en cosas que sabemos que no son juegos.
+
+    Args:
+        nombre (str): Nombre completo del juego
+    
+    Returns:
+        bool : Devuelve False si detecta palabras clave de algo que no sea un juego, True en
+            caso contrario
+    """
+    if not nombre: return False
+    
+    nombre_lower = nombre.lower()
+    
+    palabras_prohibidas = [
+        "dedicated server", "\bserver\b",
+        "soundtrack", "original soundtrack",
+        "bonus content", "artbook",
+        "\bdlc\b", "\bdemo\b"
+        "playtest", "\bbeta\b",
+        "sdk", "wallpaper",
+        "\bteaser\b", "\bvideo\b"
+    ]
+    
+    for palabra in palabras_prohibidas:
+        if palabra in nombre_lower:
+            return False
+            
+    return True
+
 def A_lista_juegos():
     # url e info
     url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
@@ -28,7 +59,7 @@ def A_lista_juegos():
     API_KEY = os.environ.get("STEAM_API_KEY")
     assert API_KEY, "La API_KEY no ha sido cargada"
 
-    n_appids = 100  # Cuantos appids quieres
+    n_appids = 200000  # Cuantos appids quieres
 
     max_results = min(n_appids, 50000) # Cuantos resulatados se quiere por request
     last_appid = 0 # appid a partir del cual comienza a buscar, no se incluye en la respuesta
@@ -44,7 +75,7 @@ def A_lista_juegos():
         data = Z_funciones.solicitud_url(session, info, url)
 
         if data:
-            content["apps"].extend([{"appid": app["appid"], "name": app["name"]} for app in data["response"].get("apps",[])])
+            content["apps"].extend([{"appid": app["appid"], "name": app["name"]} for app in data["response"].get("apps",[]) if not es_juego_valido(app.get("name"))])
         else:
             print("Carga fallida")
             return
@@ -61,7 +92,7 @@ def A_lista_juegos():
         
 
     # Guardamos en un JSON
-    Z_funciones.guardar_datos_dict(content, r"data\steam_apps.json.gz")
+    Z_funciones.guardar_datos_dict(content, r"data\steam_apps_no_validos.json")
     print("Lista de juegos guardada correctamente")
 
 if __name__ == "__main__":
