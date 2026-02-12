@@ -18,55 +18,55 @@ Salida:
 """
 
 def analiza_imagen(img_path, url,  trans, model):
-        """
-        Analiza las características de una imagen
-
-        Args:
-            img_path (str): ruta del archivo de imagen.
-            trans (callable): transformaciones de preprocesamiento (ej. Resize, Normalize).
-            model (torch.nn.Module): modelo preentrenado para extracción de embeddings.
-    
-        Returns:
-            caracteristicas (dict): diccionario con el brillo medio y vector de características de la imagen
-        """
-        # Descargamos imagen y la metemos en la ruta    
-        ruta_temporal = os.path.join(img_path, "header.jpg")
-    
-        with open(ruta_temporal, 'wb') as f:
-            f.write(requests.get(url).content)
-
-        # Análisis de la imagen
-        img = Image.open(ruta_temporal).convert('RGB')
-            
-        # Extraer el brillo medio
-        stat = ImageStat.Stat(img)
-        brillo = stat.mean[0] 
-
-        # Extraer vector de características
-        img_preprocesada = trans(img)
-        batch_t = torch.unsqueeze(img_preprocesada, 0)
-
-        with torch.no_grad():
-            embedding = model(batch_t)
-            # Convertimos el tensor a una lista de Python para el JSON
-            vector = embedding.flatten().tolist()
-
-        # Borramos la imagen
-        img.close() 
-        os.remove(ruta_temporal)
-        
-        caracteristicas = {"brillo_medio": brillo,"vector_caracteristicas": vector} # Vector de 512 elementos
-        return caracteristicas
-    
-def E_metadatos_imagenes():
     """
-    Itera por todas las imágenes en data/images y obtiene sus características, guardándolas en data/info_imagenes.json
+    Analiza las características de una imagen
 
     Args:
-        None
-    
+        img_path (str): ruta del archivo de imagen.
+        trans (callable): transformaciones de preprocesamiento (ej. Resize, Normalize).
+        model (torch.nn.Module): modelo preentrenado para extracción de embeddings.
+
     Returns:
-        None
+        caracteristicas (dict): diccionario con el brillo medio y vector de características de la imagen
+    """
+    # Descargamos imagen y la metemos en la ruta    
+    ruta_temporal = os.path.join(img_path, "header.jpg")
+
+    with open(ruta_temporal, 'wb') as f:
+        f.write(requests.get(url).content)
+
+    # Análisis de la imagen
+    img = Image.open(ruta_temporal).convert('RGB')
+        
+    # Extraer el brillo medio
+    stat = ImageStat.Stat(img)
+    brillo = stat.mean[0] 
+
+    # Extraer vector de características
+    img_preprocesada = trans(img)
+    batch_t = torch.unsqueeze(img_preprocesada, 0)
+
+    with torch.no_grad():
+        embedding = model(batch_t)
+        # Convertimos el tensor a una lista de Python para el JSON
+        vector = embedding.flatten().tolist()
+
+    # Borramos la imagen
+    img.close() 
+    os.remove(ruta_temporal)
+    
+    caracteristicas = {"brillo_medio": brillo,"vector_caracteristicas": vector} # Vector de 512 elementos
+    return caracteristicas
+    
+def extraer_metadatos_imagenes():
+    """
+        Itera por todas las imágenes en data/images y obtiene sus características, guardándolas en data/info_imagenes.json
+
+        Args:
+            None
+    
+        Returns:
+            None
     """
     
     os.environ['TORCH_HOME'] = r'data\torch_cache'
@@ -96,7 +96,7 @@ def E_metadatos_imagenes():
         return
 
     # Análisis de las imágenes
-    for juego in Z_funciones.barra_progreso(data["data"], keys=["id"]):
+    for juego in Z_funciones.barra_progreso(data["data"]):
         
         appid = juego.get("id")
         url = juego.get("appdetails", {}).get("header_url")
@@ -109,4 +109,4 @@ def E_metadatos_imagenes():
     Z_funciones.guardar_datos_dict(resultados, ruta_destino)
 
 if __name__ == "__main__":
-    E_metadatos_imagenes()
+    extraer_metadatos_imagenes()
