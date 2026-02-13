@@ -266,6 +266,19 @@ def B_informacion_juegos():
 
     if os.path.exists(ruta_temp_jsonl):
         os.remove(ruta_temp_jsonl)
+
+    rango_total = apps[juego_ini : juego_fin + 1]
+
+    # Guardamos una tupla con el indice de la lista y la informacion del juego
+    juegos_pendientes = [(i + juego_ini, juego) for i, juego in enumerate(rango_total) if juego.get("appid") not in ids_existentes]
+    print(f"Juegos en el rango seleccionado: {len(rango_total)}")
+    print(f"Juegos ya terminados: {len(rango_total) - len(juegos_pendientes)}")
+    print(f"Juegos a extraer: {len(juegos_pendientes)}")
+
+    if not juegos_pendientes:
+        print("¡No queda nada pendiente en este rango")
+        Z_funciones.cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, juego_fin, juego_fin)
+        return
     
     # Iteramos sobre la lista de juegos y lo metemos en un JSON nuevo
     print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
@@ -274,13 +287,9 @@ def B_informacion_juegos():
     idx_actual = juego_ini - 1
     ultimo_idx_guardado = juego_ini - 1
     try:
-        for i, juego in enumerate(Z_funciones.barra_progreso(juegos_a_procesar, keys=['appid', 'name'])):
+        for i, juego in enumerate(Z_funciones.barra_progreso([x[1] for x in juegos_pendientes], keys=['appid', 'name'])):
             appid = juego.get("appid")
-            idx_actual = i + juego_ini
-            
-            if appid in ids_existentes:
-                ultimo_idx_guardado = idx_actual
-                continue
+            idx_actual = juegos_pendientes[i][0]
 
             try:
                 desc = descargar_datos_juego(appid, sesion)
