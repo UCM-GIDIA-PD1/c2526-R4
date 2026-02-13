@@ -39,12 +39,9 @@ def get_appdetails(str_id, sesion):
     params_info = {"cc": "eur"}
     appdetails = {}
     
-    try:
-        data = Z_funciones.solicitud_url(sesion, params_info, url)
-    except Exception:
-        return appdetails
+    data = Z_funciones.solicitud_url(sesion, params_info, url)
 
-    if not data or not data.get(str_id) or not data[str_id]["success"]:
+    if not data or not data.get(str_id) or not data[str_id].get("success", False):
         return appdetails
 
     data_game = data[str_id]["data"]
