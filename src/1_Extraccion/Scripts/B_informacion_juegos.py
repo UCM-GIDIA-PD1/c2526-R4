@@ -143,7 +143,10 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
                 break
 
     if idx == -1:
-        return {}
+        if len(rollups) == 0:
+            return {}
+        else:
+            idx = 0
 
     # Cogemos los datos de aproximadamente el primer mes (las valoraciones del primer mes)
     if appreviewhistogram["rollup_type"] == "week":
@@ -156,17 +159,17 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
     else:
         # Si el dia es mayor que 15 y el primer mes no es el último del que se tiene información, se cogen también las del mes siguiente
         fecha = datetime.fromtimestamp(rollups[idx].get("date"))
-        if fecha.day > 15 and idx < len(rollups) - 1:
+        if fecha_salida.day > 15 and idx < len(rollups) - 1:
             # Número de dias que se tienen en cuenta
             # monthrange() devuelve (diaDeLaSemana, numDiasMes)
-            dias_mes_actual = monthrange(fecha.year, fecha.month)[1] - fecha.day + 1
+            dias_mes_actual = monthrange(fecha.year, fecha.month)[1] - fecha_salida.day + 1
             fecha_sig = datetime.fromtimestamp(rollups[idx + 1].get("date"))
             dias_mes_siguiente = monthrange(fecha_sig.year, fecha_sig.month)[1]
             dias = dias_mes_actual + dias_mes_siguiente
             rec_up = int(rollups[idx].get("recommendations_up", 0)) + int(rollups[idx + 1].get("recommendations_up", 0))
             rec_down = int(rollups[idx].get("recommendations_down", 0)) + int(rollups[idx + 1].get("recommendations_down", 0))
         else:
-            dias = monthrange(fecha.year, fecha.month)[1] - fecha.day + 1
+            dias = monthrange(fecha.year, fecha.month)[1] - fecha_salida.day + 1
             rec_up = int(rollups[idx].get("recommendations_up", 0))
             rec_down = int(rollups[idx].get("recommendations_down", 0))
         
@@ -215,9 +218,6 @@ def descargar_datos_juego(id, sesion):
     fecha_salida_datetime = Z_funciones.convertir_fecha_datetime(release_data.get("date"))
 
     if not fecha_salida_datetime:
-        return {}
-
-    if fecha_salida_datetime.year < 2011:
         return {}
     
     game_info["appreviewhistogram"] = get_appreviewhistogram(str_id, sesion, fecha_salida_datetime)

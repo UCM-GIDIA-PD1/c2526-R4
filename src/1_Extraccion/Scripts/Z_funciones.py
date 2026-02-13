@@ -105,19 +105,50 @@ def solicitud_url(sesion, params_info, url):
         return
     
 def convertir_fecha_datetime(fecha_str):
-    """Convierte una fecha de formato "21 Nov, 1998" a objeto datetime
+    """Convierte una fecha de Steam a objeto datetime
     
+    Formatos soportados:
+    - "Feb 13, 2026"
+    - "13 Feb, 2026"
+    - "February 13, 2026"
+    - "2026-02-13"
+    - "Feb 2026" (asume día 1)
+    - "2026" (asume 1 de enero)
+    - "Feb 13, 2026 @ 3:45pm"
+    - "13 Feb 2026" (sin coma)
+
     Args:
         fecha_str: La fecha en el formato string "%d %b, %Y"
     
     Returns:
         datetime | None: Si no se puede convertir devuelve None
     """
-    if not fecha_str: return None
-    try:
-        return datetime.strptime(fecha_str, "%d %b, %Y")
-    except ValueError:
+    if not fecha_str: 
         return None
+    fecha_str = fecha_str.strip()
+
+    formats = [
+        "%b %d, %Y",    # Feb 13, 2026
+        "%d %b, %Y",    # 13 Feb, 2026
+        "%B %d, %Y",    # February 13, 2026
+        "%d %B, %Y",    # 13 February, 2026
+        "%b %d %Y",     # Feb 13 2026
+        "%d %b %Y",     # 13 Feb 2026
+        "%B %d %Y",     # February 13 2026
+        "%d %B %Y",     # 13 February 2026
+        "%Y-%m-%d",     # 2026-02-13
+        "%b %Y",        # Feb 2026 (asume dia 1 del mes)
+        "%B %Y",        # February 2026 (asume dia 1 del mes)
+        "%Y",           # 2026 (asume 1 de enero)
+    ]
+    
+    # Intentar parsear con cada formato
+    for fmt in formats:
+        try:
+            return datetime.strptime(fecha_str, fmt)
+        except ValueError:
+            continue
+    return None
 
 
 def barra_progreso(iterable, total=None, keys=None):
