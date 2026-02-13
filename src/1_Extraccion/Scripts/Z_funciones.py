@@ -17,24 +17,21 @@ def cargar_datos_locales(ruta_archivo):
         Retorna None si el archivo no se encuentra o si el contenido no es un JSON válido.
     """
     try:
+        datos = None
         if ruta_archivo.endswith('.json'):
             with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
                 datos = json.load(archivo)
-            return datos
         elif ruta_archivo.endswith('.json.gz'):
             with gzip.open(ruta_archivo, 'rt', encoding='utf-8') as archivo:
                 datos = json.load(archivo)
-            return datos
         elif ruta_archivo.endswith('.parquet'):
             datos = pd.read_parquet(ruta_archivo)
-            return datos
         elif ruta_archivo.endswith('.jsonl'):
-            datos = []
             with open(ruta_archivo, 'r', encoding='utf-8') as f:
-                for linea in f:
-                    if linea.strip():
-                        datos.append(json.loads(linea))
-            return datos
+                datos = [json.loads(linea) for linea in f if linea.strip()]
+        else:
+            print(f"Extension no soportada: {ruta_archivo}")
+        return datos
     except FileNotFoundError:
         print(f"Error: El archivo en {ruta_archivo} no existe.")
         return None
@@ -44,8 +41,8 @@ def cargar_datos_locales(ruta_archivo):
     except gzip.BadGzipFile:
         print("Error: El archivo no tiene un formato gzip.JSON válido.")
         return None
-    except Exception:
-        print("Error desconocido al cargar el archivo")
+    except Exception as e:
+        print(f"Error desconocido al cargar el archivo: {e}")
         return None
 
 def guardar_datos_dict(datos, ruta_archivo):
@@ -71,12 +68,14 @@ def guardar_datos_dict(datos, ruta_archivo):
         elif ruta_archivo.endswith('.jsonl'):
             with open(ruta_archivo, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(datos, ensure_ascii=False) + '\n')
+        else:
+            print(f"Extension no soportada: {ruta_archivo}")
     except TypeError as e:
         # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
         print(f"Error de tipo en la serialización: {e}")
     except Exception as e:
         # Cualquier otro tipo de error
-        print(f"Error inesperado {e}")
+        print(f"Error inesperado: {e}")
 
 def solicitud_url(sesion, params_info, url):
     """
@@ -95,29 +94,68 @@ def solicitud_url(sesion, params_info, url):
     try:
         r = sesion.get(url, params=params_info)
         r.raise_for_status()
-        assert "application/json" in r.headers.get("content-type"), "The request does not return a json"
+        content_type = r.headers.get("content-type", "")
+        if("application/json" not in content_type):
+            print("The request does not return a json")
+            return None
         return r.json()
     except requests.exceptions.HTTPError as e:
-        print("HTTP error occurred:", e)
-        return
+        print("Error HTTP:", e)
+        return None
     except requests.exceptions.RequestException as e:
-        print("A request error occurred:", e)
-        return
+        print("Error de petición:", e)
+        return None
+    except ValueError as e:
+        print("Fallo en decodificación JSON:",e)
+        return None
     
 def convertir_fecha_datetime(fecha_str):
-    """Convierte una fecha de formato "21 Nov, 1998" a objeto datetime
+    """Convierte una fecha de Steam a objeto datetime
     
+    Formatos soportados:
+    - "Feb 13, 2026" / "13 Feb, 2026"
+    - "February 13, 2026" / "13 February, 2026"
+    - "Feb 13 2026" / "13 Feb 2026" (sin comas)
+    - "February 13 2026" / "13 February 2026"
+    - "2026-02-13"
+    - "Feb 2026" / "February 2026" (asume día 1)
+    - "2026" (asume 1 de enero)
+
     Args:
         fecha_str: La fecha en el formato string "%d %b, %Y"
     
     Returns:
         datetime | None: Si no se puede convertir devuelve None
     """
-    if not fecha_str: return None
-    try:
-        return datetime.strptime(fecha_str, "%d %b, %Y")
-    except ValueError:
+    if not fecha_str: 
         return None
+    
+    fecha_str = fecha_str.strip()
+
+    # Esto depende del sistema, necesario cambiar
+
+    formats = [
+        "%b %d, %Y",    # Feb 13, 2026
+        "%d %b, %Y",    # 13 Feb, 2026
+        "%B %d, %Y",    # February 13, 2026
+        "%d %B, %Y",    # 13 February, 2026
+        "%b %d %Y",     # Feb 13 2026
+        "%d %b %Y",     # 13 Feb 2026
+        "%B %d %Y",     # February 13 2026
+        "%d %B %Y",     # 13 February 2026
+        "%Y-%m-%d",     # 2026-02-13
+        "%b %Y",        # Feb 2026
+        "%B %Y",        # February 2026
+        "%Y",           # 2026
+    ]
+    
+    # Intentar parsear con cada formato
+    for fmt in formats:
+        try:
+            return datetime.strptime(fecha_str, fmt)
+        except ValueError:
+            continue
+    return None
 
 
 def barra_progreso(iterable, total=None, keys=None):
@@ -233,6 +271,8 @@ def leer_configuracion(ruta_txt, identif, longitud):
             fin = longitud - 1
         else:
             fin = (identif * bloque) - 1
+        
+        actualizar_configuracion(ruta_txt, inicio, fin)
             
         return inicio, fin
 

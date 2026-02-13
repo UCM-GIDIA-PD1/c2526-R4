@@ -39,12 +39,10 @@ def get_appdetails(str_id, sesion):
     params_info = {"cc": "eur"}
     appdetails = {}
     
-    try:
-        data = Z_funciones.solicitud_url(sesion, params_info, url)
-    except Exception:
-        return appdetails
+    # La función solicitud_url trata las distintas excepciones posibles
+    data = Z_funciones.solicitud_url(sesion, params_info, url)
 
-    if not data or not data.get(str_id) or not data[str_id]["success"]:
+    if not data or not data.get(str_id) or not data[str_id].get("success", False):
         return appdetails
 
     data_game = data[str_id]["data"]
@@ -114,10 +112,8 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
     params_info = {"l": "english"}
     appreviewhistogram = {}
     
-    try:
-        data = Z_funciones.solicitud_url(sesion, params_info, url)
-    except Exception:
-        return appreviewhistogram
+    # La función solicitud_url trata las distintas excepciones posibles
+    data = Z_funciones.solicitud_url(sesion, params_info, url)
 
     # Caso en el que no haya ninguna review: los rollups están vacíos
     if not data or not data.get("results") or not data["results"].get("rollups"):
@@ -143,7 +139,10 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
                 break
 
     if idx == -1:
-        return {}
+        if len(rollups) == 0:
+            return {}
+        else:
+            idx = 0
 
     # Cogemos los datos de aproximadamente el primer mes (las valoraciones del primer mes)
     if appreviewhistogram["rollup_type"] == "week":
@@ -156,17 +155,17 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
     else:
         # Si el dia es mayor que 15 y el primer mes no es el último del que se tiene información, se cogen también las del mes siguiente
         fecha = datetime.fromtimestamp(rollups[idx].get("date"))
-        if fecha.day > 15 and idx < len(rollups) - 1:
+        if fecha_salida.day > 15 and idx < len(rollups) - 1:
             # Número de dias que se tienen en cuenta
             # monthrange() devuelve (diaDeLaSemana, numDiasMes)
-            dias_mes_actual = monthrange(fecha.year, fecha.month)[1] - fecha.day + 1
+            dias_mes_actual = monthrange(fecha.year, fecha.month)[1] - fecha_salida.day + 1
             fecha_sig = datetime.fromtimestamp(rollups[idx + 1].get("date"))
             dias_mes_siguiente = monthrange(fecha_sig.year, fecha_sig.month)[1]
             dias = dias_mes_actual + dias_mes_siguiente
             rec_up = int(rollups[idx].get("recommendations_up", 0)) + int(rollups[idx + 1].get("recommendations_up", 0))
             rec_down = int(rollups[idx].get("recommendations_down", 0)) + int(rollups[idx + 1].get("recommendations_down", 0))
         else:
-            dias = monthrange(fecha.year, fecha.month)[1] - fecha.day + 1
+            dias = monthrange(fecha.year, fecha.month)[1] - fecha_salida.day + 1
             rec_up = int(rollups[idx].get("recommendations_up", 0))
             rec_down = int(rollups[idx].get("recommendations_down", 0))
         
@@ -216,9 +215,6 @@ def descargar_datos_juego(id, sesion):
 
     if not fecha_salida_datetime:
         return {}
-
-    if fecha_salida_datetime.year < 2011:
-        return {}
     
     game_info["appreviewhistogram"] = get_appreviewhistogram(str_id, sesion, fecha_salida_datetime)
 
@@ -235,6 +231,14 @@ def B_informacion_juegos():
     # Rutas que van a ser usadas
     ruta_origen = r"data\steam_apps.json.gz"
     ruta_final_gzip = f"data\\info_steam_games_{identif}.json.gz"
+
+    # Guardamos los ya extraidos para evitar duplicados
+    ids_existentes = set()
+    if os.path.exists(ruta_final_gzip):
+        datos_previos = Z_funciones.cargar_datos_locales(ruta_final_gzip)
+        if datos_previos and "data" in datos_previos:
+            ids_existentes = {juego.get("id") for juego in datos_previos["data"]}
+    print(f"Juegos ya procesados anteriormente: {len(ids_existentes)}")
 
     # Cargamos el JSON comprimido de la lista de appids
     lista_juegos = Z_funciones.cargar_datos_locales(ruta_origen)
@@ -258,6 +262,19 @@ def B_informacion_juegos():
 
     if os.path.exists(ruta_temp_jsonl):
         os.remove(ruta_temp_jsonl)
+
+    rango_total = apps[juego_ini : juego_fin + 1]
+
+    # Guardamos una tupla con el indice de la lista y la informacion del juego
+    juegos_pendientes = [(i + juego_ini, juego) for i, juego in enumerate(rango_total) if juego.get("appid") not in ids_existentes]
+    print(f"Juegos en el rango seleccionado: {len(rango_total)}")
+    print(f"Juegos ya terminados: {len(rango_total) - len(juegos_pendientes)}")
+    print(f"Juegos a extraer: {len(juegos_pendientes)}")
+
+    if not juegos_pendientes:
+        print("¡No queda nada pendiente en este rango")
+        Z_funciones.cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, juego_fin, juego_fin)
+        return
     
     # Iteramos sobre la lista de juegos y lo metemos en un JSON nuevo
     print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
@@ -266,10 +283,10 @@ def B_informacion_juegos():
     idx_actual = juego_ini - 1
     ultimo_idx_guardado = juego_ini - 1
     try:
-        for i, juego in enumerate(Z_funciones.barra_progreso(juegos_a_procesar, keys=['appid'])):
+        for i, juego in enumerate(Z_funciones.barra_progreso([x[1] for x in juegos_pendientes], keys=['appid'])):
             appid = juego.get("appid")
-            idx_actual = i + juego_ini
-            
+            idx_actual = juegos_pendientes[i][0]
+
             try:
                 desc = descargar_datos_juego(appid, sesion)
                 
@@ -290,6 +307,18 @@ def B_informacion_juegos():
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
         Z_funciones.cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)
+        try:
+            if os.path.exists(ruta_final_gzip):
+                datos_finales = Z_funciones.cargar_datos_locales(ruta_final_gzip)
+                if datos_finales and "data" in datos_finales:
+                    total_juegos = len(datos_finales["data"])
+                    print(f"Total de juegos guardados en '{ruta_final_gzip}': {total_juegos}")
+                else:
+                    print("El archivo final existe pero parece estar vacío.")
+            else:
+                print("No se encontró el archivo final.")
+        except Exception as e:
+            print(f"Error al contar juegos finales: {e}")
 
 if __name__ == "__main__":
     B_informacion_juegos()
