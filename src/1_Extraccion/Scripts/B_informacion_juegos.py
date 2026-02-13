@@ -39,6 +39,7 @@ def get_appdetails(str_id, sesion):
     params_info = {"cc": "eur"}
     appdetails = {}
     
+    # La función solicitud_url trata las distintas excepciones posibles
     data = Z_funciones.solicitud_url(sesion, params_info, url)
 
     if not data or not data.get(str_id) or not data[str_id].get("success", False):
@@ -111,10 +112,8 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
     params_info = {"l": "english"}
     appreviewhistogram = {}
     
-    try:
-        data = Z_funciones.solicitud_url(sesion, params_info, url)
-    except Exception:
-        return appreviewhistogram
+    # La función solicitud_url trata las distintas excepciones posibles
+    data = Z_funciones.solicitud_url(sesion, params_info, url)
 
     # Caso en el que no haya ninguna review: los rollups están vacíos
     if not data or not data.get("results") or not data["results"].get("rollups"):

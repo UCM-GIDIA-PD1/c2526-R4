@@ -100,10 +100,13 @@ def solicitud_url(sesion, params_info, url):
             return None
         return r.json()
     except requests.exceptions.HTTPError as e:
-        print("HTTP error occurred:", e)
+        print("Error HTTP:", e)
         return None
     except requests.exceptions.RequestException as e:
-        print("A request error occurred:", e)
+        print("Error de petición:", e)
+        return None
+    except ValueError as e:
+        print("Fallo en decodificación JSON:",e)
         return None
     
 def convertir_fecha_datetime(fecha_str):
