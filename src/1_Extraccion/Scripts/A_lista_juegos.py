@@ -44,7 +44,7 @@ def A_lista_juegos():
         data = Z_funciones.solicitud_url(session, info, url)
 
         if data:
-            content["apps"].extend([{"appid": app["appid"]} for app in data["response"].get("apps",[]) if es_juego_valido(app.get("name"))])
+            content["apps"].extend([{"appid": app["appid"]} for app in data["response"].get("apps",[])])
         else:
             print("Carga fallida")
             return

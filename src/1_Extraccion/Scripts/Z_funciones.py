@@ -110,13 +110,13 @@ def convertir_fecha_datetime(fecha_str):
     """Convierte una fecha de Steam a objeto datetime
     
     Formatos soportados:
-    - "Feb 13, 2026"
-    - "13 Feb, 2026"
-    - "February 13, 2026"
+    - "Feb 13, 2026" / "13 Feb, 2026"
+    - "February 13, 2026" / "13 February, 2026"
+    - "Feb 13 2026" / "13 Feb 2026" (sin comas)
+    - "February 13 2026" / "13 February 2026"
     - "2026-02-13"
-    - "Feb 2026" (asume día 1)
+    - "Feb 2026" / "February 2026" (asume día 1)
     - "2026" (asume 1 de enero)
-    - "13 Feb 2026"
 
     Args:
         fecha_str: La fecha en el formato string "%d %b, %Y"
@@ -129,6 +129,8 @@ def convertir_fecha_datetime(fecha_str):
     
     fecha_str = fecha_str.strip()
 
+    # Esto depende del sistema, necesario cambiar
+
     formats = [
         "%b %d, %Y",    # Feb 13, 2026
         "%d %b, %Y",    # 13 Feb, 2026
@@ -139,9 +141,9 @@ def convertir_fecha_datetime(fecha_str):
         "%B %d %Y",     # February 13 2026
         "%d %B %Y",     # 13 February 2026
         "%Y-%m-%d",     # 2026-02-13
-        "%b %Y",        # Feb 2026 (asume dia 1 del mes)
-        "%B %Y",        # February 2026 (asume dia 1 del mes)
-        "%Y",           # 2026 (asume 1 de enero)
+        "%b %Y",        # Feb 2026
+        "%B %Y",        # February 2026
+        "%Y",           # 2026
     ]
     
     # Intentar parsear con cada formato
