@@ -233,6 +233,8 @@ def leer_configuracion(ruta_txt, identif, longitud):
             fin = longitud - 1
         else:
             fin = (identif * bloque) - 1
+        
+        actualizar_configuracion(ruta_txt, inicio, fin)
             
         return inicio, fin
 

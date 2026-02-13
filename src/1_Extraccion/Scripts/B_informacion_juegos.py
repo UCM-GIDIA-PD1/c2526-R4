@@ -236,6 +236,14 @@ def B_informacion_juegos():
     ruta_origen = r"data\steam_apps.json.gz"
     ruta_final_gzip = f"data\\info_steam_games_{identif}.json.gz"
 
+    # Guardamos los ya extraidos para evitar duplicados
+    ids_existentes = set()
+    if os.path.exists(ruta_final_gzip):
+        datos_previos = Z_funciones.cargar_datos_locales(ruta_final_gzip)
+        if datos_previos and "data" in datos_previos:
+            ids_existentes = {juego.get("id") for juego in datos_previos["data"]}
+    print(f"Juegos ya procesados anteriormente: {len(ids_existentes)}")
+
     # Cargamos el JSON comprimido de la lista de appids
     lista_juegos = Z_funciones.cargar_datos_locales(ruta_origen)
     if not lista_juegos:
@@ -270,6 +278,10 @@ def B_informacion_juegos():
             appid = juego.get("appid")
             idx_actual = i + juego_ini
             
+            if appid in ids_existentes:
+                ultimo_idx_guardado = idx_actual
+                continue
+
             try:
                 desc = descargar_datos_juego(appid, sesion)
                 
@@ -290,6 +302,18 @@ def B_informacion_juegos():
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
         Z_funciones.cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)
+        try:
+            if os.path.exists(ruta_final_gzip):
+                datos_finales = Z_funciones.cargar_datos_locales(ruta_final_gzip)
+                if datos_finales and "data" in datos_finales:
+                    total_juegos = len(datos_finales["data"])
+                    print(f"Total de juegos guardados en '{ruta_final_gzip}': {total_juegos}")
+                else:
+                    print("El archivo final existe pero parece estar vacío.")
+            else:
+                print("No se encontró el archivo final.")
+        except Exception as e:
+            print(f"Error al contar juegos finales: {e}")
 
 if __name__ == "__main__":
     B_informacion_juegos()
