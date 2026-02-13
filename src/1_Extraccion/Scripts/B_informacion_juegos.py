@@ -266,7 +266,7 @@ def B_informacion_juegos():
     idx_actual = juego_ini - 1
     ultimo_idx_guardado = juego_ini - 1
     try:
-        for i, juego in enumerate(Z_funciones.barra_progreso(juegos_a_procesar, keys=['appid', 'name'])):
+        for i, juego in enumerate(Z_funciones.barra_progreso(juegos_a_procesar, keys=['appid'])):
             appid = juego.get("appid")
             idx_actual = i + juego_ini
             

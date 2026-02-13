@@ -148,7 +148,7 @@ def barra_progreso(iterable, total=None, keys=None):
             detalles = [f"{k}: {item.get(k, 'N/A')}" for k in keys]
             info_extra = " | " + " | ".join(detalles)
 
-        print(f'\r{barra}| {porcentaje}%{info_extra}', end='', flush=True)
+        print(f'\r\033[K{barra}| {porcentaje}%{info_extra}', end='', flush=True)
 
     imprimir_barra(0)
     for i, item in enumerate(iterable):

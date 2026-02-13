@@ -96,7 +96,7 @@ def E_metadatos_imagenes():
         return
 
     # Análisis de las imágenes
-    for juego in Z_funciones.barra_progreso(data["data"]):
+    for juego in Z_funciones.barra_progreso(data.get("data"), keys=["appid"]):
         
         appid = juego.get("id")
         url = juego.get("appdetails", {}).get("header_url")
