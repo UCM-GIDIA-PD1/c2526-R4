@@ -70,7 +70,7 @@ Si se desea extraer la información en grupo de 6 personas, se debe crear una va
 ```shell
 setx PD1_ID identificador_grupo
 ```
-#### Dependencias 
+#### Dependencias
 Para realizar la extracción de la lista de juegos de Steam así como de las estadísticas individuales de los vídeos *scrapeados*, necesitamos antes conseguir acceso a varias APIs, a las que se adjuntan documentación del proceso de obtención:
 - La ``STEAM_API_KEY`` de [Steam](https://steamcommunity.com/dev/apikey).
 - La ``API_KEY_YT`` de [YouTube](https://developers.google.com/youtube/v3/getting-started?hl=es-419).
@@ -83,20 +83,7 @@ setx API_KEY_YT clave_api
 
 Para Scrapear YouTube necesitamos tener tanto una versión de Google Chrome reciente, como TOR bundle descargado de la [página oficial de TOR](https://www.torproject.org/download/tor/).
 
-Después de descargar TOR, ejecutad el archivo ``tor.exe`` para que creen los archivos por defecto para el correcto funcionamiento del mismo. Posteriormente, descomprimid la carpeta y cread un nuevo archivo en la carpeta `data` llamado ``torrc`` sin extensión (puede ser encontrado en la carpeta config\ de este GitHub) con el siguiente contenido:
-
-```
-# Puerto para la navegación (Proxy SOCKS)
-SocksPort 9050
-
-# Puerto de control para que Python (stem) pueda dar órdenes
-ControlPort 9051
-
-# Habilitar la autenticación por cookie para el controlador
-CookieAuthentication 1
-```
-
-``torrc`` sirve para que funcione correctamente la rotación de IP. Por último se debe establecer una nueva variable del sistema con la ruta tanto de nuestro ``TOR.exe`` como el archivo ``torrc`` (es recomendable añadirlo al ``PATH``).
+Después de descargar TOR, ejecutad el archivo ``tor.exe`` para que creen los archivos por defecto para el correcto funcionamiento del mismo. Cuando el proceso de TOR llegue al 100%, cerradlo. Posteriormente, añadid la carpeta de TOR al PATH de vuestro sistema. El script C1 usará como configuración de TOR el archivo `torrc` que podéis encontrar en el repositorio, no hace falta hacer nada con él, pero sirve para que funcione correctamente la rotación de IP.
 
 ---
 

@@ -68,7 +68,8 @@ def mostrar_menu():
         print(f"{key:<3}) {marca_uso} {nombre_script:<37} {fichero_salida:<38} {existe}")
     
     print("▃" * 100)
-    print("Pon la letra de un fichero para seleccionarlo/quitarlo. Para ejecutar lo seleccionado RUN y para salir EXIT")
+    print("Pon la letra de un fichero para seleccionarlo/quitarlo. Para ejecutar lo seleccionado " \
+    "RUN y para salir EXIT.")
 
 def ejecutar_scripts():
     print("\n--- INICIANDO EJECUCIÓN ---")

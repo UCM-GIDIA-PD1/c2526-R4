@@ -221,25 +221,15 @@ def descargar_datos_juego(id, sesion):
 
     return game_info
 
-def B_informacion_juegos():
-    # PARA TERMINAR SESIÓN: CTRL + C
+def B_informacion_juegos(): # PARA TERMINAR SESIÓN: CTRL + C
     identif = os.environ.get("PD1_ID")
     
-    sesion = requests.Session()
-    # User-Agent para parecer un navegador (es recomendable cambiarlo si no se trabaja en Windows)
-    sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 
-    
-    # directorio base (carpeta c2526-R4)
-    # Se crea un objeto Path con la dirección de este .py y se obtiene a partir de este el directorio base (carpeta c2425)
-    base_dir = Path(__file__).resolve().parents[3]
-    # Directorio data
-    data_dir = base_dir / "data"
-    
     # Rutas que van a ser usadas
+    data_dir = Path(__file__).resolve().parents[3] / "data"
     ruta_origen = data_dir / "steam_apps.json.gz"
     ruta_final_gzip = data_dir / f"info_steam_games_{identif}.json.gz"
 
-    # Guardamos los ya extraidos para evitar duplicados
+    # Guardamos los ya extraidos en un set para evitar duplicados
     ids_existentes = set()
     if os.path.exists(ruta_final_gzip):
         datos_previos = Z_funciones.cargar_datos_locales(ruta_final_gzip)
@@ -250,46 +240,47 @@ def B_informacion_juegos():
     # Cargamos el JSON comprimido de la lista de appids
     lista_juegos = Z_funciones.cargar_datos_locales(ruta_origen)
     if not lista_juegos:
-        print("No se encontró la lista de appids")
+        print("Error al cargar los juegos")
         return
-    
-    apps = lista_juegos.get("apps", [])
 
     # Cargamos los puntos de inicio y final
+    apps = lista_juegos.get("data", [])
     ruta_config = data_dir / "config_rango.txt"
-    num_juegos = len(apps)
-    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, identif, num_juegos)
-
+    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, identif, len(apps))
     if juego_fin >= len(apps):
         juego_fin = len(apps) - 1
 
     ruta_temp_jsonl = data_dir / f"temp_session_{juego_ini}_{juego_fin}.jsonl"
-
     if os.path.exists(ruta_temp_jsonl):
         os.remove(ruta_temp_jsonl)
 
+    # Rango total
     rango_total = apps[juego_ini : juego_fin + 1]
 
     # Guardamos una tupla con el indice de la lista y la informacion del juego
-    juegos_pendientes = [(i + juego_ini, juego) for i, juego in enumerate(rango_total) if juego.get("appid") not in ids_existentes]
+    juegos_pendientes = [(i + juego_ini, juego) for i, juego in enumerate(rango_total) if juego.get("id") not in ids_existentes]
     print(f"Juegos en el rango seleccionado: {len(rango_total)}")
     print(f"Juegos ya terminados: {len(rango_total) - len(juegos_pendientes)}")
     print(f"Juegos a extraer: {len(juegos_pendientes)}")
 
     if not juegos_pendientes:
-        print("¡No queda nada pendiente en este rango")
+        print("¡No queda nada pendiente en este rango!")
         Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, juego_fin, juego_fin)
         return
     
-    # Iteramos sobre la lista de juegos y lo metemos en un JSON nuevo
     print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
-    print("Comenzando extraccion de juegos...\n")
+
+    # Creamos sesión con user-Agent para parecer un navegador (es recomendable cambiarlo si no se trabaja en Windows)
+    sesion = requests.Session()
+    sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 
     
+    # Iteramos sobre la lista de juegos y lo metemos en un JSON nuevo
+    print("Comenzando extraccion de juegos...\n")
     idx_actual = juego_ini - 1
     ultimo_idx_guardado = juego_ini - 1
     try:
-        for i, juego in enumerate(Z_funciones.barra_progreso([x[1] for x in juegos_pendientes], keys=['appid'])):
-            appid = juego.get("appid")
+        for i, juego in enumerate(Z_funciones.barra_progreso([x[1] for x in juegos_pendientes], keys=['id'])):
+            appid = juego.get("id")
             idx_actual = juegos_pendientes[i][0]
 
             try:

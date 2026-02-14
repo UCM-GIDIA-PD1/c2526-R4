@@ -262,16 +262,17 @@ def leer_configuracion(ruta_txt, identif, longitud):
             return 0, 0
     else:
         if identif:
-            assert isinstance(identif, int), "El identificador debe ser un número entero."
-            assert 1 <= identif <= 6, f"El identificador debe estar entre 1 y 6 (valor actual: {identif})."
+            assert identif.isdigit(), f"Error: El identificador no es un entero válido (valor actual: {identif})."
+            int_identif = int(identif)
+            assert 1 <= int_identif <= 6, f"El identificador debe estar entre 1 y 6 (valor actual: {identif})."
 
             bloque = longitud // 6
-            inicio = (identif - 1) * bloque
+            inicio = (int_identif - 1) * bloque
         
-            if identif == 6:
+            if int_identif == 6:
                 fin = longitud - 1
             else:
-                fin = (identif * bloque) - 1
+                fin = (int_identif * bloque) - 1
         else:
             fin = longitud - 1
             inicio = 0

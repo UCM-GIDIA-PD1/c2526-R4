@@ -7,6 +7,7 @@ import time
 import Z_funciones
 import random
 import os
+from pathlib import Path
 
 """
 Primera parte de la extracción de información de YouTube: búsqueda.
@@ -79,9 +80,11 @@ def start_tor():
     if not is_tor_running():
         print("Ejecutando TOR...")
 
-        # Abrimos TOR
-        subprocess.Popen(["tor.exe", '-f', "torrc"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        # Abrimos TOR (IMPORTANTE: hace falta tener la carpeta de TOR en PATH para que se pueda abrir)
+        TORRC_DIR = Path(__file__).resolve().parents[3] / "config" / "torrc"
+        subprocess.Popen(["tor.exe", '-f', TORRC_DIR], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
         time.sleep(10)
+        assert is_tor_running(), "TOR no se ha ejecutado correctamente"
     else:
         print("TOR ya está siendo ejecutado")
 
@@ -167,38 +170,57 @@ def busqueda_youtube(nombre_juego, fecha, sesion):
     
     return lista_enlaces
 
-def C1_informacion_youtube_busquedas():
+def C1_informacion_youtube_busquedas(): # PARA TERMINAR SESIÓN: CTRL + C
     identif = os.environ.get("PD1_ID")
 
     # Iniciamos TOR: es recomendable hacer sesion.get() aquí para comprobar red TOR: https://check.torproject.org
     start_tor()
 
     # Rutas que van a ser usadas
-    ruta_origen = r'data\info_steam_games.json.gz'
-    ruta_final_gzip = r"data\info_steam_youtube_1.json.gz"
+    data_dir = Path(__file__).resolve().parents[3] / "data"
+    ruta_origen = data_dir / "info_steam_games.json.gz"
+    ruta_final_gzip = data_dir / f"info_steam_youtube_1_{identif}.json.gz"
+
+    # Guardamos los ya extraidos en un set para evitar duplicados
+    ids_existentes = set()
+    if os.path.exists(ruta_final_gzip):
+        datos_previos = Z_funciones.cargar_datos_locales(ruta_final_gzip)
+        if datos_previos and "data" in datos_previos:
+            ids_existentes = {juego.get("id") for juego in datos_previos["data"]}
+    print(f"Juegos ya procesados anteriormente: {len(ids_existentes)}")
 
     # Cargamos el JSON comprimido de la información de los juegos
-    juegos = Z_funciones.cargar_datos_locales(ruta_origen)
-    if not juegos:
+    lista_juegos = Z_funciones.cargar_datos_locales(ruta_origen)
+    if not lista_juegos:
         print('Error al cargar los juegos')
         return
 
     # Cargamos los puntos de inicio y final
-    ruta_config = r"data\config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
-    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, identif, len(juegos.get("data")))
+    apps = lista_juegos.get("data", [])
+    ruta_config = data_dir / "config_rango.txt"
+    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, identif, len(apps))
+    if juego_fin >= len(apps):
+        juego_fin = len(apps) - 1
     
-    ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
+    ruta_temp_jsonl = data_dir / f"temp_session_{juego_ini}_{juego_fin}.jsonl"
     if os.path.exists(ruta_temp_jsonl):
         os.remove(ruta_temp_jsonl)
-
-    j = juegos.get("data", [])
-    if juego_fin >= len(j):
-        juego_fin = len(j) - 1
     
-    juegos_a_procesar = j[juego_ini : juego_fin + 1]
+    # Rango total
+    rango_total = apps[juego_ini : juego_fin + 1]
+
+    # Guardamos una tupla con el indice de la lista y la informacion del juego
+    juegos_pendientes = [(i + juego_ini, juego) for i, juego in enumerate(rango_total) if juego.get("id") not in ids_existentes]
+    print(f"Juegos en el rango seleccionado: {len(rango_total)}")
+    print(f"Juegos ya terminados: {len(rango_total) - len(juegos_pendientes)}")
+    print(f"Juegos a extraer: {len(juegos_pendientes)}")
+
+    if not juegos_pendientes:
+        print("¡No queda nada pendiente en este rango!")
+        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, juego_fin, juego_fin)
+        return
 
     print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
-    print('Comenzando extracción de juegos en YouTube...\n')
 
     # Definimos las opciones del navegador y cargamos la sesión
     sesion = new_configured_chromium_page()
@@ -207,10 +229,11 @@ def C1_informacion_youtube_busquedas():
     ultima_marca_tiempo = time.time()
     intervalo = 60 * np.random.uniform(5, 6) # Cambio de IP manual cada 5-6 minutos
 
+    print('Comenzando extracción de juegos en YouTube...\n')
     idx_actual = juego_ini - 1
     ultimo_idx_guardado = juego_ini - 1
     try:
-        for i, juego in enumerate(Z_funciones.barra_progreso(juegos_a_procesar, keys=['id'])):
+        for i, juego in enumerate(Z_funciones.barra_progreso([x[1] for x in juegos_pendientes], keys=['id'])):
             id = juego.get('id')
             nombre = juego.get('appdetails').get("name")
             fecha = juego.get('appdetails').get("release_date").get("date")
@@ -233,7 +256,7 @@ def C1_informacion_youtube_busquedas():
                 if not sesion:
                     break
     except KeyboardInterrupt:
-        print("\nDetenido por el usuario. Guardando antes de salir...")
+        print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
         Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)        
         sesion.quit()

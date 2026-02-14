@@ -88,10 +88,10 @@ def D_informacion_resenyas():
     
     informacion_resenyas = {"data" : []}
     for juego in Z_funciones.barra_progreso(lista_juegos.get("apps"), keys=['id']):
-        data = descargar_datos_juego(juego["appid"], sesion)
+        data = descargar_datos_juego(juego["id"], sesion)
         if data != {}:
             informacion_resenyas["data"].append(data)
-            print(f"{juego["appid"]}: {juego["name"]}")
+            print(f"{juego["id"]}: {juego["name"]}")
     
     # Escribe el contenido obtenido en un fichero json
     Z_funciones.guardar_datos_dict(informacion_resenyas, r"data\info_steam_resenyas.json.gz")
