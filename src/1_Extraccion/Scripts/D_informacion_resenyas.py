@@ -87,7 +87,7 @@ def D_informacion_resenyas():
     print('Buscando reseñas de los juegos...\n')
     
     informacion_resenyas = {"data" : []}
-    for juego in Z_funciones.barra_progreso(lista_juegos.get("apps"), keys=['appid']):
+    for juego in Z_funciones.barra_progreso(lista_juegos.get("apps"), keys=['id']):
         data = descargar_datos_juego(juego["appid"], sesion)
         if data != {}:
             informacion_resenyas["data"].append(data)

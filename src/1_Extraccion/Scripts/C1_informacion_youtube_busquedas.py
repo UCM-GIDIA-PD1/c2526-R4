@@ -78,12 +78,9 @@ def start_tor():
     """
     if not is_tor_running():
         print("Ejecutando TOR...")
-        # Cambiar PATH de donde hayáis descargado TOR
-        TOR_PATH = r"C:\PROGRAMS\TOR\tor\tor.exe"
-        TORRC_PATH = r"C:\PROGRAMS\TOR\data\torrc"
 
         # Abrimos TOR
-        subprocess.Popen([TOR_PATH, '-f', TORRC_PATH], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(["tor.exe", '-f', "torrc"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
         time.sleep(10)
     else:
         print("TOR ya está siendo ejecutado")
@@ -236,7 +233,7 @@ def C1_informacion_youtube_busquedas():
     except KeyboardInterrupt:
         print("\nDetenido por el usuario. Guardando antes de salir...")
     finally:
-        Z_funciones.cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)        
+        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)        
         sesion.quit()
 
 if __name__ == "__main__":

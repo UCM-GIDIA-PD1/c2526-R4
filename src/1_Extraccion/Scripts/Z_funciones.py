@@ -356,7 +356,7 @@ def guardar_sesion_final(ruta_jsonl, ruta_final_gzip):
         print(f"Error en guardar_sesion_final: {e}")
         return False
 
-def cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin):
+def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin):
     """
     Cierra la sesión de extracción de datos: guarda datos temporales en un JSON comprimido, borra
     el archivo temporal y actualiza el archivo de configuración.

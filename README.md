@@ -8,9 +8,6 @@
 ---
 
 ## Funcionalidades
-### ¿Cómo funciona?
-
-
 ### Objetivos
 - **Predictor de popularidad**: Usando como estimador de popularidad el número de reseñas que tiene un juego, predeciremos este valor usando sobre todo el impacto social (relevancia en RRSS), pero también otros parametros como los elementos de la página de Steam del juego.
 - **Estimador de precios**: Predecir el precio de un juego en base a otros juegos similares y otros parámetros, pudiendo así clasificar por ejemplo juegos que pareciéndose en características a otros, se diferencien mucho en su precio. 
@@ -22,8 +19,8 @@
 
 ```
 SteamPredictor/
-├── data/
-│   └── server.txt
+├── config/                                       # Archivos de configuración
+│   └── torrc
 ├── src/
 │   ├── 1_Extraccion/                             # Captura de datos
 │   │   ├── Scripts/
@@ -43,6 +40,57 @@ SteamPredictor/
 ├── pyproject.toml
 └── uv.lock
 ```
+
+---
+
+## Inicialización del entorno de trabajo
+### Introducción
+1. **Clonar el repositorio**:
+``` shell
+git clone https://github.com/UCM-GIDIA-PD1/c2526-R4.git
+cd c2526-R4
+```
+
+2. **Sincronizar las librerías y versión de Python** de manera automática con el [entorno virtual UV](https://docs.astral.sh/uv/), el cual deberemos tener descargado con anterioridad. Ejecuta el siguiente comando para sincronizar el entorno:
+``` shell
+uv sync
+```
+Este entorno virtual funciona gracias a los archivos ``pyproject.tolm`` y ``uv.lock``, que se encuentran dentro del repositorio. A partir de ahora, para ejecutar *scripts* usaremos:
+```shell
+uv run src\script.py
+```
+
+3. **Obtener los datos**. Para ello, existen dos opciones:
+	1. Descargar los datos directamente desde el servidor de [MinIO](https://minio.fdi.ucm.es/minio-console/login).
+	2. Extraer los datos de forma manual, explicado posteriormente.
+### Extracción de datos
+Se debe tener en cuenta que la extracción manual de los datos tarda un tiempo largo, por lo que se recomienda descargar los datos directamente del servidor de *MinIO*.
+#### Dependencias 
+Para realizar la extracción de la lista de juegos de Steam así como de las estadísticas individuales de los vídeos *scrapeados*, necesitamos antes conseguir acceso a varias APIs, a las que se adjuntan documentación del proceso de obtención:
+- La ``STEAM_API_KEY`` de [Steam](https://steamcommunity.com/dev/apikey).
+- La ``API_KEY_YT`` de [YouTube](https://developers.google.com/youtube/v3/getting-started?hl=es-419).
+Una vez conseguidas, vamos a incluirlas como variables del sistema para que el código las detecte:
+```shell
+setx STEAM_API_KEY clave_api
+setx API_KEY_YT clave_api
+```
+
+Para Scrapear YouTube necesitamos tener tanto una versión de Google Chrome reciente, como TOR bundle descargado de la [página oficial de TOR](https://www.torproject.org/download/tor/).
+
+Después de descargar TOR, ejecutad el archivo ``tor.exe`` para que creen los archivos por defecto para el correcto funcionamiento del mismo. Posteriormente, descomprimid la carpeta y cread un nuevo archivo en la carpeta `data` llamado ``torrc`` sin extensión (puede ser encontrado en la carpeta config\ de este GitHub) con el siguiente contenido:
+
+```
+# Puerto para la navegación (Proxy SOCKS)
+SocksPort 9050
+
+# Puerto de control para que Python (stem) pueda dar órdenes
+ControlPort 9051
+
+# Habilitar la autenticación por cookie para el controlador
+CookieAuthentication 1
+```
+
+``torrc`` sirve para que funcione correctamente la rotación de IP. Por último se debe establecer una nueva variable del sistema con la ruta tanto de nuestro ``TOR.exe`` como el archivo ``torrc`` (es recomendable añadirlo al ``PATH``).
 
 ---
 

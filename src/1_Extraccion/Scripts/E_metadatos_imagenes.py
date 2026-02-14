@@ -103,7 +103,6 @@ def E_metadatos_imagenes():
 
         resultados[appid] = analiza_imagen(ruta_imagenes, url, trans, model)
 
-
     # Guardamos el json
     ruta_destino = r"data\info_imagenes.json.gz"
     Z_funciones.guardar_datos_dict(resultados, ruta_destino)

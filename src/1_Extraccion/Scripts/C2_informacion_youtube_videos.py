@@ -119,7 +119,7 @@ def C2_informacion_youtube_videos():
         if contador == 99:
             break
 
-    Z_funciones.guardar_datos_dict(lista_juegos, r"data\info_steam_games_and_youtube.json.gz")
+    Z_funciones.guardar_datos_dict(lista_juegos, r"data\info_steam_youtube_2.json.gz")
 
 if __name__ == "__main__":
     C2_informacion_youtube_videos()

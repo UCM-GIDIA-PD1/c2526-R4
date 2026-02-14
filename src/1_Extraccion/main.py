@@ -32,7 +32,7 @@ scripts_info = {
     },
     "C2": {
         "fichero": "C2_informacion_youtube_videos", 
-        "salida": "info_steam_games_and_youtube.json.gz",
+        "salida": "info_steam_youtube_2.json.gz",
         "ejecutable": Scripts.C2_informacion_youtube_videos.C2_informacion_youtube_videos,
         "usar": False
     },

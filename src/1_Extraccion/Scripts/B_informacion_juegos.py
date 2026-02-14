@@ -222,7 +222,7 @@ def descargar_datos_juego(id, sesion):
 
 def B_informacion_juegos():
     # PARA TERMINAR SESIÓN: CTRL + C
-    identif = 1 # NECESARIO indicar que parte de las 6 de los juegos se va a scrappear
+    identif = 4 # NECESARIO indicar que parte de las 6 de los juegos se va a scrappear
     
     sesion = requests.Session()
     # User-Agent para parecer un navegador
@@ -255,8 +255,6 @@ def B_informacion_juegos():
 
     if juego_fin >= len(apps):
         juego_fin = len(apps) - 1
-
-    juegos_a_procesar = apps[juego_ini : juego_fin + 1]
 
     ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
 
@@ -306,7 +304,7 @@ def B_informacion_juegos():
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
-        Z_funciones.cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)
+        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)
         try:
             if os.path.exists(ruta_final_gzip):
                 datos_finales = Z_funciones.cargar_datos_locales(ruta_final_gzip)
