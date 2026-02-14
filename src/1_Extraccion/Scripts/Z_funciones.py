@@ -238,7 +238,7 @@ def convertir_fecha_steam(fecha_str):
         print(f"Error convirtiendo fecha '{fecha_str}': {e}")
         return None
 
-def leer_configuracion(ruta_txt, identif, longitud):
+def leer_configuracion(ruta_txt, longitud, identif = None):
     """Lee el inicio y fin de una sesión de scrapping desde un archivo de texto
     Los indices que se guardan corresponden a los de una lista, no corresponden con un appid concreto
     Si no existe el archivo se asigna la parte correspondiente a identif

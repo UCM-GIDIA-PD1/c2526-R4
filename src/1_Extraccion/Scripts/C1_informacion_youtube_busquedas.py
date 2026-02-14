@@ -185,7 +185,7 @@ def C1_informacion_youtube_busquedas():
 
     # Cargamos los puntos de inicio y final
     ruta_config = r"data\config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
-    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, identif, len(juegos.get("data")))
+    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, len(juegos.get("data")), identif)
     
     ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
     if os.path.exists(ruta_temp_jsonl):

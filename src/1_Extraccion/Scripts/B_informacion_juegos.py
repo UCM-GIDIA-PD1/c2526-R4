@@ -258,7 +258,7 @@ def B_informacion_juegos():
     # Cargamos los puntos de inicio y final
     ruta_config = data_dir / "config_rango.txt"
     num_juegos = len(apps)
-    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, identif, num_juegos)
+    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, num_juegos, identif)
 
     if juego_fin >= len(apps):
         juego_fin = len(apps) - 1
