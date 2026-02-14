@@ -4,6 +4,7 @@ from datetime import datetime
 import gzip
 import pandas as pd
 import os
+from pathlib import Path
 
 def cargar_datos_locales(ruta_archivo):
     """
@@ -389,3 +390,59 @@ def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guar
         print(f"Archivo guardado: {ruta_final_gzip}")
     else:
         print("No se generaron datos nuevos o hubo un error en el guardado final")
+
+def abrir_sesion(origin, final):
+    identif = os.environ.get("PD1_ID")
+    
+    # Rutas que van a ser usadas
+    data_dir = Path(__file__).resolve().parents[3] / "data"
+    archivo_origen = origin + ".json.gz"
+    ruta_origen = data_dir / archivo_origen
+    if not identif:
+        archivo_final = final + ".json.gz"
+    else:
+        archivo_final = final + f"_{identif}.json.gz"
+    ruta_final_gzip = data_dir / archivo_final
+
+    # Guardamos los ya extraidos en un set para evitar duplicados
+    ids_existentes = set()
+    if os.path.exists(ruta_final_gzip):
+        datos_previos = cargar_datos_locales(ruta_final_gzip)
+        if datos_previos and "data" in datos_previos:
+            ids_existentes = {juego.get("id") for juego in datos_previos["data"]}
+    print(f"Juegos ya procesados anteriormente: {len(ids_existentes)}")
+
+    # Cargamos el JSON comprimido de la lista de appids
+    lista_juegos = cargar_datos_locales(ruta_origen)
+    if not lista_juegos:
+        print("Error al cargar los juegos")
+        return None, None, None, None, None, None
+
+    # Cargamos los puntos de inicio y final
+    apps = lista_juegos.get("data", [])
+    ruta_config = data_dir / "config_rango.txt"
+    juego_ini, juego_fin = leer_configuracion(ruta_config, len(apps), identif)
+    if juego_fin >= len(apps):
+        juego_fin = len(apps) - 1
+
+    ruta_temp_jsonl = data_dir / f"temp_session_{juego_ini}_{juego_fin}.jsonl"
+    if os.path.exists(ruta_temp_jsonl):
+        os.remove(ruta_temp_jsonl)
+
+    # Rango total
+    rango_total = apps[juego_ini : juego_fin + 1]
+
+    # Guardamos una tupla con el indice de la lista y la informacion del juego
+    juegos_pendientes = [(i + juego_ini, juego) for i, juego in enumerate(rango_total) if juego.get("id") not in ids_existentes]
+    print(f"Juegos en el rango seleccionado: {len(rango_total)}")
+    print(f"Juegos ya terminados: {len(rango_total) - len(juegos_pendientes)}")
+    print(f"Juegos a extraer: {len(juegos_pendientes)}")
+
+    if not juegos_pendientes:
+        print("¡No queda nada pendiente en este rango!")
+        cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, juego_fin, juego_fin)
+        return None, None, None, None, None, None
+    
+    print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
+
+    return juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config

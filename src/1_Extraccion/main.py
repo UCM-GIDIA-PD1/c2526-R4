@@ -26,13 +26,13 @@ scripts_info = {
     },
     "C1": {
         "fichero": "C1_informacion_youtube_busquedas", 
-        "salida": "info_steam_youtube_1.json.gz",
+        "salida": "info_steam_youtube1.json.gz",
         "ejecutable": Scripts.C1_informacion_youtube_busquedas.C1_informacion_youtube_busquedas,
         "usar": False
     },
     "C2": {
         "fichero": "C2_informacion_youtube_videos", 
-        "salida": "info_steam_youtube_2.json.gz",
+        "salida": "info_steam_youtube2.json.gz",
         "ejecutable": Scripts.C2_informacion_youtube_videos.C2_informacion_youtube_videos,
         "usar": False
     },

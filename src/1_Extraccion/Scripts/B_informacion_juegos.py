@@ -222,53 +222,12 @@ def descargar_datos_juego(id, sesion):
     return game_info
 
 def B_informacion_juegos(): # PARA TERMINAR SESIÓN: CTRL + C
-    identif = os.environ.get("PD1_ID")
-    
-    # Rutas que van a ser usadas
-    data_dir = Path(__file__).resolve().parents[3] / "data"
-    ruta_origen = data_dir / "steam_apps.json.gz"
-    ruta_final_gzip = data_dir / f"info_steam_games_{identif}.json.gz"
-
-    # Guardamos los ya extraidos en un set para evitar duplicados
-    ids_existentes = set()
-    if os.path.exists(ruta_final_gzip):
-        datos_previos = Z_funciones.cargar_datos_locales(ruta_final_gzip)
-        if datos_previos and "data" in datos_previos:
-            ids_existentes = {juego.get("id") for juego in datos_previos["data"]}
-    print(f"Juegos ya procesados anteriormente: {len(ids_existentes)}")
-
-    # Cargamos el JSON comprimido de la lista de appids
-    lista_juegos = Z_funciones.cargar_datos_locales(ruta_origen)
-    if not lista_juegos:
-        print("Error al cargar los juegos")
+    # Cargamos los datos
+    origin = "steam_apps"
+    final = "info_steam_games"
+    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = Z_funciones.abrir_sesion(origin, final)
+    if not juego_ini:
         return
-
-    # Cargamos los puntos de inicio y final
-    apps = lista_juegos.get("data", [])
-    ruta_config = data_dir / "config_rango.txt"
-    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, len(apps), identif)
-    if juego_fin >= len(apps):
-        juego_fin = len(apps) - 1
-
-    ruta_temp_jsonl = data_dir / f"temp_session_{juego_ini}_{juego_fin}.jsonl"
-    if os.path.exists(ruta_temp_jsonl):
-        os.remove(ruta_temp_jsonl)
-
-    # Rango total
-    rango_total = apps[juego_ini : juego_fin + 1]
-
-    # Guardamos una tupla con el indice de la lista y la informacion del juego
-    juegos_pendientes = [(i + juego_ini, juego) for i, juego in enumerate(rango_total) if juego.get("id") not in ids_existentes]
-    print(f"Juegos en el rango seleccionado: {len(rango_total)}")
-    print(f"Juegos ya terminados: {len(rango_total) - len(juegos_pendientes)}")
-    print(f"Juegos a extraer: {len(juegos_pendientes)}")
-
-    if not juegos_pendientes:
-        print("¡No queda nada pendiente en este rango!")
-        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, juego_fin, juego_fin)
-        return
-    
-    print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
 
     # Creamos sesión con user-Agent para parecer un navegador (es recomendable cambiarlo si no se trabaja en Windows)
     sesion = requests.Session()
@@ -303,18 +262,6 @@ def B_informacion_juegos(): # PARA TERMINAR SESIÓN: CTRL + C
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
         Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)
-        try:
-            if os.path.exists(ruta_final_gzip):
-                datos_finales = Z_funciones.cargar_datos_locales(ruta_final_gzip)
-                if datos_finales and "data" in datos_finales:
-                    total_juegos = len(datos_finales["data"])
-                    print(f"Total de juegos guardados en '{ruta_final_gzip}': {total_juegos}")
-                else:
-                    print("El archivo final existe pero parece estar vacío.")
-            else:
-                print("No se encontró el archivo final.")
-        except Exception as e:
-            print(f"Error al contar juegos finales: {e}")
 
 if __name__ == "__main__":
     B_informacion_juegos()
