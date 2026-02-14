@@ -6,7 +6,6 @@ import subprocess
 import time
 import Z_funciones
 import random
-import os
 from pathlib import Path
 
 """

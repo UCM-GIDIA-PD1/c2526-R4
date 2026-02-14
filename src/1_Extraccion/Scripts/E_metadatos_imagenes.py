@@ -6,7 +6,8 @@ from PIL import Image, ImageStat
 import Z_funciones
 import requests
 import time
-from pathlib import Path; from random import uniform
+import numpy as np
+from pathlib import Path
 
 """
 Script que extrae de las imágenes el brillo medio y un vector de embeddings mediante una red neuronal
@@ -67,13 +68,13 @@ def analiza_imagen(img_path, url,  trans, model):
     
 def E_metadatos_imagenes():
     """
-        Itera por todas las imágenes en data/images y obtiene sus características, guardándolas en data/info_imagenes.json
+    Itera por todas las imágenes en data/images y obtiene sus características, guardándolas en data/info_imagenes.json
 
-        Args:
-            None
+    Args:
+        None
     
-        Returns:
-            None
+    Returns:
+        None
     """
     
     os.environ['TORCH_HOME'] = r'data\torch_cache'
@@ -92,12 +93,11 @@ def E_metadatos_imagenes():
     ])
 
     # Configuracion de direcciones
-    base_dir = Path(__file__).resolve().parents[3]
-    data_dir = base_dir / "data"
+    data_dir = Path(__file__).resolve().parents[3] / "data"
     ruta_origen = data_dir / "info_steam_games.json.gz"
     ruta_destino = data_dir / "info_imagenes.json.gz"
-    ruta_imagenes = data_dir / "images"
     ruta_config = data_dir / "config_imagenes.txt"
+    ruta_imagenes = data_dir / "images"
     os.makedirs(ruta_imagenes, exist_ok=True)
 
     if not os.path.exists(ruta_origen):
@@ -162,8 +162,7 @@ def E_metadatos_imagenes():
                 Z_funciones.guardar_datos_dict(resultado_juego, ruta_temp_jsonl)
                 ultimo_idx_guardado = idx_actual
 
-                wait = uniform(0.1, 0.2)
-                time.sleep(wait)
+                time.sleep(np.random.uniform(0.1, 0.2))
 
             except Exception as e:
                 print(f"Error procesando imagen del juego {appid}: {e}")

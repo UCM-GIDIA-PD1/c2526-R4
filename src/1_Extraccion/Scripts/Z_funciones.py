@@ -286,8 +286,11 @@ def actualizar_configuracion(ruta_txt, nuevo_inicio, mismo_fin):
     
     Args:
         ruta_txt: ruta del fichero de texto
-        nuevo_inicio: indice de inicio actualizado para la próxima sesión
-        mismo_fin: el ultimo indice se mantiene igual
+        nuevo_inicio (int): indice de inicio actualizado para la próxima sesión
+        mismo_fin (int): el ultimo indice se mantiene igual
+    
+    Returns:
+        None
     """
     try:
         with open(ruta_txt, 'w') as f:
@@ -300,8 +303,8 @@ def guardar_sesion_final(ruta_jsonl, ruta_final_gzip):
     Borra un archivo jsonl pasando su contenido al json.gz especificado
 
     Args:
-        ruta_jsonl (str): Ruta del archivo jsonl temporal con los datos de la sesión
-        ruta_final_gzip (str): Ruta del archivo gz final donde se consolidarán los datos
+        ruta_jsonl (Path): Ruta del archivo jsonl temporal con los datos de la sesión
+        ruta_final_gzip (Path): Ruta del archivo gz final donde se consolidarán los datos
     
     Returns:
         bool: True si la operación fue exitosa, False en caso contrario
@@ -370,8 +373,8 @@ def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guar
         ruta_temp_jsonl (str): Ruta del archivo jsonl temporal con los datos de la sesión
         ruta_final_gzip (str): Ruta del archivo gz final donde se consolidarán los datos
         ruta_config (str): Ruta del archivo txt que describe la configuración usada
-        ultimo_idx_guardado (): ID de fila del último juego cargado
-        juego_fin (): Límite superior del archivo de configuración
+        ultimo_idx_guardado (int): ID de fila del último juego cargado
+        juego_fin (int): Límite superior del archivo de configuración
     
     Returns:
         None
@@ -392,6 +395,22 @@ def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guar
         print("No se generaron datos nuevos o hubo un error en el guardado final")
 
 def abrir_sesion(origin, final):
+    """
+    Generaliza la carga de datos para todos los scripts, devolviendo varios elementos necesarios para
+    la ejecución de los mismos.
+
+    Args:
+        origin (str): Nombre del archivo de los datos origen sin extensión
+        final (str): Nombre del archivo de los datos finales sin extensión
+
+    Returns:
+        juego_ini (int): Juego por el que se va a empezar a extraer datos
+        juego_fin (int): Juego por el que se va a terminar de extraer datos
+        juegos_pendientes (list): Lista de juegos que van a ser extraídos
+        ruta_temp_jsonl (str): Ruta del archivo jsonl temporal con los datos de la sesión
+        ruta_final_gzip (str): Ruta del archivo gz final donde se consolidarán los datos
+        ruta_config (str): Ruta del archivo txt que describe la configuración usada
+    """
     identif = os.environ.get("PD1_ID")
     
     # Rutas que van a ser usadas
