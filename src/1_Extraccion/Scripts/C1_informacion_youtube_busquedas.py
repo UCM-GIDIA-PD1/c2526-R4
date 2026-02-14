@@ -168,26 +168,28 @@ def busqueda_youtube(nombre_juego, fecha, sesion):
     return lista_enlaces
 
 def C1_informacion_youtube_busquedas():
+    identif = os.environ.get("PD1_ID")
+
     # Iniciamos TOR: es recomendable hacer sesion.get() aquí para comprobar red TOR: https://check.torproject.org
     start_tor()
 
-    # Cargamos los puntos de inicio y final
-    ruta_config = r"data\config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
-    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config)
-
     # Rutas que van a ser usadas
     ruta_origen = r'data\info_steam_games.json.gz'
-    ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
     ruta_final_gzip = r"data\info_steam_youtube_1.json.gz"
-
-    if os.path.exists(ruta_temp_jsonl):
-        os.remove(ruta_temp_jsonl)
 
     # Cargamos el JSON comprimido de la información de los juegos
     juegos = Z_funciones.cargar_datos_locales(ruta_origen)
     if not juegos:
         print('Error al cargar los juegos')
         return
+
+    # Cargamos los puntos de inicio y final
+    ruta_config = r"data\config_rango.txt" # Necesario crear el archivo y poner los datos como se indica en Z_funciones.leer_configuracion()
+    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, identif, len(juegos.get("data")))
+    
+    ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
+    if os.path.exists(ruta_temp_jsonl):
+        os.remove(ruta_temp_jsonl)
 
     j = juegos.get("data", [])
     if juego_fin >= len(j):

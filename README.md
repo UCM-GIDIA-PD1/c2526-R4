@@ -65,10 +65,16 @@ uv run src\script.py
 	2. Extraer los datos de forma manual, explicado posteriormente.
 ### Extracción de datos
 Se debe tener en cuenta que la extracción manual de los datos tarda un tiempo largo, por lo que se recomienda descargar los datos directamente del servidor de *MinIO*.
+
+Si se desea extraer la información en grupo de 6 personas, se debe crear una variable del sistema nueva llamada `PD1_ID`, que tendrá un valor de entre 1 y 6. Si no se crea esta variable se extraerá la información de manera completa. Ejecutamos:
+```shell
+setx PD1_ID identificador_grupo
+```
 #### Dependencias 
 Para realizar la extracción de la lista de juegos de Steam así como de las estadísticas individuales de los vídeos *scrapeados*, necesitamos antes conseguir acceso a varias APIs, a las que se adjuntan documentación del proceso de obtención:
 - La ``STEAM_API_KEY`` de [Steam](https://steamcommunity.com/dev/apikey).
 - La ``API_KEY_YT`` de [YouTube](https://developers.google.com/youtube/v3/getting-started?hl=es-419).
+
 Una vez conseguidas, vamos a incluirlas como variables del sistema para que el código las detecte:
 ```shell
 setx STEAM_API_KEY clave_api

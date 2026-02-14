@@ -7,6 +7,7 @@ from datetime import datetime
 from calendar import monthrange
 from random import uniform
 from pathlib import Path
+
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
 
@@ -222,10 +223,10 @@ def descargar_datos_juego(id, sesion):
 
 def B_informacion_juegos():
     # PARA TERMINAR SESIÓN: CTRL + C
-    identif = 3 # NECESARIO indicar que parte de las 6 de los juegos se va a scrappear
+    identif = os.environ.get("PD1_ID")
     
     sesion = requests.Session()
-    # User-Agent para parecer un navegador
+    # User-Agent para parecer un navegador (es recomendable cambiarlo si no se trabaja en Windows)
     sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 
     
     # directorio base (carpeta c2526-R4)
