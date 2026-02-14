@@ -5,6 +5,8 @@ import torchvision.transforms as transforms
 from PIL import Image, ImageStat
 import Z_funciones
 import requests
+import time
+from pathlib import Path; from random import uniform
 
 """
 Script que extrae de las imágenes el brillo medio y un vector de embeddings mediante una red neuronal
@@ -31,16 +33,19 @@ def analiza_imagen(img_path, url,  trans, model):
     """
     # Descargamos imagen y la metemos en la ruta    
     ruta_temporal = os.path.join(img_path, "header.jpg")
-
+    
+    response = requests.get(url, timeout=10)
+    response.raise_for_status() # Para lanzar excepción si da error la petición
+    
     with open(ruta_temporal, 'wb') as f:
-        f.write(requests.get(url).content)
+        f.write(response.content)
 
     # Análisis de la imagen
     img = Image.open(ruta_temporal).convert('RGB')
         
     # Extraer el brillo medio
     stat = ImageStat.Stat(img)
-    brillo = stat.mean[0] 
+    brillo = round(stat.mean[0], 4)
 
     # Extraer vector de características
     img_preprocesada = trans(img)
@@ -48,12 +53,14 @@ def analiza_imagen(img_path, url,  trans, model):
 
     with torch.no_grad():
         embedding = model(batch_t)
-        # Convertimos el tensor a una lista de Python para el JSON
+        # Convertimos el tensor a una lista de Python para el JSON y nos quedamos solo con 4 decimales
         vector = embedding.flatten().tolist()
+        vector = [round(float(x), 4) for x in vector]
 
     # Borramos la imagen
     img.close() 
-    os.remove(ruta_temporal)
+    if os.path.exists(ruta_temporal):
+        os.remove(ruta_temporal)
     
     caracteristicas = {"brillo_medio": brillo,"vector_caracteristicas": vector} # Vector de 512 elementos
     return caracteristicas
@@ -84,28 +91,89 @@ def E_metadatos_imagenes():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    ruta_origen = r"data\info_steam_games.json.gz"
-    ruta_imagenes = r"data\images"
+    # Configuracion de direcciones
+    base_dir = Path(__file__).resolve().parents[3]
+    data_dir = base_dir / "data"
+    ruta_origen = data_dir / "info_steam_games.json.gz"
+    ruta_destino = data_dir / "info_imagenes.json.gz"
+    ruta_imagenes = data_dir / "images"
+    ruta_config = data_dir / "config_imagenes.txt"
     os.makedirs(ruta_imagenes, exist_ok=True)
 
-    data = Z_funciones.cargar_datos_locales(ruta_origen)
-    resultados = {}
-
     if not os.path.exists(ruta_origen):
-        print(f"Error: No se encuentra la ruta {ruta_origen}")
+        print(f"Error: No existe el ficher {ruta_origen} a ejecutar")
         return
+    
+    # Carga de datos
+    data = Z_funciones.cargar_datos_locales(ruta_origen)
+    juegos = data.get("data", [])  
+    num_juegos = len(juegos)
+    
+    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, num_juegos)
 
-    # Análisis de las imágenes
-    for juego in Z_funciones.barra_progreso(data.get("data"), keys=["appid"]):
-        
-        appid = juego.get("id")
-        url = juego.get("appdetails", {}).get("header_url")
+    if juego_fin >= num_juegos:
+        juego_fin = num_juegos - 1
 
-        resultados[appid] = analiza_imagen(ruta_imagenes, url, trans, model)
+    # Gestión de juegos ya procesados
+    ids_existentes = set()
+    if os.path.exists(ruta_destino):
+        datos_previos = Z_funciones.cargar_datos_locales(ruta_destino)
+        if datos_previos and "data" in datos_previos:
+            ids_existentes = {juego.get("id") for juego in datos_previos["data"]}
+    
+    rango_total = juegos[juego_ini : juego_fin + 1]
+    juegos_pendientes = [(i + juego_ini, j) for i, j in enumerate(rango_total) if j.get("id") not in ids_existentes]
+    
+    if not juegos_pendientes:
+        print("Ya has procesado todos los juegos")
+        Z_funciones.cerrar_sesion(None, ruta_destino, ruta_config, juego_fin, juego_fin)
+        return
+    else:
+        print(f"De los {num_juegos} juegos a procesar, has procesado {len(ids_existentes)}, por lo que te quedan {len(juegos_pendientes)}.")
 
-    # Guardamos el json
-    ruta_destino = r"data\info_imagenes.json.gz"
-    Z_funciones.guardar_datos_dict(resultados, ruta_destino)
+    # Configuración de jsonl para datos temporales
+    ruta_temp_jsonl = data_dir / f"temp_metadatos_{juego_ini}_{juego_fin}.jsonl"
+    if os.path.exists(ruta_temp_jsonl):
+        os.remove(ruta_temp_jsonl)
+
+    # Procesamiento de las imágenes
+    idx_actual = juego_ini - 1
+    ultimo_idx_guardado = juego_ini - 1
+    try:
+        for i, juego in enumerate(Z_funciones.barra_progreso([x[1] for x in juegos_pendientes], keys=['id'])):
+            appid = juego.get("id")
+            idx_actual = juegos_pendientes[i][0]
+
+            url = juego.get("appdetails", {}).get("header_url")
+
+            if not url:
+                ultimo_idx_guardado = idx_actual
+                continue
+
+            try:
+                caracteristicas = analiza_imagen(ruta_imagenes, url, trans, model)
+                
+                resultado_juego = {
+                    "id": appid,
+                    "brillo": caracteristicas["brillo_medio"],
+                    "vector_c": caracteristicas["vector_caracteristicas"]
+                }
+
+                Z_funciones.guardar_datos_dict(resultado_juego, ruta_temp_jsonl)
+                ultimo_idx_guardado = idx_actual
+
+                wait = uniform(0.1, 0.2)
+                time.sleep(wait)
+
+            except Exception as e:
+                print(f"Error procesando imagen del juego {appid}: {e}")
+                continue
+
+    except KeyboardInterrupt:
+        print("\n\nDetenido por el usuario. Guardando antes de salir...")
+    
+    finally:
+        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_destino, ruta_config, ultimo_idx_guardado, juego_fin)
 
 if __name__ == "__main__":
     E_metadatos_imagenes()

@@ -198,7 +198,7 @@ def C1_informacion_youtube_busquedas(): # PARA TERMINAR SESIÓN: CTRL + C
     # Cargamos los puntos de inicio y final
     apps = lista_juegos.get("data", [])
     ruta_config = data_dir / "config_rango.txt"
-    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, identif, len(apps))
+    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, len(apps), identif)
     if juego_fin >= len(apps):
         juego_fin = len(apps) - 1
     
