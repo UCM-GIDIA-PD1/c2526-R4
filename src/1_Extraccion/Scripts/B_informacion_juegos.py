@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 from calendar import monthrange
 from random import uniform
-
+from pathlib import Path
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
 
@@ -222,15 +222,21 @@ def descargar_datos_juego(id, sesion):
 
 def B_informacion_juegos():
     # PARA TERMINAR SESIÓN: CTRL + C
-    identif = 4 # NECESARIO indicar que parte de las 6 de los juegos se va a scrappear
+    identif = 3 # NECESARIO indicar que parte de las 6 de los juegos se va a scrappear
     
     sesion = requests.Session()
     # User-Agent para parecer un navegador
     sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 
-
+    
+    # directorio base (carpeta c2526-R4)
+    # Se crea un objeto Path con la dirección de este .py y se obtiene a partir de este el directorio base (carpeta c2425)
+    base_dir = Path(__file__).resolve().parents[3]
+    # Directorio data
+    data_dir = base_dir / "data"
+    
     # Rutas que van a ser usadas
-    ruta_origen = r"data\steam_apps.json.gz"
-    ruta_final_gzip = f"data\\info_steam_games_{identif}.json.gz"
+    ruta_origen = data_dir / "steam_apps.json.gz"
+    ruta_final_gzip = data_dir / f"info_steam_games_{identif}.json.gz"
 
     # Guardamos los ya extraidos para evitar duplicados
     ids_existentes = set()
@@ -249,14 +255,14 @@ def B_informacion_juegos():
     apps = lista_juegos.get("apps", [])
 
     # Cargamos los puntos de inicio y final
-    ruta_config = r"data\config_rango.txt"
+    ruta_config = data_dir / "config_rango.txt"
     num_juegos = len(apps)
     juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, identif, num_juegos)
 
     if juego_fin >= len(apps):
         juego_fin = len(apps) - 1
 
-    ruta_temp_jsonl = f"data\\temp_session_{juego_ini}_{juego_fin}.jsonl"
+    ruta_temp_jsonl = data_dir / f"temp_session_{juego_ini}_{juego_fin}.jsonl"
 
     if os.path.exists(ruta_temp_jsonl):
         os.remove(ruta_temp_jsonl)
@@ -271,7 +277,7 @@ def B_informacion_juegos():
 
     if not juegos_pendientes:
         print("¡No queda nada pendiente en este rango")
-        Z_funciones.cerramos_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, juego_fin, juego_fin)
+        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, juego_fin, juego_fin)
         return
     
     # Iteramos sobre la lista de juegos y lo metemos en un JSON nuevo

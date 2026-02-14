@@ -18,15 +18,15 @@ def cargar_datos_locales(ruta_archivo):
     """
     try:
         datos = None
-        if ruta_archivo.endswith('.json'):
+        if ruta_archivo.suffix == ".json":
             with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
                 datos = json.load(archivo)
-        elif ruta_archivo.endswith('.json.gz'):
+        elif ruta_archivo.suffixes == [".json", ".gz"]:
             with gzip.open(ruta_archivo, 'rt', encoding='utf-8') as archivo:
                 datos = json.load(archivo)
-        elif ruta_archivo.endswith('.parquet'):
+        elif ruta_archivo.suffix == ".parquet":
             datos = pd.read_parquet(ruta_archivo)
-        elif ruta_archivo.endswith('.jsonl'):
+        elif ruta_archivo.suffix == ".jsonl":
             with open(ruta_archivo, 'r', encoding='utf-8') as f:
                 datos = [json.loads(linea) for linea in f if linea.strip()]
         else:
@@ -57,15 +57,15 @@ def guardar_datos_dict(datos, ruta_archivo):
         None
     """
     try:
-        if ruta_archivo.endswith('.json'):
+        if ruta_archivo.suffix == ".json":
             with open(ruta_archivo, "w", encoding = "utf-8") as f:
                 json.dump(datos, f, ensure_ascii = False, indent = 2)
-        elif ruta_archivo.endswith('.json.gz'):
+        elif ruta_archivo.suffixes == [".json", ".gz"]:
             with gzip.open(ruta_archivo, "wt", encoding = "utf-8") as f:
                 json.dump(datos, f, ensure_ascii = False, indent = 2)
-        elif ruta_archivo.endswith('.parquet'):
+        elif ruta_archivo.suffix == ".parquet":
             pd.DataFrame(datos).to_parquet(ruta_archivo)
-        elif ruta_archivo.endswith('.jsonl'):
+        elif ruta_archivo.suffix == ".jsonl":
             with open(ruta_archivo, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(datos, ensure_ascii=False) + '\n')
         else:
