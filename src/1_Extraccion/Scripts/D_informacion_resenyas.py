@@ -2,6 +2,7 @@ import requests
 import Z_funciones
 from random import uniform
 import time
+from tqdm import tqdm
 
 '''
 Script que guarda la información procedente de appreviews
@@ -81,40 +82,38 @@ def descargar_datos_juego(id, sesion):
 
 def D_informacion_resenyas():
     # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
-    origin = "steam_apps"
-    final = "info_steam_resenyas"
+    origin = "steam_apps.json.gz"
+    final = "info_steam_resenyas.json.gz"
     juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = Z_funciones.abrir_sesion(origin, final)
     
     sesion = requests.Session()
     sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
 
-    idx_actual = juego_ini - 1
-    ultimo_idx_guardado = juego_ini - 1
+    idx_actual = juego_ini
     try:
-        for i, juego in enumerate(Z_funciones.barra_progreso([x[1] for x in juegos_pendientes], keys=['id'])):
-            appid = juego.get("id")
-            idx_actual = juegos_pendientes[i][0]
+        with tqdm(juegos_pendientes, unit = "appids") as pbar:
+            for appid in pbar:
+                try:
+                    data = descargar_datos_juego(appid, sesion)
+                    
+                    if data != {}:
+                        Z_funciones.guardar_datos_dict(data, ruta_temp_jsonl)
+                        
 
-            try:
-                data = descargar_datos_juego(appid, sesion)
-                
-                if data != {}:
-                    Z_funciones.guardar_datos_dict(data, ruta_temp_jsonl)
-                    ultimo_idx_guardado = idx_actual
+                    # Pausa para respetar la API
+                    wait = uniform(1.5, 2.5)
+                    time.sleep(wait)
 
-                # Pausa para respetar la API
-                wait = uniform(1, 1.1)
-                time.sleep(wait)
-
-            except Exception as e:
-                # Si falla un juego específico, lo logueamos y seguimos con el siguiente
-                print(f"Error procesando juego {appid}: {e}")
-                continue
+                except Exception as e:
+                    # Si falla un juego específico, lo logueamos y seguimos con el siguiente
+                    print(f"Error procesando juego {appid}: {e}")
+                    continue
+                idx_actual += 1
 
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
-        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)
+        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_actual, juego_fin)
 
 if __name__ == "__main__":
     D_informacion_resenyas()

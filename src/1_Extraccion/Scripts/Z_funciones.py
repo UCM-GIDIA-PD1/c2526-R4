@@ -6,6 +6,9 @@ import pandas as pd
 import os
 from pathlib import Path
 
+def proyect_root():
+    return Path(__file__).resolve().parents[3]
+
 def cargar_datos_locales(ruta_archivo):
     """
     Carga y decodifica un archivo desde una ruta local.
@@ -60,10 +63,10 @@ def guardar_datos_dict(datos, ruta_archivo):
     try:
         if ruta_archivo.suffix == ".json":
             with open(ruta_archivo, "w", encoding = "utf-8") as f:
-                json.dump(datos, f, ensure_ascii = False, indent = 2)
+                json.dump(datos, f, ensure_ascii = False)
         elif ruta_archivo.suffixes == [".json", ".gz"]:
             with gzip.open(ruta_archivo, "wt", encoding = "utf-8") as f:
-                json.dump(datos, f, ensure_ascii = False, indent = 2)
+                json.dump(datos, f, ensure_ascii = False)
         elif ruta_archivo.suffix == ".parquet":
             pd.DataFrame(datos).to_parquet(ruta_archivo)
         elif ruta_archivo.suffix == ".jsonl":
@@ -273,7 +276,7 @@ def convertir_fecha_steam(fecha_str):
         print(f"Error convirtiendo fecha '{fecha_str}': {e}")
         return None
 
-def leer_configuracion(ruta_txt, longitud, identif = None):
+def leer_configuracion(ruta_txt, longitud, identif):
     """Lee el inicio y fin de una sesión de scrapping desde un archivo de texto
     Los indices que se guardan corresponden a los de una lista, no corresponden con un appid concreto
     Si no existe el archivo se asigna la parte correspondiente a identif
@@ -286,6 +289,7 @@ def leer_configuracion(ruta_txt, longitud, identif = None):
     Returns:
         Tupla de enteros con los valores de inicio y fin
     """
+    # Si existe archivo 
     if os.path.exists(ruta_txt):
         try:
             with open(ruta_txt, 'r') as f:
@@ -295,25 +299,26 @@ def leer_configuracion(ruta_txt, longitud, identif = None):
         except Exception as e:
             print(f"Error leyendo txt: {e}. Se usarán valores por defecto.")
             return 0, 0
-    else:
-        if identif:
-            assert identif.isdigit(), f"Error: El identificador no es un entero válido (valor actual: {identif})."
-            int_identif = int(identif)
-            assert 1 <= int_identif <= 6, f"El identificador debe estar entre 1 y 6 (valor actual: {identif})."
+    
+    # Si no existe archivo
+    if identif is not None:
+        assert identif.isdigit(), f"Error: El identificador no es un entero válido (valor actual: {identif})."
+        int_identif = int(identif)
+        assert 1 <= int_identif <= 6, f"El identificador debe estar entre 1 y 6 (valor actual: {identif})."
 
-            bloque = longitud // 6
-            inicio = (int_identif - 1) * bloque
-        
-            if int_identif == 6:
-                fin = longitud - 1
-            else:
-                fin = (int_identif * bloque) - 1
-        else:
+        bloque = longitud // 6
+        inicio = (int_identif - 1) * bloque
+    
+        if int_identif == 6:
             fin = longitud - 1
-            inicio = 0
+        else:
+            fin = (int_identif * bloque) - 1
+    else:
+        inicio = 0
+        fin = longitud - 1
 
-        actualizar_configuracion(ruta_txt, inicio, fin)            
-        return inicio, fin
+    actualizar_configuracion(ruta_txt, inicio, fin)            
+    return inicio, fin
 
 def actualizar_configuracion(ruta_txt, nuevo_inicio, mismo_fin):
     """Sobrescribe el archivo txt con el nuevo punto de partida
@@ -428,7 +433,7 @@ def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guar
     else:
         print("No se generaron datos nuevos o hubo un error en el guardado final")
 
-def abrir_sesion(origin, final, requires_identif = True):
+def abrir_sesion(archivo_origen, archivo_final, requires_identif = True):
     """
     Generaliza la carga de datos para todos los scripts, devolviendo varios elementos necesarios para
     la ejecución de los mismos.
@@ -448,22 +453,11 @@ def abrir_sesion(origin, final, requires_identif = True):
     identif = os.environ.get("PD1_ID")
     
     # Rutas que van a ser usadas
-    data_dir = Path(__file__).resolve().parents[3] / "data"
-    archivo_origen = origin + ".json.gz"
+    data_dir = proyect_root() / "data"
     ruta_origen = data_dir / archivo_origen
-    if not identif or not requires_identif:
-        archivo_final = final + ".json.gz"
-    else:
-        archivo_final = final + f"_{identif}.json.gz"
+    if requires_identif:
+        archivo_final = archivo_final.replace(".json.gz", f"_{identif}.json.gz")
     ruta_final_gzip = data_dir / archivo_final
-
-    # Guardamos los ya extraidos en un set para evitar duplicados
-    ids_existentes = set()
-    if os.path.exists(ruta_final_gzip):
-        datos_previos = cargar_datos_locales(ruta_final_gzip)
-        if datos_previos and "data" in datos_previos:
-            ids_existentes = {juego.get("id") for juego in datos_previos["data"]}
-    print(f"Juegos ya procesados anteriormente: {len(ids_existentes)}")
 
     # Cargamos el JSON comprimido de la lista de appids
     lista_juegos = cargar_datos_locales(ruta_origen)
@@ -472,33 +466,27 @@ def abrir_sesion(origin, final, requires_identif = True):
         return None, None, None, None, None, None
 
     # Cargamos los puntos de inicio y final
-    apps = lista_juegos.get("data", [])
     ruta_config = data_dir / "config_rango.txt"
-    if not identif or not requires_identif:
-        juego_ini, juego_fin = leer_configuracion(ruta_config, len(apps))
-    else:
-        juego_ini, juego_fin = leer_configuracion(ruta_config, len(apps), identif)
-    if juego_fin >= len(apps):
-        juego_fin = len(apps) - 1
+    idx_juego_ini, idx_juego_fin = leer_configuracion(ruta_config, len(lista_juegos), identif)
+    print(idx_juego_ini,idx_juego_fin)
 
-    ruta_temp_jsonl = data_dir / f"temp_session_{juego_ini}_{juego_fin}.jsonl"
+    ruta_temp_jsonl = data_dir / f"temp_session_{idx_juego_ini}_{idx_juego_fin}.jsonl"
     if os.path.exists(ruta_temp_jsonl):
         os.remove(ruta_temp_jsonl)
 
-    # Rango total
-    rango_total = apps[juego_ini : juego_fin + 1]
+    # Juegos a procesar
+    juegos_a_procesar = lista_juegos[idx_juego_ini : idx_juego_fin + 1]
 
-    # Guardamos una tupla con el indice de la lista y la informacion del juego
-    juegos_pendientes = [(i + juego_ini, juego) for i, juego in enumerate(rango_total) if juego.get("id") not in ids_existentes]
-    print(f"Juegos en el rango seleccionado: {len(rango_total)}")
-    print(f"Juegos ya terminados: {len(rango_total) - len(juegos_pendientes)}")
-    print(f"Juegos a extraer: {len(juegos_pendientes)}")
-
-    if not juegos_pendientes:
+    if not juegos_a_procesar:
         print("¡No queda nada pendiente en este rango!")
-        cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, juego_fin, juego_fin)
+        cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_juego_fin, idx_juego_fin)
         return None, None, None, None, None, None
     
-    print(f"Sesión configurada: del índice {juego_ini} al {juego_fin}")
+    print(f"Sesión configurada: del índice {idx_juego_ini} al {idx_juego_fin}")
 
-    return juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config
+    return idx_juego_ini, idx_juego_fin, juegos_a_procesar, ruta_temp_jsonl, ruta_final_gzip, ruta_config
+
+def log_fallos(appid, razon, ruta_jsonl = proyect_root() / "data" / "log_fallos.jsonl.gz"):
+    datos = {appid : razon}
+    with gzip.open(ruta_jsonl, "a" , encoding="utf-8") as f:
+        f.write(json.dumps(datos, ensure_ascii=False) + "\n")

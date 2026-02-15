@@ -4,6 +4,7 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image, ImageStat
 import Z_funciones
+from Z_funciones import proyect_root
 import requests
 import time
 import numpy as np
@@ -93,15 +94,15 @@ def E_metadatos_imagenes():
     ])
 
     # Carga de datos
-    origin = "info_steam_games"
-    final = "info_imagenes"
+    origin = "info_steam_games.json.gz"
+    final = "info_imagenes.json.gz"
     juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_destino, ruta_config = Z_funciones.abrir_sesion(origin, final, False)    
 
     if juego_ini == None:
         return
     
     # Configuracion de direcciones
-    data_dir = Path(__file__).resolve().parents[3] / "data"
+    data_dir = proyect_root() / "data"
     ruta_imagenes = data_dir / "images"
     os.makedirs(ruta_imagenes, exist_ok=True)
 
