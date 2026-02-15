@@ -112,51 +112,62 @@ def solicitud_url(sesion, params_info, url):
     
 def convertir_fecha_datetime(fecha_str):
     """Convierte una fecha de Steam a objeto datetime
-    
-    Formatos soportados:
-    - "Feb 13, 2026" / "13 Feb, 2026"
-    - "February 13, 2026" / "13 February, 2026"
-    - "Feb 13 2026" / "13 Feb 2026" (sin comas)
-    - "February 13 2026" / "13 February 2026"
-    - "2026-02-13"
-    - "Feb 2026" / "February 2026" (asume día 1)
-    - "2026" (asume 1 de enero)
-
     Args:
-        fecha_str: La fecha en el formato string "%d %b, %Y"
+        fecha_str: La fecha como un string"
     
     Returns:
         datetime | None: Si no se puede convertir devuelve None
     """
     if not fecha_str: 
         return None
-    
-    fecha_str = fecha_str.strip()
 
-    # Esto depende del sistema, necesario cambiar
+    # Todos las posibles formas de poner meses
+    meses = {
+        'jan': 1, 'january': 1,
+        'feb': 2, 'february': 2,
+        'mar': 3, 'march': 3,
+        'apr': 4, 'april': 4,
+        'may': 5,
+        'jun': 6, 'june': 6,
+        'jul': 7, 'july': 7,
+        'aug': 8, 'august': 8,
+        'sep': 9, 'sept': 9, 'september': 9,
+        'oct': 10, 'october': 10,
+        'nov': 11, 'november': 11,
+        'dec': 12, 'december': 12
+    }
 
-    formats = [
-        "%b %d, %Y",    # Feb 13, 2026
-        "%d %b, %Y",    # 13 Feb, 2026
-        "%B %d, %Y",    # February 13, 2026
-        "%d %B, %Y",    # 13 February, 2026
-        "%b %d %Y",     # Feb 13 2026
-        "%d %b %Y",     # 13 Feb 2026
-        "%B %d %Y",     # February 13 2026
-        "%d %B %Y",     # 13 February 2026
-        "%Y-%m-%d",     # 2026-02-13
-        "%b %Y",        # Feb 2026
-        "%B %Y",        # February 2026
-        "%Y",           # 2026
-    ]
-    
-    # Intentar parsear con cada formato
-    for fmt in formats:
-        try:
-            return datetime.strptime(fecha_str, fmt)
-        except ValueError:
-            continue
-    return None
+    try:
+        fecha_limpia = fecha_str.strip().lower().replace(',', '').replace('.', '')
+        partes = fecha_limpia.split()
+
+        dia = None
+        mes = None
+        anio = None
+
+        for parte in partes:
+            if parte in meses:
+                mes = meses[parte]
+            
+            elif parte.isdigit():
+                numero = int(parte)
+                
+                if numero >= 1900 and numero <= 2100:
+                    anio = numero
+                elif numero >= 1 and numero <= 31:
+                    dia = numero
+        if anio and mes and dia:
+                return datetime(anio, mes, dia)
+        elif anio and mes:
+            # Si solo tenemos mes y año, usar día 1
+            return datetime(anio, mes, 1)
+        elif anio:
+            # Si solo tenemos año, usar 1 de enero
+            return datetime(anio, 1, 1)
+        else:
+            return None
+    except Exception:
+        return None
 
 
 def barra_progreso(iterable, total=None, keys=None):
@@ -197,7 +208,8 @@ def barra_progreso(iterable, total=None, keys=None):
 
 def convertir_fecha_steam(fecha_str):
     """
-    Convierte 'DD Mon, YYYY' -> 'YYYY-MM-DD'
+    Convierte fechas de Steam a formato 'YYYY-MM-DD'.
+    Soporta múltiples formatos.
 
     Args:
         fecha_str (str): Fecha en formato 'DD Mon, YYYY'.
@@ -208,32 +220,54 @@ def convertir_fecha_steam(fecha_str):
     """
     if not fecha_str:
         return None
+    
+    # Para pasar de formato mes -> mes_num
+    meses = {
+        'jan': '01', 'january': '01',
+        'feb': '02', 'february': '02',
+        'mar': '03', 'march': '03',
+        'apr': '04', 'april': '04',
+        'may': '05',
+        'jun': '06', 'june': '06',
+        'jul': '07', 'july': '07',
+        'aug': '08', 'august': '08',
+        'sep': '09', 'sept': '09', 'september': '09',
+        'oct': '10', 'october': '10',
+        'nov': '11', 'november': '11',
+        'dec': '12', 'december': '12'
+    }
 
     try:
-        # Para pasar de formato mes -> mes_num
-        meses = {
-            'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
-            'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
-        }
-
         # Dividimos el string en partes
-        limpia = fecha_str.replace(',', '')
+        limpia = fecha_str.strip().lower().replace(',', '').replace('.','')
         partes = limpia.split()
 
-        # Nos aseguramos de que partes tenga longitud 3
-        if len(partes) != 3:
-            return None
+        dia = None
+        mes = None
+        anio = None
 
-        # Pasamos a formato numérico
-        dia, mes_texto, anio = partes[0], partes[1], partes[2]
-        dia = dia.zfill(2)
-        mes_numero = meses.get(mes_texto)
-        
-        if not mes_numero:
-            return None
+        for parte in partes:
+            if parte in meses:
+                mes = meses[parte]
+                
+            elif parte.isdigit():
+                numero = int(parte)
+                    
+                if numero >= 1900 and numero <= 2100:
+                    anio = str(numero)
+                elif numero >= 1 and numero <= 31:
+                    dia = str(numero).zfill(2)
 
-        # Devolvemos en el formato necesario
-        return f"{anio}-{mes_numero}-{dia}"
+        if anio and mes and dia:
+            return f"{anio}-{mes}-{dia}"
+        elif anio and mes:
+            # Si solo tenemos mes y año, usar día 1
+            return f"{anio}-{mes}-01"
+        elif anio:
+            # Si solo tenemos año, usar 1 de enero
+            return f"{anio}-01-01"
+        else:
+            return None
 
     except Exception as e:
         print(f"Error convirtiendo fecha '{fecha_str}': {e}")
