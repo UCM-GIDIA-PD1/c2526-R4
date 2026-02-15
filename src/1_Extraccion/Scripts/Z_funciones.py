@@ -394,7 +394,7 @@ def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guar
     else:
         print("No se generaron datos nuevos o hubo un error en el guardado final")
 
-def abrir_sesion(origin, final):
+def abrir_sesion(origin, final, requires_identif = True):
     """
     Generaliza la carga de datos para todos los scripts, devolviendo varios elementos necesarios para
     la ejecución de los mismos.
@@ -417,7 +417,7 @@ def abrir_sesion(origin, final):
     data_dir = Path(__file__).resolve().parents[3] / "data"
     archivo_origen = origin + ".json.gz"
     ruta_origen = data_dir / archivo_origen
-    if not identif:
+    if not identif or not requires_identif:
         archivo_final = final + ".json.gz"
     else:
         archivo_final = final + f"_{identif}.json.gz"
@@ -440,7 +440,10 @@ def abrir_sesion(origin, final):
     # Cargamos los puntos de inicio y final
     apps = lista_juegos.get("data", [])
     ruta_config = data_dir / "config_rango.txt"
-    juego_ini, juego_fin = leer_configuracion(ruta_config, len(apps), identif)
+    if not identif or not requires_identif:
+        juego_ini, juego_fin = leer_configuracion(ruta_config, len(apps))
+    else:
+        juego_ini, juego_fin = leer_configuracion(ruta_config, len(apps), identif)
     if juego_fin >= len(apps):
         juego_fin = len(apps) - 1
 

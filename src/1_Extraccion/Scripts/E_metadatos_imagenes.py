@@ -92,49 +92,18 @@ def E_metadatos_imagenes():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
+    # Carga de datos
+    origin = "info_steam_games"
+    final = "info_imagenes"
+    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_destino, ruta_config = Z_funciones.abrir_sesion(origin, final, False)    
+
+    if juego_ini == None:
+        return
+    
     # Configuracion de direcciones
     data_dir = Path(__file__).resolve().parents[3] / "data"
-    ruta_origen = data_dir / "info_steam_games.json.gz"
-    ruta_destino = data_dir / "info_imagenes.json.gz"
-    ruta_config = data_dir / "config_imagenes.txt"
     ruta_imagenes = data_dir / "images"
     os.makedirs(ruta_imagenes, exist_ok=True)
-
-    if not os.path.exists(ruta_origen):
-        print(f"Error: No existe el ficher {ruta_origen} a ejecutar")
-        return
-    
-    # Carga de datos
-    data = Z_funciones.cargar_datos_locales(ruta_origen)
-    juegos = data.get("data", [])  
-    num_juegos = len(juegos)
-    
-    juego_ini, juego_fin = Z_funciones.leer_configuracion(ruta_config, num_juegos)
-
-    if juego_fin >= num_juegos:
-        juego_fin = num_juegos - 1
-
-    # Gestión de juegos ya procesados
-    ids_existentes = set()
-    if os.path.exists(ruta_destino):
-        datos_previos = Z_funciones.cargar_datos_locales(ruta_destino)
-        if datos_previos and "data" in datos_previos:
-            ids_existentes = {juego.get("id") for juego in datos_previos["data"]}
-    
-    rango_total = juegos[juego_ini : juego_fin + 1]
-    juegos_pendientes = [(i + juego_ini, j) for i, j in enumerate(rango_total) if j.get("id") not in ids_existentes]
-    
-    if not juegos_pendientes:
-        print("Ya has procesado todos los juegos")
-        Z_funciones.cerrar_sesion(None, ruta_destino, ruta_config, juego_fin, juego_fin)
-        return
-    else:
-        print(f"De los {num_juegos} juegos a procesar, has procesado {len(ids_existentes)}, por lo que te quedan {len(juegos_pendientes)}.")
-
-    # Configuración de jsonl para datos temporales
-    ruta_temp_jsonl = data_dir / f"temp_metadatos_{juego_ini}_{juego_fin}.jsonl"
-    if os.path.exists(ruta_temp_jsonl):
-        os.remove(ruta_temp_jsonl)
 
     # Procesamiento de las imágenes
     idx_actual = juego_ini - 1

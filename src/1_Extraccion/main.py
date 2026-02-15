@@ -80,6 +80,7 @@ def ejecutar_scripts():
             print(f">> Ejecutando {clave}: {info['fichero']}...")
             info["ejecutable"]()
             alguno_ejecutado = True
+            info["usar"] = not info["usar"]
     
     if not alguno_ejecutado:
         print("No hay ningún script seleccionado para ejecutar.")
