@@ -1,5 +1,7 @@
 import requests
 import Z_funciones
+from random import uniform
+import time
 
 '''
 Script que guarda la información procedente de appreviews
@@ -99,6 +101,10 @@ def D_informacion_resenyas():
                 if data != {}:
                     Z_funciones.guardar_datos_dict(data, ruta_temp_jsonl)
                     ultimo_idx_guardado = idx_actual
+
+                # Pausa para respetar la API
+                wait = uniform(1, 1.1)
+                time.sleep(wait)
 
             except Exception as e:
                 # Si falla un juego específico, lo logueamos y seguimos con el siguiente
