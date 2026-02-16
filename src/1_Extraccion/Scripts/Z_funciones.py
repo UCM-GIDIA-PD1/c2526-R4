@@ -173,7 +173,16 @@ def convertir_fecha_datetime(fecha_str):
                     elif numero >= 1 and numero <= 31:
                         dia = numero
         else:
-            anio, mes, dia = partes[0], partes[1], partes[2]
+             # Soporta YYYY-MM-DD y DD-MM-YYYY
+            primero = int(partes[0])
+            if primero >= 1900 and primero <= 2100:
+                anio = primero
+                mes = int(partes[1])
+                dia = int(partes[2])
+            else:
+                dia = primero
+                mes = int(partes[1])
+                anio = int(partes[2])
             return datetime(anio, mes, dia)
         
         if anio and mes and dia:
@@ -290,8 +299,16 @@ def convertir_fecha_steam(fecha_str):
                         anio = str(numero)
                     elif numero >= 1 and numero <= 31:
                         dia = str(numero).zfill(2)
-        else: # Soporta YYYY-MM-DD
-            anio, mes, dia = partes[0], partes[1], partes[2]
+        else: # Soporta YYYY-MM-DD y DD-MM-YYYY
+            primero = int(partes[0])
+            if primero >= 1900 and primero <= 2100:
+                anio = primero
+                mes = int(partes[1])
+                dia = int(partes[2])
+            else:
+                dia = primero
+                mes = int(partes[1])
+                anio = int(partes[2])
             return f"{anio}-{mes}-{dia}"
 
 
