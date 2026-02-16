@@ -468,7 +468,6 @@ def abrir_sesion(archivo_origen, archivo_final, requires_identif = True):
     # Cargamos los puntos de inicio y final
     ruta_config = data_dir / "config_rango.txt"
     idx_juego_ini, idx_juego_fin = leer_configuracion(ruta_config, len(lista_juegos), identif)
-    print(idx_juego_ini,idx_juego_fin)
 
     ruta_temp_jsonl = data_dir / f"temp_session_{idx_juego_ini}_{idx_juego_fin}.jsonl"
     if os.path.exists(ruta_temp_jsonl):
@@ -486,7 +485,7 @@ def abrir_sesion(archivo_origen, archivo_final, requires_identif = True):
 
     return idx_juego_ini, idx_juego_fin, juegos_a_procesar, ruta_temp_jsonl, ruta_final_gzip, ruta_config
 
-def log_fallos(appid, razon, ruta_jsonl = proyect_root() / "data" / "log_fallos.jsonl.gz"):
+def log_fallos(appid, razon, ruta_jsonl = proyect_root() / "data" / "log_fallos.jsonl"):
     datos = {appid : razon}
-    with gzip.open(ruta_jsonl, "a" , encoding="utf-8") as f:
+    with open(ruta_jsonl, "a" , encoding="utf-8") as f:
         f.write(json.dumps(datos, ensure_ascii=False) + "\n")
