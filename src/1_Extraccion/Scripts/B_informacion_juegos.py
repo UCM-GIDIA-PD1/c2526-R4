@@ -1,12 +1,11 @@
 import requests
 from bs4 import BeautifulSoup
-import Z_funciones
+from Z_funciones import solicitud_url, convertir_fecha_datetime, abrir_sesion, guardar_datos_dict, cerrar_sesion, log_fallos
 import time
-import os
 from datetime import datetime
 from calendar import monthrange
 from random import uniform
-from pathlib import Path
+from tqdm import tqdm
 
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
@@ -21,12 +20,12 @@ Salida:
 - Los datos se almacenan en la carpeta data/ en formato JSON comprimido.
 '''
 
-def get_appdetails(str_id, sesion):
+def get_appdetails(appid, sesion):
     """
     Extrae y limpia los detalles técnicos y comerciales de un juego desde la API de Steam.
 
     Args:
-        str_id (str): ID de la aplicación (AppID) en Steam.
+        appid (str): ID de la aplicación (AppID) en Steam.
         sesion (requests.Session): Sesión persistente para realizar la petición HTTP.
 
     Returns:
@@ -34,25 +33,26 @@ def get_appdetails(str_id, sesion):
         Retorna un diccionario vacío si la petición falla o el ID no es válido.
     """
     # Creamos la url
-    url = "https://store.steampowered.com/api/appdetails?appids=" + str_id
+    url = "https://store.steampowered.com/api/appdetails"
 
     # Hacemos el request a la página y creamos el json que va a almacenar la info
-    params_info = {"cc": "eur"}
+    params_info = {"appids": appid, "cc": "eur"}
     appdetails = {}
     
     # La función solicitud_url trata las distintas excepciones posibles
-    data = Z_funciones.solicitud_url(sesion, params_info, url)
+    data = solicitud_url(sesion, params_info, url)
 
-    if not data or not data.get(str_id) or not data[str_id].get("success", False):
+    if not data.get(appid, "") or not data[appid].get("success", False):
         return appdetails
 
-    data_game = data[str_id]["data"]
+    data_game = data[appid]["data"]
 
     # Metemos la información útil
     appdetails["name"] = data_game.get("name")
     appdetails["required_age"] = data_game.get("required_age")
     appdetails["short_description"] = data_game.get("short_description")
     appdetails["header_url"] = data_game.get("header_image")
+    
     if not data_game.get("price_overview"):
         # Si el juego no tiene price_overview significa que es gratis, por lo que 
         # metemos nosotros los valores a 0
@@ -92,14 +92,14 @@ def get_appdetails(str_id, sesion):
 
     return appdetails
 
-def get_appreviewhistogram(str_id, sesion, fecha_salida):
+def get_appreviewhistogram(appid, sesion, fecha_salida):
     """
     Obtiene y procesa estadísticas de reseñas de un juego en Steam. Extrae métricas
     generales y calcula el agregado de recomendaciones (positivas y negativas)
     correspondientes aproximadamente al primer mes de vida del juego.
 
     Args:
-        str_id (str): El ID del juego en Steam (APPID).
+        appid (str): El ID del juego en Steam (APPID).
         sesion (requests.Session): Sesión ya abierta de requests.
 
     Returns:
@@ -107,17 +107,17 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
         Retorna un diccionario vacío si no hay datos disponibles.
     """
     # Creamos la url
-    url = "https://store.steampowered.com/appreviewhistogram/" + str_id
+    url = "https://store.steampowered.com/appreviewhistogram/" + appid
     
     # Hacemos el request a la página y creamos el json que va a almacenar la info
     params_info = {"l": "english"}
     appreviewhistogram = {}
     
     # La función solicitud_url trata las distintas excepciones posibles
-    data = Z_funciones.solicitud_url(sesion, params_info, url)
+    data = solicitud_url(sesion, params_info, url)
 
     # Caso en el que no haya ninguna review: los rollups están vacíos
-    if not data or not data.get("results") or not data["results"].get("rollups"):
+    if not data.get("results", "") or not data["results"].get("rollups",[]):
         return appreviewhistogram
 
     appreviewhistogram["start_date"] = data["results"]["start_date"]
@@ -170,7 +170,8 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
             rec_up = int(rollups[idx].get("recommendations_up", 0))
             rec_down = int(rollups[idx].get("recommendations_down", 0))
         
-        if dias == 0: dias = 1
+        if dias == 0: 
+            dias = 1
             
         appreviewhistogram["rollups"] = {
             "date": rollups[idx].get("date"), 
@@ -185,14 +186,14 @@ def get_appreviewhistogram(str_id, sesion, fecha_salida):
 
     return appreviewhistogram
 
-def descargar_datos_juego(id, sesion):
+def descargar_datos_juego(appid, sesion):
     """
     Fusiona la descarga completa de información de un juego usando varias funciones.
     Agrega los detalles del producto y el histograma de reseñas en un único objeto.
     Si alguna de las fuentes de datos críticas está vacía, el juego se descarta.
 
     Args:
-        id (int): Identificador numérico del juego en Steam.
+        appid: Identificador numérico del juego en Steam.
         sesion (requests.Session): Sesión persistente para las peticiones HTTP.
 
     Returns:
@@ -200,11 +201,10 @@ def descargar_datos_juego(id, sesion):
         Retorna un diccionario vacío si falla la obtención de cualquiera de las partes.
     """
     # Datos iniciales
-    game_info = {"id": id, "appdetails": {}, "appreviewhistogram": {}}
-    str_id = str(id)
+    game_info = {"id": appid, "appdetails": {}, "appreviewhistogram": {}}
 
     # Llamamos a funciones
-    game_info["appdetails"] = get_appdetails(str_id, sesion)
+    game_info["appdetails"] = get_appdetails(appid, sesion)
 
     release_data = game_info["appdetails"].get("release_date")
     
@@ -212,21 +212,22 @@ def descargar_datos_juego(id, sesion):
     if not release_data or not isinstance(release_data, dict) or not release_data.get("date"):
         return {}
     
-    fecha_salida_datetime = Z_funciones.convertir_fecha_datetime(release_data.get("date"))
+    fecha_salida_datetime = convertir_fecha_datetime(release_data.get("date"))
 
     if not fecha_salida_datetime:
         return {}
     
-    game_info["appreviewhistogram"] = get_appreviewhistogram(str_id, sesion, fecha_salida_datetime)
+    game_info["appreviewhistogram"] = get_appreviewhistogram(appid, sesion, fecha_salida_datetime)
 
     return game_info
 
 def B_informacion_juegos(): # PARA TERMINAR SESIÓN: CTRL + C
     # Cargamos los datos
-    origin = "steam_apps"
-    final = "info_steam_games"
-    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = Z_funciones.abrir_sesion(origin, final)
-    if not juego_ini:
+    origin = "steam_apps.json.gz"
+    final = "info_steam_games.json.gz"
+    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = abrir_sesion(origin, final)
+    
+    if juego_ini is None:
         return
 
     # Creamos sesión con user-Agent para parecer un navegador (es recomendable cambiarlo si no se trabaja en Windows)
@@ -235,33 +236,33 @@ def B_informacion_juegos(): # PARA TERMINAR SESIÓN: CTRL + C
     
     # Iteramos sobre la lista de juegos y lo metemos en un JSON nuevo
     print("Comenzando extraccion de juegos...\n")
-    idx_actual = juego_ini - 1
-    ultimo_idx_guardado = juego_ini - 1
+    idx_actual = juego_ini
     try:
-        for i, juego in enumerate(Z_funciones.barra_progreso([x[1] for x in juegos_pendientes], keys=['id'])):
-            appid = juego.get("id")
-            idx_actual = juegos_pendientes[i][0]
+        with tqdm(juegos_pendientes, unit = "appids") as pbar:
+            for appid in pbar:
+                pbar.set_description(f"Procesando appid: {appid}")
 
-            try:
-                desc = descargar_datos_juego(appid, sesion)
-                
-                if desc:
-                    Z_funciones.guardar_datos_dict(desc, ruta_temp_jsonl)
-                    ultimo_idx_guardado = idx_actual
+                try:
+                    desc = descargar_datos_juego(appid, sesion)
+                    
+                    if desc:
+                        guardar_datos_dict(desc, ruta_temp_jsonl)
+                    else:
+                        log_fallos(appid, "appdetails: contenido filtrado")
+                        print(f"Error procesando juego {appid}: contenido filtrado")
+                    wait = uniform(1.5, 2.5)
+                    time.sleep(wait)
+                    
+                except Exception as e:
+                    # Si falla un juego específico, lo logueamos y seguimos con el siguiente
+                    log_fallos(appid, "appdetails: " + str(e))
+                    print(f"Error procesando juego {appid}: {e}")
 
-                # Pausa para respetar la API
-                wait = uniform(1.5, 1.6)
-                time.sleep(wait)
-
-            except Exception as e:
-                # Si falla un juego específico, lo logueamos y seguimos con el siguiente
-                print(f"Error procesando juego {appid}: {e}")
-                continue
-
+                idx_actual += 1
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
-        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)
+        cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_actual, juego_fin)
 
 if __name__ == "__main__":
     B_informacion_juegos()

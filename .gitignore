@@ -3,6 +3,7 @@ __pycache__
 .venv
 .vscode
 torch_cache
+.Rproj.user
 
 # Extensiones de archivos
 *.csv
@@ -12,7 +13,9 @@ torch_cache
 *.json.gzip
 *.json.gz
 *.jsonl
+*.Rhistory
 
 # Archivos concretos
 config_rango.txt
 fallos.txt
+

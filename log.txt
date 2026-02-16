@@ -3,3 +3,17 @@
 - Cambio extension archivo .gzip por .gz (añadido al gitignore)
 - Quitado function es_juego_valido(): No hace falta, por defecto el request solo devuelve appids de juegos, tiene otros parametros por si se quiere incluir dlcs, videos, etc
 - Cambio del bucle en lista_juegos. Ahora se especifica el numero de appids que se quiere
+
+15/02/2026 - Zhixian Zhou
+
+- Cambios en A_lista_juegos
+  - Se guarda un json de valores en vez de un json de objetos. (ej. JSON = [10, 20, 30, 40]). He tenido que modificar el guardado de archivos json.gz y quitar el indent = 2. Si se quiere visualizar bien, en vscode se puede hacer alt + shift + F
+  - appid se guardan como strings.
+- Cambios B_informacion_juegos:
+  - Eliminado parte en la que se carga los juegos procesados. No es factible hacer eso. El config es el que debería mantener el rango de juegos que hay que procesar
+  - barra de progreso tqdm
+- Cambios en Z_funciones
+  - Abrir sesión ahora recibe la ruta con la extensión. El cambio es para legibilidad y consistencia con el resto del código
+  - Trabajando en cambiar el resto de módulos
+# Comentario: deberíamos estudiar un poco la estructura de nuestro código. Muchas de nuestras funciones dependen demasiado de cómo funcionan otras funciones.
+# Comentario: habría que mirar una solución para no traer todos los datos de todos los juegos.

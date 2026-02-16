@@ -5,6 +5,7 @@ import psutil
 import subprocess
 import time
 import Z_funciones
+from Z_funciones import proyect_root
 import random
 from pathlib import Path
 
@@ -80,7 +81,7 @@ def start_tor():
         print("Ejecutando TOR...")
 
         # Abrimos TOR (IMPORTANTE: hace falta tener la carpeta de TOR en PATH para que se pueda abrir)
-        TORRC_DIR = Path(__file__).resolve().parents[3] / "config" / "torrc"
+        TORRC_DIR = proyect_root() / "config" / "torrc"
         subprocess.Popen(["tor.exe", '-f', TORRC_DIR], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
         time.sleep(10)
         assert is_tor_running(), "TOR no se ha ejecutado correctamente"
@@ -174,8 +175,8 @@ def C1_informacion_youtube_busquedas(): # PARA TERMINAR SESIÓN: CTRL + C
     start_tor()
 
     # Cargamos los datos
-    origin = "info_steam_games"
-    final = "info_steam_youtube1"
+    origin = "info_steam_games.json.gz"
+    final = "info_steam_youtube1.json.gz"
     juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = Z_funciones.abrir_sesion(origin, final, False)
     if not juego_ini:
         return

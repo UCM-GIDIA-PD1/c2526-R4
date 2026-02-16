@@ -1,6 +1,7 @@
 import os
 from googleapiclient.discovery import build
 import Z_funciones
+from Z_funciones import proyect_root
 
 '''
 Segunda parte de la extracción de YouTube: videos.
@@ -91,7 +92,7 @@ def C2_informacion_youtube_videos():
     assert API_KEY, "La API_KEY no ha sido cargada"
 
     # Cargamos los datos del JSON que contiene las fechas para hacer las búsqueda correctamente
-    ruta_json = r'data\info_steam_games.json.gz'
+    ruta_json = proyect_root() / "data" / "info_steam_games.json.gz"
     juegos = Z_funciones.cargar_datos_locales(ruta_json)
 
     if not juegos:
