@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from Z_funciones import solicitud_url, convertir_fecha_datetime, abrir_sesion, guardar_datos_dict, cerrar_sesion, log_fallos, convertir_fecha_steam
+from Z_funciones import solicitud_url, convertir_fecha_datetime, abrir_sesion, guardar_datos_dict, cerrar_sesion, log_fallos, convertir_fecha_steam, timestamp_a_fecha
 import time
 from datetime import datetime
 from calendar import monthrange
@@ -124,8 +124,8 @@ def get_appreviewhistogram(appid, sesion, fecha_salida):
     if not data.get("results", "") or not data["results"].get("rollups",[]):
         return appreviewhistogram
 
-    appreviewhistogram["start_date"] = data["results"]["start_date"]
-    appreviewhistogram["end_date"] = data["results"]["end_date"]
+    appreviewhistogram["start_date"] = timestamp_a_fecha(data["results"]["start_date"])
+    appreviewhistogram["end_date"] = timestamp_a_fecha(data["results"]["end_date"])
     appreviewhistogram["rollup_type"] = data["results"]["rollup_type"]
 
     # Buscamos que barra del histograma hay que coger
@@ -151,7 +151,7 @@ def get_appreviewhistogram(appid, sesion, fecha_salida):
 
     # Cogemos los datos de aproximadamente el primer mes (las valoraciones del primer mes)
     if appreviewhistogram["rollup_type"] == "week":
-        l = {"date": rollups[idx].get("date"), "recommendations_up": 0, "recommendations_down": 0}
+        l = {"date": timestamp_a_fecha(rollups[idx].get("date")), "recommendations_up": 0, "recommendations_down": 0}
         for i in range(0, 4):
             if (idx + i) < len(rollups):
                 l["recommendations_up"] += rollups[idx + i].get("recommendations_up", 0)
@@ -178,13 +178,13 @@ def get_appreviewhistogram(appid, sesion, fecha_salida):
             dias = 1
             
         appreviewhistogram["rollups"] = {
-            "date": rollups[idx].get("date"), 
+            "date": timestamp_a_fecha(rollups[idx].get("date")), 
             "recommendations_up": rec_up, 
             "recommendations_down": rec_down,
-            "recommendations_up_per_day": rec_up / dias,
-            "recommendations_down_per_day": rec_down / dias,
+            "recommendations_up_per_day": round(rec_up / dias, 4),
+            "recommendations_down_per_day": round(rec_down / dias, 4),
             "total_recommendations": rec_up + rec_down,
-            "total_recommendations_per_day": (rec_up + rec_down) / dias,
+            "total_recommendations_per_day": round((rec_up + rec_down) / dias, 4),
             "dias":dias
         }
 
@@ -254,7 +254,7 @@ def B_informacion_juegos(): # PARA TERMINAR SESIÓN: CTRL + C
                     else:
                         log_fallos(appid, "appdetails: contenido filtrado")
                         print(f"\nError procesando juego {appid}: contenido filtrado")
-                    wait = uniform(1.5, 2.5)
+                    wait = uniform(1.5, 2)
                     time.sleep(wait)
                     
                 except Exception as e:

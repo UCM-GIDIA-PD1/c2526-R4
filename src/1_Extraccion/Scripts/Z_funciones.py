@@ -302,13 +302,13 @@ def convertir_fecha_steam(fecha_str):
         else: # Soporta YYYY-MM-DD y DD-MM-YYYY
             primero = int(partes[0])
             if primero >= 1900 and primero <= 2100:
-                anio = primero
-                mes = int(partes[1])
-                dia = int(partes[2])
+                anio = primero.zfill(2)
+                mes = partes[1].zfill(2)
+                dia = int(partes[2]).zfill(2)
             else:
-                dia = primero
-                mes = int(partes[1])
-                anio = int(partes[2])
+                dia = primero.zfill(2)
+                mes = int(partes[1]).zfill(2)
+                anio = int(partes[2]).zfill(2)
             return f"{anio}-{mes}-{dia}"
 
 
@@ -540,3 +540,16 @@ def log_fallos(appid, razon, ruta_jsonl = proyect_root() / "data" / "log_fallos.
     datos = {appid : razon}
     with open(ruta_jsonl, "a" , encoding="utf-8") as f:
         f.write(json.dumps(datos, ensure_ascii=False) + "\n")
+
+def timestamp_a_fecha(timestamp):
+    """
+    Convierte un timestamp Unix a formato YYYY-MM-DD
+    
+    Args:
+        timestamp (int): Timestamp Unix
+    
+    Returns:
+        str: Fecha en formato YYYY-MM-DD
+    """
+    dt = datetime.fromtimestamp(timestamp)
+    return f"{dt.year}-{str(dt.month).zfill(2)}-{str(dt.day).zfill(2)}"

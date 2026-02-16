@@ -103,7 +103,7 @@ def D_informacion_resenyas():
                         
 
                     # Pausa para respetar la API
-                    wait = uniform(1.5, 2.5)
+                    wait = uniform(1.5, 2)
                     time.sleep(wait)
 
                 except Exception as e:
