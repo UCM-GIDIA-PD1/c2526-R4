@@ -144,21 +144,38 @@ def convertir_fecha_datetime(fecha_str):
         fecha_limpia = fecha_str.strip().lower().replace(',', '').replace('.', '')
         partes = fecha_limpia.split()
 
+        if len(partes) == 1:
+            partes.split('-')
+        
+        if len(partes) != 3:
+            return None
+
         dia = None
         mes = None
         anio = None
 
+        # Si son todo numeros
+        all_number = True
         for parte in partes:
-            if parte in meses:
-                mes = meses[parte]
-            
-            elif parte.isdigit():
-                numero = int(parte)
+            if not parte.isdigit():
+                all_number = False
+
+        if not all_number:
+            for parte in partes:
+                if parte in meses:
+                    mes = meses[parte]
                 
-                if numero >= 1900 and numero <= 2100:
-                    anio = numero
-                elif numero >= 1 and numero <= 31:
-                    dia = numero
+                elif parte.isdigit():
+                    numero = int(parte)
+                    
+                    if numero >= 1900 and numero <= 2100:
+                        anio = numero
+                    elif numero >= 1 and numero <= 31:
+                        dia = numero
+        else:
+            anio, mes, dia = partes[0], partes[1], partes[2]
+            return datetime(anio, mes, dia)
+        
         if anio and mes and dia:
                 return datetime(anio, mes, dia)
         elif anio and mes:
@@ -245,21 +262,38 @@ def convertir_fecha_steam(fecha_str):
         limpia = fecha_str.strip().lower().replace(',', '').replace('.','')
         partes = limpia.split()
 
+        if len(partes) == 1:
+            partes.split('-')
+        
+        if len(partes) != 3:
+            return None
+
         dia = None
         mes = None
         anio = None
 
+        # Si son todo numeros
+        all_number = True
         for parte in partes:
-            if parte in meses:
-                mes = meses[parte]
-                
-            elif parte.isdigit():
-                numero = int(parte)
+            if not parte.isdigit():
+                all_number = False
+
+        if not all_number:
+            for parte in partes:
+                if parte in meses:
+                    mes = meses[parte]
                     
-                if numero >= 1900 and numero <= 2100:
-                    anio = str(numero)
-                elif numero >= 1 and numero <= 31:
-                    dia = str(numero).zfill(2)
+                elif parte.isdigit():
+                    numero = int(parte)
+                        
+                    if numero >= 1900 and numero <= 2100:
+                        anio = str(numero)
+                    elif numero >= 1 and numero <= 31:
+                        dia = str(numero).zfill(2)
+        else: # Soporta YYYY-MM-DD
+            anio, mes, dia = partes[0], partes[1], partes[2]
+            return f"{anio}-{mes}-{dia}"
+
 
         if anio and mes and dia:
             return f"{anio}-{mes}-{dia}"

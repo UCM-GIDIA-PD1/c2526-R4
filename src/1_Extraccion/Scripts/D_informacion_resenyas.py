@@ -85,7 +85,9 @@ def D_informacion_resenyas():
     origin = "steam_apps.json.gz"
     final = "info_steam_resenyas.json.gz"
     juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = Z_funciones.abrir_sesion(origin, final)
-    
+    if not juego_ini:
+        return
+
     sesion = requests.Session()
     sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
 

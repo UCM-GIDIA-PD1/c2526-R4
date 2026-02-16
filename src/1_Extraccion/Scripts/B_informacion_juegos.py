@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from Z_funciones import solicitud_url, convertir_fecha_datetime, abrir_sesion, guardar_datos_dict, cerrar_sesion, log_fallos
+from Z_funciones import solicitud_url, convertir_fecha_datetime, abrir_sesion, guardar_datos_dict, cerrar_sesion, log_fallos, convertir_fecha_steam
 import time
 from datetime import datetime
 from calendar import monthrange
@@ -89,6 +89,7 @@ def get_appdetails(appid, sesion):
     appdetails["metacritic"] = data_game.get("metacritic")
 
     appdetails["release_date"] = data_game.get("release_date")
+    appdetails["release_date"].get("date") = convertir_fecha_steam(appdetails["release_date"].get("date"))
 
     return appdetails
 
