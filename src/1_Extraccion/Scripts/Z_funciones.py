@@ -145,7 +145,7 @@ def convertir_fecha_datetime(fecha_str):
         partes = fecha_limpia.split()
 
         if len(partes) == 1:
-            partes.split('-')
+            partes = partes[0].split('-')
         
         if len(partes) != 3:
             return None
@@ -272,7 +272,7 @@ def convertir_fecha_steam(fecha_str):
         partes = limpia.split()
 
         if len(partes) == 1:
-            partes.split('-')
+            partes = partes[0].split('-')
         
         if len(partes) != 3:
             return None

@@ -89,7 +89,10 @@ def get_appdetails(appid, sesion):
     appdetails["metacritic"] = data_game.get("metacritic")
 
     appdetails["release_date"] = data_game.get("release_date")
-    appdetails["release_date"].get("date") = convertir_fecha_steam(appdetails["release_date"].get("date"))
+    if appdetails["release_date"] and "date" in appdetails["release_date"]:
+        appdetails["release_date"]["date"] = convertir_fecha_steam(appdetails["release_date"]["date"])
+    else: 
+        return {}
 
     return appdetails
 
