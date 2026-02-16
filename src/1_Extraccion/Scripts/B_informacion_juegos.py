@@ -249,14 +249,14 @@ def B_informacion_juegos(): # PARA TERMINAR SESIÓN: CTRL + C
                         guardar_datos_dict(desc, ruta_temp_jsonl)
                     else:
                         log_fallos(appid, "appdetails: contenido filtrado")
-                        print(f"Error procesando juego {appid}: contenido filtrado")
+                        print(f"\nError procesando juego {appid}: contenido filtrado")
                     wait = uniform(1.5, 2.5)
                     time.sleep(wait)
                     
                 except Exception as e:
                     # Si falla un juego específico, lo logueamos y seguimos con el siguiente
                     log_fallos(appid, "appdetails: " + str(e))
-                    print(f"Error procesando juego {appid}: {e}")
+                    print(f"\nError procesando juego {appid}: {e}")
 
                 idx_actual += 1
     except KeyboardInterrupt:
