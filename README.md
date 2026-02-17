@@ -87,6 +87,8 @@ setx MINIO_ACCESS_KEY clave_de_acceso
 setx MINIO_SECRET_KEY clave_secreta
 ```
 
+Además para poder conectarse a MinIO hay que descargarse el [mc.exe](https://dl.min.io/client/mc/release/windows-amd64/mc.exe) y meterlo en la raiz del proyecto.
+
 Para Scrapear YouTube necesitamos tener tanto una versión de Google Chrome reciente, como TOR bundle descargado de la [página oficial de TOR](https://www.torproject.org/download/tor/).
 
 Después de descargar TOR, ejecutad el archivo ``tor.exe`` para que creen los archivos por defecto para el correcto funcionamiento del mismo. Cuando el proceso de TOR llegue al 100%, cerradlo. Posteriormente, añadid la carpeta de TOR al PATH de vuestro sistema. El script C1 usará como configuración de TOR el archivo `torrc` que podéis encontrar en el repositorio, no hace falta hacer nada con él, pero sirve para que funcione correctamente la rotación de IP.
