@@ -75,11 +75,19 @@ Para realizar la extracción de la lista de juegos de Steam así como de las est
 - La ``STEAM_API_KEY`` de [Steam](https://steamcommunity.com/dev/apikey).
 - La ``API_KEY_YT`` de [YouTube](https://developers.google.com/youtube/v3/getting-started?hl=es-419).
 
+Además, si queremos guardar los datos en el servidor de la FDI de MinIO necesitaremos:
+- Clave de acceso del servidor de MinIO
+- Clave secreta del servidor de MinIO
+
 Una vez conseguidas, vamos a incluirlas como variables del sistema para que el código las detecte:
 ```shell
 setx STEAM_API_KEY clave_api
 setx API_KEY_YT clave_api
+setx MINIO_ACCESS_KEY clave_de_acceso
+setx MINIO_SECRET_KEY clave_secreta
 ```
+
+Además para poder conectarse a MinIO hay que descargarse el [mc.exe](https://dl.min.io/client/mc/release/windows-amd64/mc.exe) y meterlo en la raiz del proyecto.
 
 Para Scrapear YouTube necesitamos tener tanto una versión de Google Chrome reciente, como TOR bundle descargado de la [página oficial de TOR](https://www.torproject.org/download/tor/).
 

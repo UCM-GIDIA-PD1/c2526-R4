@@ -1,6 +1,6 @@
 import os
 import requests
-from Z_funciones import solicitud_url, guardar_datos_dict, proyect_root
+from Z_funciones import solicitud_url, guardar_datos_dict, proyect_root, cliente_minio
 from tqdm import tqdm
 
 """
@@ -22,7 +22,16 @@ Salida:
 """
 
 
-def A_lista_juegos():
+def A_lista_juegos(minio = False):
+    """
+    Obtiene la lista completa de appids de los juegos de Steam
+
+    Args:
+        minio (bool): Activar para descargar los datos al servidor de MinIO en vez de en local
+    
+    Returns:
+        None
+    """
     # url e info
     url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
 
@@ -30,7 +39,7 @@ def A_lista_juegos():
     API_KEY = os.environ.get("STEAM_API_KEY")
     assert API_KEY, "La API_KEY no ha sido cargada"
 
-    n_appids = 200000 # Cuantos appids quieres
+    n_appids = 10 # Cuantos appids quieres
 
     max_results = min(n_appids, 50000) # Cuantos resultados se quiere por request
     last_appid = 0 # appid a partir del cual comienza a buscar, no se incluye en la respuesta
@@ -74,12 +83,12 @@ def A_lista_juegos():
     # Guardamos en un JSON
     json_dir = proyect_root() / "data" / "steam_apps.json.gz"
 
-    guardar_datos_dict(content, json_dir)
+    guardar_datos_dict(content, json_dir, minio)
 
-    if os.path.exists(json_dir):
+    if os.path.exists(json_dir) and not minio:
         print("Lista de juegos guardada correctamente")
-    else:
+    elif not minio:
         print("No se ha podido guardar la lista de juegos")
 
 if __name__ == "__main__":
-    A_lista_juegos()
+    A_lista_juegos(True)
