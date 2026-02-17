@@ -14,8 +14,7 @@ def proyect_root():
 def cliente_minio():
     return Minio(endpoint = "minio.fdi.ucm.es",
                 access_key = os.environ.get("MINIO_ACCESS_KEY"),
-                secret_key = os.environ.get("MINIO_SECRET_KEY"),
-                secure = True)
+                secret_key = os.environ.get("MINIO_SECRET_KEY"))
 
 def cargar_datos(ruta_archivo, minio = False):
     """
@@ -96,7 +95,7 @@ def guardar_datos_dict(datos, ruta_archivo, minio = False):
         if minio:
             cliente = cliente_minio()
             ruta_minio = f"grupo4/{ruta_archivo.name}"
-            cliente.fput_object(bucket_name = "pd1", object_name = ruta_archivo, file_path = ruta_minio)
+            cliente.fput_object(bucket_name = "pd1", object_name = ruta_minio, file_path = ruta_archivo)
             
     except TypeError as e:
         # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
