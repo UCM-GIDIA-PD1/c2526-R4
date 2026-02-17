@@ -70,7 +70,7 @@ def procesar_juego(youtube_service, video_id_list, id_juego):
 
 def C2_informacion_youtube_videos():
     # Cargamos la API del sistema
-    API_KEY = 'AIzaSyCJuw9OLbCctEuFRNVakm4eTabLORRlBUM'#os.environ.get('API_KEY_YT')
+    API_KEY = os.environ.get('API_KEY_YT')
     assert API_KEY, "La API_KEY no ha sido cargada"
 
     # Cargamos los datos del JSON que contiene los VIDEO ID de cada juego
