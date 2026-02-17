@@ -274,7 +274,7 @@ def convertir_fecha_steam(fecha_str):
         if len(partes) == 1:
             partes = partes[0].split('-')
         
-        if len(partes) != 3:
+        if len(partes) not in [1, 2, 3]:
             return None
 
         dia = None
@@ -302,13 +302,13 @@ def convertir_fecha_steam(fecha_str):
         else: # Soporta YYYY-MM-DD y DD-MM-YYYY
             primero = int(partes[0])
             if primero >= 1900 and primero <= 2100:
-                anio = primero.zfill(2)
+                anio = str(primero).zfill(2)
                 mes = partes[1].zfill(2)
-                dia = int(partes[2]).zfill(2)
+                dia = partes[2].zfill(2)
             else:
-                dia = primero.zfill(2)
-                mes = int(partes[1]).zfill(2)
-                anio = int(partes[2]).zfill(2)
+                dia = str(primero).zfill(2)
+                mes = partes[1].zfill(2)
+                anio = partes[2].zfill(2)
             return f"{anio}-{mes}-{dia}"
 
 
