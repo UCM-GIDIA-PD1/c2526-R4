@@ -3,6 +3,7 @@ __pycache__
 .venv
 .vscode
 torch_cache
+error_logs
 .Rproj.user
 
 # Extensiones de archivos
@@ -13,6 +14,7 @@ torch_cache
 *.json.gzip
 *.json.gz
 *.jsonl
+*.jsonl.gz
 *.Rhistory
 
 # Archivos concretos
