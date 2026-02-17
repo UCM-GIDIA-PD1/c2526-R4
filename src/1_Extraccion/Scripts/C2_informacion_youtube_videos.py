@@ -25,17 +25,16 @@ Salida:
 - Los datos se almacenan en la el directorio indicado.
 '''
 
-def procesar_juego(youtube_service, nombre_juego, fecha_limite):
+def procesar_juego(youtube_service, video_id_list, id_juego):
     """
-    Devuelve una lista con las estadisticas de los 10 videos mas vistos de un juego 
-    antes de su lanzamiento.
+    Dado un array que contiene diccionarios conlos ids de los videos de un juego, obtiene las estadísticas de todos los videos 
+    devolviendo una lista de video_statistics.
 
     Args:
         youtube_service (googleapiclient.discovery.Resource): Objeto de servicio de Google API 
             construido con la función build.
-        nombre_juego (str): Título del videojuego para filtrar la búsqueda en YouTube.
-        fecha_limite (str): Fecha en formato RFC 3339 que define el límite temporal superior de los vídeos.
-        id_juego (int): Identificador único del juego para indexar las estadísticas.
+        video_id_list (list): Lista que contiene un diccionario con los ids de los videos de un juego
+        id_juego (str): Id del juego 
 
     Returns:
         list[dict]: Una lista de diccionarios, donde cada uno contiene el id del juego 
@@ -43,30 +42,13 @@ def procesar_juego(youtube_service, nombre_juego, fecha_limite):
         lista vacía si ocurre un error o no hay resultados.
     """
     try:
-        FECHA_INICIO_YOUTUBE = "2005-04-23T00:00:00Z"
-        # Si la fecha de salida del juego es anterior a Youtube, devuelve None
-        if fecha_limite < FECHA_INICIO_YOUTUBE:
-            print("El juego es anterior a YouTube")
-            return
-
-        # Solicitud que gasta 100 unidades de cuota
-        search_request = youtube_service.search().list(
-            part="id",
-            q=f'intitle:"{nombre_juego}"',
-            order="viewCount",
-            publishedBefore=fecha_limite,
-            type="video",
-            maxResults=10, # Limitado a 10 vídeos por búsqueda
-            safeSearch='none',
-            videoCategoryId="20" # Categoría de vídeo Gaming
-        )
-        search_response = search_request.execute()
-        if not search_response.get('items'):
-            print("No se encontraron videos")
+        
+        # Si el juego no tiene videos, no se procesa
+        if not video_id_list:
             return []
         
-        # Guardamos las ids de los vídeos
-        ids_videos = [item['id']['videoId'] for item in search_response.get('items')]
+        # Transformamos la lista diccionarios en un string con todos ids
+        ids_videos = [ video_id.get('id') for video_id in video_id_list]
         ids_string = ','.join(ids_videos)
 
         # Solicitud que gasta 1 unidad de cuota
@@ -83,44 +65,58 @@ def procesar_juego(youtube_service, nombre_juego, fecha_limite):
         return lista_estadisticas
 
     except Exception as e:
-        print(f"Error buscando '{nombre_juego}': {e}")
+        print(f"Error buscando '{id_juego}': {e}")
         return []
 
 def C2_informacion_youtube_videos():
     # Cargamos la API del sistema
-    API_KEY = os.environ.get('API_KEY_YT')
+    API_KEY = 'AIzaSyCJuw9OLbCctEuFRNVakm4eTabLORRlBUM'#os.environ.get('API_KEY_YT')
     assert API_KEY, "La API_KEY no ha sido cargada"
 
-    # Cargamos los datos del JSON que contiene las fechas para hacer las búsqueda correctamente
-    ruta_json = proyect_root() / "data" / "info_steam_games.json.gz"
+    # Cargamos los datos del JSON que contiene los VIDEO ID de cada juego
+    ruta_json = proyect_root() / "data" / "info_steam_youtube_1_4.json.gz" # (CAMBIAR NOMBRE)
     juegos = Z_funciones.cargar_datos_locales(ruta_json)
 
     if not juegos:
-        print('Error al cargar los juegos')
+        print('Error al cargar la lista de juegos')
         return
-    print('Buscando juegos en YouTube...\n')
+    
+    print('Obteniendo estadísticas de los videos...\n')
 
     # Creamos el googleapiclient.discovery.Resource
     youtube = build('youtube', 'v3', developerKey=API_KEY)
+
+    info_json = {}
+    info_json['data'] = []
+
     # Iteramos los juegos
     lista_juegos = juegos.get("data")
     contador = 0
     for juego in lista_juegos:
-        nombre = juego.get('appdetails').get("name")
-        fecha = juego.get('appdetails').get("release_date").get("date")
-        fecha_formateada = Z_funciones.convertir_fecha_steam(fecha)
+        nombre = juego.get("name")
+        id_juego = juego.get('id')
+        video_id_list = juego.get('video_statistics')
 
-        if nombre and fecha_formateada:
-            print(f"{nombre}: {fecha}")
-            juego['video_statistics'] = procesar_juego(youtube, nombre, fecha_formateada + "T00:00:00Z")
+        # Si la lista está vacía no se procesa el juego
+        if video_id_list:
+            print(f"{nombre}")
+            info = {}
+            info['id'] = id_juego
+            info['name'] = nombre
+            info['video_statistics'] = procesar_juego(youtube, video_id_list, id_juego)
+            info_json['data'].append(info)
         else:
-            print(f'Juego con entrada incompleta: {nombre}')
+            print(f'El juego {id_juego} no tiene video_statistics')
         
+        # Placeholder para solo obtener información de 100 juegos (CAMBIAR EN LA VERSIÓN FINAL) 
         contador += 1
-        if contador == 99:
+        if contador == 99: 
             break
 
-    Z_funciones.guardar_datos_dict(lista_juegos, r"data\info_steam_youtube_2.json.gz")
+
+    data_dir = proyect_root() / "data"
+    ruta_final_gzip = data_dir / 'info_steam_youtube.json.gz'
+    Z_funciones.guardar_datos_dict(info_json, ruta_final_gzip)
 
 if __name__ == "__main__":
     C2_informacion_youtube_videos()
