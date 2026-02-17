@@ -173,7 +173,7 @@ def convertir_fecha_datetime(fecha_str):
                     elif numero >= 1 and numero <= 31:
                         dia = numero
         else:
-             # Soporta YYYY-MM-DD y DD-MM-YYYY
+            # Soporta YYYY-MM-DD y DD-MM-YYYY
             primero = int(partes[0])
             if primero >= 1900 and primero <= 2100:
                 anio = primero
@@ -187,12 +187,6 @@ def convertir_fecha_datetime(fecha_str):
         
         if anio and mes and dia:
                 return datetime(anio, mes, dia)
-        elif anio and mes:
-            # Si solo tenemos mes y año, usar día 1
-            return datetime(anio, mes, 1)
-        elif anio:
-            # Si solo tenemos año, usar 1 de enero
-            return datetime(anio, 1, 1)
         else:
             return None
     except Exception:
@@ -274,7 +268,7 @@ def convertir_fecha_steam(fecha_str):
         if len(partes) == 1:
             partes = partes[0].split('-')
         
-        if len(partes) not in [1, 2, 3]:
+        if len(partes) != 3:
             return None
 
         dia = None
@@ -314,12 +308,6 @@ def convertir_fecha_steam(fecha_str):
 
         if anio and mes and dia:
             return f"{anio}-{mes}-{dia}"
-        elif anio and mes:
-            # Si solo tenemos mes y año, usar día 1
-            return f"{anio}-{mes}-01"
-        elif anio:
-            # Si solo tenemos año, usar 1 de enero
-            return f"{anio}-01-01"
         else:
             return None
 
