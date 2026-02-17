@@ -2,11 +2,11 @@
 
 # Descomentar ambas en caso de tener que instalar las
 # librerías (necesario buscar alternativa)
-#install.packages("jsonlite")
-#install.packages("here")
-#install.packages(dplyr)
-#install.packages(ggplot2)
-#install.packages(plotly)
+install.packages("jsonlite")
+install.packages("here")
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("plotly")
 library(jsonlite)
 library(here)
 library(dplyr)
@@ -47,6 +47,8 @@ df_reducido = rename(df_reducido, "recommendations_up"="appreviewhistogram.rollu
 # Se eliminan las filas que tengan algún nulo en las columnas de recomendaciones
 df_reducido = filter(df_reducido, !is.na(recommendations_up) & !is.na(recommendations_down)
           & !is.na(total_recommendations))
+
+
 
 # Se observa que el número de filas se ha reducido casi a la mitad (demasiados nulos?)
 dim(df_reducido)
