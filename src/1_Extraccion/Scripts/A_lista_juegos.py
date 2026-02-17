@@ -30,10 +30,10 @@ def A_lista_juegos():
     API_KEY = os.environ.get("STEAM_API_KEY")
     assert API_KEY, "La API_KEY no ha sido cargada"
 
-    n_appids = 1000 # Cuantos appids quieres
+    n_appids = 200000 # Cuantos appids quieres
 
     max_results = min(n_appids, 50000) # Cuantos resultados se quiere por request
-    last_appid = 200000 # appid a partir del cual comienza a buscar, no se incluye en la respuesta
+    last_appid = 0 # appid a partir del cual comienza a buscar, no se incluye en la respuesta
     info = {"key": API_KEY, "max_results" : max_results, "last_appid": last_appid}
 
     # Creamos el json que va a tener todos los datos
