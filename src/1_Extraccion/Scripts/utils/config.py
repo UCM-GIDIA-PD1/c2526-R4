@@ -1,5 +1,34 @@
 import os
+from pathlib import Path
 from files import read_file, write_to_file
+
+"""
+Se encarga de trabajar con los archivos de configuración y tiene variables con las que se trabaja en todo el proyecto
+"""
+
+# Variables de proyecto
+members = 6
+
+# Paths
+def project_root():
+    return Path(__file__).resolve().parents[4]
+
+def data_path():
+    if not os.path.exists(project_root() / "data"):
+        os.makedirs(project_root() / "data")
+    return project_root() / "data"
+
+def config_path():
+    if not os.path.exists(project_root() / "config"):
+        os.makedirs(project_root() / "config")
+    return project_root() / "config"
+
+def error_log_path():
+    if not os.path.exists(data_path() / "error_logs"):
+        os.makedirs(data_path() / "error_logs")
+    return data_path() / "error_logs"
+
+
 
 def _get_identif_range(lenght, identif):
     """Devuelve el rango del apps a procesar"""
@@ -9,12 +38,12 @@ def _get_identif_range(lenght, identif):
     
     assert identif.isdigit(), f"Error: El identificador no es un entero válido (valor actual: {identif})."
     int_identif = int(identif)
-    assert 1 <= int_identif <= 6, f"El identificador debe estar entre 1 y 6 (valor actual: {identif})."
+    assert 1 <= int_identif <= members, f"El identificador debe estar entre 1 y 6 (valor actual: {identif})."
 
-    bloque = lenght // 6
+    bloque = lenght // members
     inicio = (int_identif - 1) * bloque
 
-    if int_identif == 6:
+    if int_identif == members:
         fin = lenght - 1
     else:
         fin = (int_identif * bloque) - 1

@@ -9,8 +9,12 @@ def unix_to_date_string(timestamp):
     Returns:
         str: Fecha en formato YYYY-MM-DD
     """
-    dt = datetime.fromtimestamp(timestamp)
-    return dt.strftime('%Y-%m-%d')
+    try:
+        dt = datetime.fromtimestamp(timestamp)
+        return dt.strftime('%Y-%m-%d')
+    except ValueError:
+        return None
+
 
 def format_date_string(date_str):
     """
