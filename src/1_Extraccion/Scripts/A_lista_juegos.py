@@ -1,10 +1,8 @@
 import os
-import requests
 from utils.config import appidlist_file_path, appidlist_info_path
 from utils.files import read_file, write_to_file
 from utils.steam_requests import get_appids
-from Z_funciones import solicitud_url, guardar_datos_dict, proyect_root
-from tqdm import tqdm
+
 
 """
 Script que itera sobre la API de Steam y devuelve un JSON comprimido con n juegos y sus APPID.
@@ -25,7 +23,6 @@ Salida:
 """
 
 def _handle_input(initial_message, _isValid = lambda x: True):
-    
     respuesta = input(initial_message).strip()
     while not _isValid(respuesta):
         respuesta = input("Opción no válida, prueba de nuevo: ").strip()

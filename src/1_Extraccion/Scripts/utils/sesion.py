@@ -1,5 +1,6 @@
-from files import read_file, write_to_file, erase_file
+from utils.files import read_file, write_to_file, erase_file
 import os
+from minio import Minio
 
 def _get_extracted_data(jsonl_file, gzip_final_file):
     datos_nuevos = read_file(jsonl_file)
@@ -18,17 +19,16 @@ def _get_extracted_data(jsonl_file, gzip_final_file):
             datos_existentes = []
             print("Formato inesperado en archivo existente. Se crearán datos desde cero.")
         
-        # Control de duplicados. NOTA: LO HE QUITADO PERO NO SÉ SI LO QUERÉIS O NO
-        # ids_existentes = {juego.get("id") for juego in datos_existentes if isinstance(juego, dict)}
-        # datos_nuevos_filtrados = [j for j in datos_nuevos if j.get("id") not in ids_existentes]
-        # if len(datos_nuevos) != len(datos_nuevos_filtrados):
-        #     print(f"Se omitieron {len(datos_nuevos) - len(datos_nuevos_filtrados)} juegos duplicados")
-        
         datos_totales = datos_existentes + datos_nuevos
     else:
         datos_totales = datos_nuevos
     
     return datos_totales
+
+def minio_client():
+    return Minio(endpoint = "minio.fdi.ucm.es",
+                access_key = os.environ.get("MINIO_ACCESS_KEY"),
+                secret_key = os.environ.get("MINIO_SECRET_KEY"))
 
 def save_final_sesion(jsonl_file, gzip_final_file, minio = False): # IMPORTANTE: No sé cómo se hace lo de MinIO, que se encargue otro por fa
     """

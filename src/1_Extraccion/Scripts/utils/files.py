@@ -1,7 +1,6 @@
 import json
 import gzip
 import pandas as pd
-from config import minio_client
 from os import remove, path
 
 # Guardar datos a ficheros
@@ -115,11 +114,6 @@ def read_file(filepath, minio = False):  # HACE FALTA CAMBIAR PARTE MINIO?
         Retorna None si el archivo no se encuentra o si el contenido no es un JSON válido.
     """
     try:
-        if minio:
-            cliente = minio_client()
-            ruta_minio = f"grupo4/{filepath.name}"
-            cliente.fget_object(bucket_name = "pd1", object_name = ruta_minio, file_path = filepath)
-
         datos = None
         if filepath.suffix == ".json":
             return _read_json(filepath)
