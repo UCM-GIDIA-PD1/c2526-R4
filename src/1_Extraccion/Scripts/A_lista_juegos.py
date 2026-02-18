@@ -28,7 +28,7 @@ def _handle_input(initial_message, isResponseValid = lambda x: True):
 
     Args:
         mensaje (str): mensaje inicial. 
-        _isValid (function): fecha en formato YYYY-MM-DD.
+        isResponseValid (function): función que verifica la validez de un input dado.
 
     Returns:
         boolean: True si el input es correcto, false en caso contrario.

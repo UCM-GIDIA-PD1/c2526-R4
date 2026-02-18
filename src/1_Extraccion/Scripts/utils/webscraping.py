@@ -1,15 +1,15 @@
 from DrissionPage import ChromiumPage, ChromiumOptions
-import numpy as np
-import stem.control
-import psutil
-import subprocess
-import time
-from Z_funciones import proyect_root
-import random
+from numpy import random as np_random
+from stem.control import Controller, Signal, SocketError
+from psutil import process_iter
+from subprocess import Popen, DEVNULL
+from time import sleep
+from random import choice
+from utils.config import project_root
 
 """
 Módulo enfocado al WebScraping que tiene como objectivo administrar la sesión de TOR (abrir y
-rotar la IP) y scrapear directamente de YouTube.
+rotar la IP), scrapeando directamente de YouTube.
 """
 
 # Nota sobre user-agents (IMPORTANTE):
@@ -41,7 +41,7 @@ def _is_tor_running():
     Returns:
         bool: True si se encuentra un proceso llamado exactamente "tor.exe" activo, False en caso contrario.
     """
-    for process in psutil.process_iter(attrs=['pid', 'name']):
+    for process in process_iter(attrs=['pid', 'name']):
         try:
             if "tor.exe" == process.info['name'].lower():
                 return True
@@ -63,9 +63,9 @@ def start_tor():
         print("Ejecutando TOR...")
 
         # Abrimos TOR (IMPORTANTE: hace falta tener la carpeta de TOR en PATH para que se pueda abrir)
-        TORRC_DIR = proyect_root() / "config" / "torrc"
-        subprocess.Popen(["tor.exe", '-f', TORRC_DIR], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-        time.sleep(10)
+        TORRC_DIR = project_root() / "config" / "torrc"
+        Popen(["tor.exe", '-f', TORRC_DIR], stdout=DEVNULL, stderr=DEVNULL, shell=True)
+        sleep(10)
         assert _is_tor_running(), "TOR no se ha ejecutado correctamente"
     else:
         print("TOR ya está siendo ejecutado")
@@ -88,10 +88,10 @@ def renew_tor_ip(sesion):
 
     # Rotación de IP
     try:
-        with stem.control.Controller.from_port(port=9051) as controller:
+        with Controller.from_port(port=9051) as controller:
             controller.authenticate()
-            controller.signal(stem.Signal.NEWNYM)
-    except stem.SocketError:
+            controller.signal(Signal.NEWNYM)
+    except SocketError:
         print("Error: No se pudo conectar con el puerto de control de Tor (9051).")
         return None
     
@@ -112,10 +112,10 @@ def new_configured_chromium_page():
     co = ChromiumOptions()
     
     # Configuramos el nuevo ChromiumPage
-    co.set_user_agent(np.random.choice(user_agents))
+    co.set_user_agent(np_random.choice(user_agents))
     co.set_argument('--proxy-server=socks5://127.0.0.1:9050') # Puerto que usa TOR
-    ancho_base, alto_base = random.choice(resoluciones_comunes)
-    alto = alto_base + np.random.randint(-20, 0) # Simulamos el tamaño de la barra de tareas de manera aleatoria
+    ancho_base, alto_base = choice(resoluciones_comunes)
+    alto = alto_base + np_random.randint(-20, 0) # Simulamos el tamaño de la barra de tareas de manera aleatoria
     co.set_argument(f'--window-size={ancho_base},{alto}')
 
     return ChromiumPage(co)
@@ -139,15 +139,22 @@ def busqueda_youtube(nombre_juego, fecha, sesion):
     query = '%22' + nombre_formateado + '%22' + '+before%3A' + fecha
     url = "https://www.youtube.com/results?search_query=" + query + "&sp=CAM%253D"
 
-    # Navegamos
+    # Navegamos a la url
     sesion.get(url)
-    feed_videos = sesion.ele('tag:ytd-two-column-search-results-renderer')
-    videos = feed_videos.eles("tag:ytd-video-renderer")
-    lista_enlaces = []
-    for v in videos:
-        enlace = v.ele('#thumbnail').attr('href')
-        if not 'shorts' in enlace and 'watch?v=' in enlace:
-            id = enlace.split('&')[0].split('=')[1]
-            lista_enlaces.append({"id":id})
-    
-    return lista_enlaces
+
+    try:
+        # Scrapeamos hasta la sección de la columna de vídeos
+        feed_videos = sesion.ele('tag:ytd-two-column-search-results-renderer')
+        videos = feed_videos.eles("tag:ytd-video-renderer")
+        lista_enlaces = []
+
+        # Iteramos por los vídeos encontrados y devolvemos la lista de sus ids
+        for v in videos:
+            enlace = v.ele('#thumbnail').attr('href')
+            # Nos aseguramos de lo que hemos buscado es un vídeo de formato largo
+            if not 'shorts' in enlace and 'watch?v=' in enlace:
+                id = enlace.split('&')[0].split('=')[1]
+                lista_enlaces.append({"id":id})
+        return lista_enlaces
+    except:
+        return []
