@@ -1,4 +1,4 @@
-from utils.paths import data_dir_path
+from utils.config import data_path
 
-filepath = data_dir_path() / "appid_list.json.gz"
-print(filepath.name)
+filepath = data_path() / "appid_list.v1.json.gz"
+print(filepath.suffixes == [""])

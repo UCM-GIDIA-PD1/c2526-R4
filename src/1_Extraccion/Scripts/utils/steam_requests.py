@@ -1,13 +1,13 @@
 import os
 import requests
 from tqdm import tqdm
-from config import data_path, error_log_path
 from files import write_to_file
 from date import format_date_string, unix_to_date_string
 from datetime import datetime
 from calendar import monthrange
+from exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
 
-def _log_appid_errors(appid, reason, log_filepath):
+def log_appid_errors(appid, reason, log_filepath):
     data = {appid : reason}
     write_to_file(data, log_filepath)
 
@@ -39,18 +39,17 @@ def _request_url(session, params_info, url):
         response.raise_for_status()
         content_type = response.headers.get("content-type", "")
         if("application/json" not in content_type):
-            print("The request does not return a json")
-            return None
+            raise SteamAPIException("Request does not return a json")
+
         return response.json()
     except requests.exceptions.HTTPError as e:
-        print(f"HTTP error: {e}")
-        return None
+        raise SteamAPIException(f"HTTP error: {e}")
+    
     except requests.exceptions.RequestException as e:
-        print(f"Request error: {e}")
-        return None
+        raise SteamAPIException(f"Request error: {e}")
+    
     except ValueError as e:
-        print(f"Json decodification error: {e}")
-        return None
+        raise SteamAPIException(f"Json decodification error: {e}")
  
 def get_appids(n_appids=1000000, last_appid = 0):
     """
@@ -60,8 +59,7 @@ def get_appids(n_appids=1000000, last_appid = 0):
     :param n_appids: número de appids que se quiere extraer
     :param last_appid: appid por el que se quiere comenzar a extraer, no se incluye
     """
-    # fichero destino
-    filepath = data_path() / "appid_list.json.gz"
+
 
     # url e info
     url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
@@ -88,8 +86,7 @@ def get_appids(n_appids=1000000, last_appid = 0):
             data = _request_url(session, info, url)
             
             if not data:
-                print("Request did not return data")
-                return 
+                break
             
             appid_list.extend([str(app["appid"]) for app in data["response"].get("apps",[])])
             
@@ -109,7 +106,7 @@ def get_appids(n_appids=1000000, last_appid = 0):
             # Modificamos el last_appid con el último de la petición anterior
             info["last_appid"] = data["response"].get("last_appid")    
 
-    write_to_file(appid_list, filepath)
+    return appid_list
 
 def get_appdetails(appid, sesion):
     """
@@ -123,8 +120,6 @@ def get_appdetails(appid, sesion):
         dict: Diccionario con la información procesada (nombre, precio, idiomas, etc.).
         Retorna un diccionario vacío si la petición falla o el ID no es válido.
     """
-    # archivo en el que guardamos appid que han dado error
-    log_filepath = error_log_path() / "log_appdetails_error.jsonl"
 
     # Creamos la url
     url = "https://store.steampowered.com/api/appdetails"
@@ -136,9 +131,8 @@ def get_appdetails(appid, sesion):
     # La función solicitud_url trata las distintas excepciones posibles
     data = _request_url(sesion, params_info, url)
 
-    if not data.get(appid, "") or not data[appid].get("success", False):
-        _log_appid_errors(appid, "appdetails request failed", log_filepath)
-        return {}
+    if data.get(appid) is None or not data[appid].get("success", False):
+        raise AppdetailsException("Appdeatils request with no content", appid)
 
     game_data = data[appid]["data"]
 
@@ -150,6 +144,7 @@ def get_appdetails(appid, sesion):
                         "initial_formatted" : "0€",
                         "final_formatted" : "0€"
                         }
+    
     # Metemos la información útil
     appdetails["name"] = game_data.get("name")
     appdetails["required_age"] = game_data.get("required_age")
@@ -158,8 +153,6 @@ def get_appdetails(appid, sesion):
     appdetails["price_overview"] = game_data.get("price_overview", free_game_po)
     appdetails["supported_languages"] = _parse_supported_languages(game_data.get("supported_languages", ""))
     appdetails["capsule_img"] = game_data.get("capsule_imagev5")
-    appdetails["header_img"] = game_data.get("header_image")
-    appdetails["screenshots"] = game_data.get("screenshots")
     appdetails["developers"] = game_data.get("developers")
     appdetails["publishers"] = game_data.get("publishers")
     appdetails["categories"] = game_data.get("categories")
@@ -169,12 +162,12 @@ def get_appdetails(appid, sesion):
     release_data = game_data.get("release_date",{})
     appdetails["release_date"] = format_date_string(release_data.get("date",""))
     if appdetails["release_date"] is None:
-        _log_appid_errors(appid, f"failed to parse date: '{release_data.get("date","")}'", log_filepath)
-        return {}
+        raise AppdetailsException(f"Failed to parse date: '{release_data.get('date','')}'", appid)
     
     return appdetails
 
-def get_appreviewhistogram(appid, sesion, fecha_salida):
+
+def get_appreviewhistogram(appid, session, release_date):
     """
     Obtiene y procesa estadísticas de reseñas de un juego en Steam. Extrae métricas
     generales y calcula el agregado de recomendaciones (positivas y negativas)
@@ -183,12 +176,12 @@ def get_appreviewhistogram(appid, sesion, fecha_salida):
     Args:
         appid (str): El ID del juego en Steam (APPID).
         sesion (requests.Session): Sesión ya abierta de requests.
+        release_date (str): Formato YYYY-MM-DD
 
     Returns:
         dict: Diccionario con las fechas de inicio/fin y los datos agregados de 'rollups'.
         Retorna un diccionario vacío si no hay datos disponibles.
     """
-    log_filepath = error_log_path() / "log_reviewhist_error.jsonl"
     
     # Creamos la url
     url = "https://store.steampowered.com/appreviewhistogram/" + appid
@@ -198,81 +191,70 @@ def get_appreviewhistogram(appid, sesion, fecha_salida):
     appreviewhistogram = {}
     
     # La función solicitud_url trata las distintas excepciones posibles
-    data = _request_url(sesion, params_info, url)
+    data = _request_url(session, params_info, url)
 
     # Caso en el que no haya ninguna review: los rollups están vacíos
-    if not data.get("results", "") or not data["results"].get("rollups",[]):
-        _log_appid_errors(appid, "hist request failed", log_filepath)
-        return {}
+    if data.get("results") is None or data["results"].get("rollups") is None:
+        raise ReviewhistogramException("Appreviewhistogram request with no content", appid)
+        
 
     appreviewhistogram["start_date"] = unix_to_date_string(data["results"]["start_date"])
     appreviewhistogram["end_date"] = unix_to_date_string(data["results"]["end_date"])
     appreviewhistogram["rollup_type"] = data["results"]["rollup_type"]
 
+    release_day = release_date.split("-")[2]
     # Buscamos que barra del histograma hay que coger
-    idx = -1
-    rollups = data["results"]["rollups"]
-    for i in range(len(rollups)):
-        rollup_dt = datetime.fromtimestamp(rollups[i].get("date"))
-        if appreviewhistogram["rollup_type"] == "week":
-            # Usamos .date() para asegurar que coincida el día ignorando la hora
-            if rollup_dt.date() == fecha_salida.date(): # no va a coincidir casi nunca
-                idx = i
-                break
-        else:
-            if rollup_dt.year == fecha_salida.year and rollup_dt.month == fecha_salida.month:
-                idx = i
-                break
+    idx = 0
+    rollups = data["results"].get("rollups", [])
 
-    if idx == -1:
-        if len(rollups) == 0:
-            return {}
-        else:
-            idx = 0
-
-    # Cogemos los datos de aproximadamente el primer mes (las valoraciones del primer mes)
-    if appreviewhistogram["rollup_type"] == "week":
-        l = {"date": unix_to_date_string(rollups[idx].get("date")), "recommendations_up": 0, "recommendations_down": 0}
-        for i in range(0, 4):
-            if (idx + i) < len(rollups):
-                l["recommendations_up"] += rollups[idx + i].get("recommendations_up", 0)
-                l["recommendations_down"] += rollups[idx + i].get("recommendations_down", 0)
-        appreviewhistogram["rollups"] = l
-    else:
-        # Si el dia es mayor que 15 y el primer mes no es el último del que se tiene información, se cogen también las del mes siguiente
-        fecha = datetime.fromtimestamp(rollups[idx].get("date"))
-        if fecha_salida.day > 15 and idx < len(rollups) - 1:
-            # Número de dias que se tienen en cuenta
-            # monthrange() devuelve (diaDeLaSemana, numDiasMes)
-            dias_mes_actual = monthrange(fecha.year, fecha.month)[1] - fecha_salida.day + 1
-            fecha_sig = datetime.fromtimestamp(rollups[idx + 1].get("date"))
-            dias_mes_siguiente = monthrange(fecha_sig.year, fecha_sig.month)[1]
-            dias = dias_mes_actual + dias_mes_siguiente
-            rec_up = int(rollups[idx].get("recommendations_up", 0)) + int(rollups[idx + 1].get("recommendations_up", 0))
-            rec_down = int(rollups[idx].get("recommendations_down", 0)) + int(rollups[idx + 1].get("recommendations_down", 0))
-        else:
-            dias = monthrange(fecha.year, fecha.month)[1] - fecha_salida.day + 1
-            rec_up = int(rollups[idx].get("recommendations_up", 0))
-            rec_down = int(rollups[idx].get("recommendations_down", 0))
+    if not rollups:
+        raise ReviewhistogramException("No rollups found", appid)
         
-        if dias == 0: 
-            dias = 1
+    # indice del primer rollup en el que la fecha es mayor o igual a la fecha de salida
+    for i in range(len(rollups)):
+        idx = i
+        rollup_start_date = unix_to_date_string(rollups[i].get("date"))
+
+        if rollup_start_date > release_date:
+            idx = max(0, idx-1)
+            break
+    
+    hist_date = unix_to_date_string(rollups[idx].get("date"))
+    hist_day = hist_date.split("-")[2]
+    days = 0
+    data = {"date" : hist_date, "recommendations_up" : 0, "recommendations_down" : 0}
+
+    if appreviewhistogram.get("rollup_type") == "week":
+        for rollup in rollups[idx : idx + 4]:
+            days += 7 # numero de dias en una semana
+            data["recommendations_up"] += rollup.get("recommendations_up", 0)
+            data["recommendations_down"] += rollup.get("recommendations_down", 0)
+        days -= (release_day - hist_day)
             
-        appreviewhistogram["rollups"] = {
-            "date": unix_to_date_string(rollups[idx].get("date")), 
-            "recommendations_up": rec_up, 
-            "recommendations_down": rec_down,
-            "recommendations_up_per_day": round(rec_up / dias, 4),
-            "recommendations_down_per_day": round(rec_down / dias, 4),
-            "total_recommendations": rec_up + rec_down,
-            "total_recommendations_per_day": round((rec_up + rec_down) / dias, 4),
-            "dias":dias
-        }
+    elif appreviewhistogram.get("rollup_type") == "month":
+        days = 30 - int(release_day), 1
+        data["recommendations_up"] += rollups[idx].get("recommendations_up", 0)
+        data["recommendations_down"] += rollups[idx].get("recommendations_down", 0)
+
+        if int(release_day) > 15 and idx+1 < len(rollups):
+            days = 60 - int(release_day)
+            data["recommendations_up"] += rollups[idx+1].get("recommendations_up", 0)
+            data["recommendations_down"] += rollups[idx+1].get("recommendations_down", 0)
+        
+    days = max(days, 1)
+            
+    appreviewhistogram["rollups"] = {
+        "date": data["date"], 
+        "recommendations_up": data["recommendations_up"], 
+        "recommendations_down": data["recommendations_down"],
+        "recommendations_up_per_day": round(data["recommendations_up"] / days, 2),
+        "recommendations_down_per_day": round(data["recommendations_down"] / days, 2),
+        "total_recommendations": data["recommendations_up"] + data["recommendations_down"],
+        "total_recommendations_per_day": round((data["recommendations_up"] + data["recommendations_down"]) / days, 2),
+        "dias":days
+    }
 
     return appreviewhistogram
 
 if __name__ == "__main__":
-    session = requests.Session()
-    data = get_appdetails("730", session)
-    filepath = data_path() / "test.json"
-    write_to_file(data, filepath)
+    pass

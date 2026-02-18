@@ -34,5 +34,3 @@ def format_date_string(date_str):
 
     except ValueError:
         return None
-
-    

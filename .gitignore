@@ -3,6 +3,7 @@ __pycache__
 .venv
 .vscode
 torch_cache
+config_files
 data
 error_logs
 .Rproj.user

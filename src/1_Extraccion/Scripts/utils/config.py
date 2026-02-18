@@ -14,20 +14,19 @@ def project_root():
     return Path(__file__).resolve().parents[4]
 
 def data_path():
-    if not os.path.exists(project_root() / "data"):
-        os.makedirs(project_root() / "data")
-    return project_root() / "data"
+    path = project_root() / "data"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 def config_path():
-    if not os.path.exists(project_root() / "config"):
-        os.makedirs(project_root() / "config")
-    return project_root() / "config"
+    path = project_root() / "config_files"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 def error_log_path():
-    if not os.path.exists(data_path() / "error_logs"):
-        os.makedirs(data_path() / "error_logs")
-    return data_path() / "error_logs"
-
+    path = data_path() / "error_logs"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def _get_identif_range(lenght, identif):
@@ -75,7 +74,7 @@ def get_appid_range(config_path, lenght, identif):
             print(f"Error leyendo txt: {e}. Se usarán valores por defecto.")
             return 1, 0
     
-    #si no existe archivo
+    # si no existe archivo
     start_idx, end_idx = _get_identif_range(lenght, identif)
     write_to_file(f"{start_idx},{end_idx}",config_path)      
     return start_idx, end_idx
