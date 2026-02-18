@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 from files import read_file, write_to_file
+from minio import Minio
+from minio.error import S3Error
 
 """
 Se encarga de trabajar con los archivos de configuración y tiene variables con las que se trabaja en todo el proyecto
@@ -28,6 +30,10 @@ def error_log_path():
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def minio_client():
+    return Minio(endpoint = "minio.fdi.ucm.es",
+                access_key = os.environ.get("MINIO_ACCESS_KEY"),
+                secret_key = os.environ.get("MINIO_SECRET_KEY"))
 
 def _get_identif_range(lenght, identif):
     """Devuelve el rango del apps a procesar"""
@@ -78,4 +84,3 @@ def get_appid_range(config_path, lenght, identif):
     start_idx, end_idx = _get_identif_range(lenght, identif)
     write_to_file(f"{start_idx},{end_idx}",config_path)      
     return start_idx, end_idx
-

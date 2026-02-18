@@ -1,6 +1,8 @@
 import json
 import gzip
 import pandas as pd
+from config import minio_client
+from os import remove, path
 
 # Guardar datos a ficheros
 def _save_json(data, filepath):
@@ -67,7 +69,7 @@ def _read_txt(filepath):
 
 # Funciones publicas
 
-def write_to_file(data, filepath):
+def write_to_file(data, filepath, minio = False): # HACE FALTA COMPLETAR CON PARTE MINIO
     """
     Guarda un diccionario en el formato indicado en la ruta especificada.
 
@@ -76,7 +78,7 @@ def write_to_file(data, filepath):
         ruta_archivo (str): Ruta del sistema de archivos.
     
     Returns:
-        None
+        boolean: True si se ha escrito en el archivo correctamente, false en caso contrario.
     """
     try:
         if filepath.suffix == ".json":
@@ -101,7 +103,7 @@ def write_to_file(data, filepath):
         # Cualquier otro tipo de error
         print(f"Unexpected error occurred : {e}")
 
-def read_file(filepath):
+def read_file(filepath, minio = False):  # HACE FALTA CAMBIAR PARTE MINIO?
     """
     Carga y decodifica un archivo desde una ruta local.
 
@@ -113,6 +115,11 @@ def read_file(filepath):
         Retorna None si el archivo no se encuentra o si el contenido no es un JSON válido.
     """
     try:
+        if minio:
+            cliente = minio_client()
+            ruta_minio = f"grupo4/{filepath.name}"
+            cliente.fget_object(bucket_name = "pd1", object_name = ruta_minio, file_path = filepath)
+
         datos = None
         if filepath.suffix == ".json":
             return _read_json(filepath)
@@ -141,3 +148,20 @@ def read_file(filepath):
     except Exception as e:
         print(f"Unexpected error occurred while reading {filepath.name}: {e}")
         return None
+
+def erase_file(filepath):
+    """
+    Borra el archivo pasado por parámetro.
+
+    Args:
+        filepath (path): La ubicación física del archivo en el sistema.
+
+    Returns:
+        boolean: devuelve True si borra el archivo y False si no encuentra y no lo puede borrar.
+    """
+    if path.exists(filepath):
+        remove(filepath)
+        print(f"Archivo temporal eliminado: {filepath}")
+        return True
+    else:
+        return False
