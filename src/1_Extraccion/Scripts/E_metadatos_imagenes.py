@@ -67,7 +67,7 @@ def analiza_imagen(img_path, url,  trans, model):
     caracteristicas = {"brillo_medio": brillo,"vector_caracteristicas": vector} # Vector de 512 elementos
     return caracteristicas
     
-def E_metadatos_imagenes():
+def E_metadatos_imagenes(minio = False):
     """
     Itera por todas las imágenes en data/images y obtiene sus características, guardándolas en data/info_imagenes.json
 
@@ -96,7 +96,7 @@ def E_metadatos_imagenes():
     # Carga de datos
     origin = "info_steam_games.json.gz"
     final = "info_imagenes.json.gz"
-    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_destino, ruta_config = Z_funciones.abrir_sesion(origin, final, False)    
+    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_destino, ruta_config = Z_funciones.abrir_sesion(origin, final, False, minio)    
 
     if juego_ini == None:
         return
@@ -142,7 +142,8 @@ def E_metadatos_imagenes():
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     
     finally:
-        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_destino, ruta_config, ultimo_idx_guardado, juego_fin)
+        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_destino, ruta_config, ultimo_idx_guardado, juego_fin, minio)
 
 if __name__ == "__main__":
-    E_metadatos_imagenes()
+    # Poner a True para traer y mandar los datos a MinIO
+    E_metadatos_imagenes(False)

@@ -225,11 +225,11 @@ def descargar_datos_juego(appid, sesion):
 
     return game_info
 
-def B_informacion_juegos(): # PARA TERMINAR SESIÓN: CTRL + C
+def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
     # Cargamos los datos
     origin = "steam_apps.json.gz"
     final = "info_steam_games.json.gz"
-    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = abrir_sesion(origin, final)
+    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = abrir_sesion(origin, final, False, minio)
     
     if juego_ini is None:
         return
@@ -266,7 +266,8 @@ def B_informacion_juegos(): # PARA TERMINAR SESIÓN: CTRL + C
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
-        cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_actual, juego_fin)
+        cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_actual, juego_fin, minio)
 
 if __name__ == "__main__":
-    B_informacion_juegos()
+    # Poner a True para traer y mandar los datos a MinIO
+    B_informacion_juegos(False)

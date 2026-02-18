@@ -80,11 +80,11 @@ def descargar_datos_juego(id, sesion):
 
     return game_info
 
-def D_informacion_resenyas():
+def D_informacion_resenyas(minio = False):
     # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
     origin = "steam_apps.json.gz"
     final = "info_steam_resenyas.json.gz"
-    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = Z_funciones.abrir_sesion(origin, final)
+    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = Z_funciones.abrir_sesion(origin, final, True, minio)
     if not juego_ini:
         return
 
@@ -115,7 +115,8 @@ def D_informacion_resenyas():
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
-        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_actual, juego_fin)
+        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_actual, juego_fin, minio)
 
 if __name__ == "__main__":
-    D_informacion_resenyas()
+    # Poner a True para traer y mandar los datos a MinIO
+    D_informacion_resenyas(False)

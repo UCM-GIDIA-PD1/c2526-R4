@@ -448,7 +448,7 @@ def guardar_sesion_final(ruta_jsonl, ruta_final_gzip, minio = False):
         dict_final = {"data": datos_totales}
         
         try:
-            guardar_datos_dict(dict_final, ruta_final_gzip)
+            guardar_datos_dict(dict_final, ruta_final_gzip, minio)
             print(f"Datos guardados correctamente en {ruta_final_gzip}")
         except Exception as e:
             print(f"Error al guardar datos finales: {e}")
@@ -465,7 +465,7 @@ def guardar_sesion_final(ruta_jsonl, ruta_final_gzip, minio = False):
         print(f"Error en guardar_sesion_final: {e}")
         return False
 
-def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin):
+def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin, minio = False):
     """
     Cierra la sesión de extracción de datos: guarda datos temporales en un JSON comprimido, borra
     el archivo temporal y actualiza el archivo de configuración.
@@ -482,7 +482,7 @@ def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guar
     """
     print("Cerrando sesión...")
 
-    exito = guardar_sesion_final(ruta_temp_jsonl, ruta_final_gzip)
+    exito = guardar_sesion_final(ruta_temp_jsonl, ruta_final_gzip, minio)
     
     if exito:
         nuevo_inicio = ultimo_idx_guardado + 1 
@@ -495,7 +495,7 @@ def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guar
     else:
         print("No se generaron datos nuevos o hubo un error en el guardado final")
 
-def abrir_sesion(archivo_origen, archivo_final, requires_identif = True):
+def abrir_sesion(archivo_origen, archivo_final, requires_identif = True, minio = False):
     """
     Generaliza la carga de datos para todos los scripts, devolviendo varios elementos necesarios para
     la ejecución de los mismos.
@@ -522,7 +522,7 @@ def abrir_sesion(archivo_origen, archivo_final, requires_identif = True):
     ruta_final_gzip = data_dir / archivo_final
 
     # Cargamos el JSON comprimido de la lista de appids
-    lista_juegos = cargar_datos(ruta_origen)
+    lista_juegos = cargar_datos(ruta_origen, minio)
     if not lista_juegos:
         print("Error al cargar los juegos")
         return None, None, None, None, None, None
@@ -540,7 +540,7 @@ def abrir_sesion(archivo_origen, archivo_final, requires_identif = True):
 
     if not juegos_a_procesar:
         print("¡No queda nada pendiente en este rango!")
-        cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_juego_fin, idx_juego_fin)
+        cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_juego_fin, idx_juego_fin, minio)
         return None, None, None, None, None, None
     
     print(f"Sesión configurada: del índice {idx_juego_ini} al {idx_juego_fin}")

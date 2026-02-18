@@ -39,7 +39,7 @@ def A_lista_juegos(minio = False):
     API_KEY = os.environ.get("STEAM_API_KEY")
     assert API_KEY, "La API_KEY no ha sido cargada"
 
-    n_appids = 10 # Cuantos appids quieres
+    n_appids = 200000 # Cuantos appids quieres
 
     max_results = min(n_appids, 50000) # Cuantos resultados se quiere por request
     last_appid = 0 # appid a partir del cual comienza a buscar, no se incluye en la respuesta
@@ -91,4 +91,5 @@ def A_lista_juegos(minio = False):
         print("No se ha podido guardar la lista de juegos")
 
 if __name__ == "__main__":
-    A_lista_juegos(True)
+    # Poner a True para traer y mandar los datos a MinIO
+    A_lista_juegos(False)
