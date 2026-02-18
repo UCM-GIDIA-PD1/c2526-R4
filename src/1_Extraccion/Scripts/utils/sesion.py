@@ -1,6 +1,5 @@
 from utils.files import read_file, write_to_file, erase_file
 import os
-from minio import Minio
 
 def _get_extracted_data(jsonl_file, gzip_final_file):
     datos_nuevos = read_file(jsonl_file)
@@ -15,7 +14,7 @@ def _get_extracted_data(jsonl_file, gzip_final_file):
         if isinstance(datos_existentes, dict):
             datos_existentes = datos_existentes.get("data", [])
         
-        if not datos_existentes: # NOTA: ¿es innecesario?
+        if not datos_existentes:
             datos_existentes = []
             print("Formato inesperado en archivo existente. Se crearán datos desde cero.")
         
@@ -25,12 +24,7 @@ def _get_extracted_data(jsonl_file, gzip_final_file):
     
     return datos_totales
 
-def minio_client():
-    return Minio(endpoint = "minio.fdi.ucm.es",
-                access_key = os.environ.get("MINIO_ACCESS_KEY"),
-                secret_key = os.environ.get("MINIO_SECRET_KEY"))
-
-def save_final_sesion(jsonl_file, gzip_final_file, minio = False): # IMPORTANTE: No sé cómo se hace lo de MinIO, que se encargue otro por fa
+def _save_final_sesion(jsonl_file, gzip_final_file, minio = False): # IMPORTANTE: No sé cómo se hace lo de MinIO, que se encargue otro por fa
     """
     Borra un archivo jsonl pasando su contenido al json.gz especificado
 
@@ -77,7 +71,7 @@ def cerrar_sesion(ruta_temp_jsonl, gzip_final_file, ruta_config, ultimo_idx_guar
     """
     print("Cerrando sesión...")
     
-    if save_final_sesion(ruta_temp_jsonl, gzip_final_file, minio):
+    if _save_final_sesion(ruta_temp_jsonl, gzip_final_file, minio):
         nuevo_inicio = ultimo_idx_guardado + 1 
         if nuevo_inicio > juego_fin:
             print("¡Rango completado!")

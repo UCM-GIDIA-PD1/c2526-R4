@@ -104,7 +104,7 @@ def get_appids(n_appids=1000000, last_appid = 0):
             if not data["response"].get("have_more_results"):
                 pbar.total = pbar.n
                 pbar.refresh()
-                print(f"No more results. Number of appids extracted {len(appid_list)}")
+                pbar.write(f"No more results. Number of appids extracted {len(appid_list)}")
                 break
             
             # Modificamos el last_appid con el último de la petición anterior

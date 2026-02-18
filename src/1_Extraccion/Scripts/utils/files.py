@@ -1,7 +1,13 @@
 import json
 import gzip
 import pandas as pd
-from os import remove, path
+from os import remove, path, environ
+from minio import Minio
+
+def minio_client():
+    return Minio(endpoint = "minio.fdi.ucm.es",
+                access_key = environ.get("MINIO_ACCESS_KEY"),
+                secret_key = environ.get("MINIO_SECRET_KEY"))
 
 # Guardar datos a ficheros
 def _save_json(data, filepath):
