@@ -1,0 +1,143 @@
+import json
+import gzip
+import pandas as pd
+
+# Guardar datos a ficheros
+def _save_json(data, filepath):
+    with open(filepath, "wt", encoding = "utf-8") as f:
+        json.dump(data, f, ensure_ascii = False)
+
+def _save_json_gz(data, filepath):
+    with gzip.open(filepath, "wt", encoding = "utf-8") as f:
+        json.dump(data, f, ensure_ascii = False)
+
+def _append_jsonl(data, filepath):
+    with open(filepath, "at", encoding="utf-8") as f:
+        if isinstance(data, list):
+            for item in data:
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
+        else:
+            f.write(json.dumps(data, ensure_ascii=False) + "\n")
+
+def _append_jsonl_gz(data, filepath):
+    with gzip.open(filepath, "at", encoding="utf-8") as f:
+        if isinstance(data, list):
+            for item in data:
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
+        else:
+            f.write(json.dumps(data, ensure_ascii=False) + "\n")
+
+def _save_parquet(data, filepath):
+    pd.DataFrame(data).to_parquet(filepath)
+
+def _save_txt(data, filepath):
+    with open(filepath, "wt", encoding = "utf-8") as f:
+        f.write(str(data))
+
+
+# Cargar datos de ficheros existentes
+def _read_json(filepath):
+    with open(filepath, "rt", encoding="utf-8") as archivo:
+        data = json.load(archivo)
+        return data
+    
+def _read_json_gz(filepath):
+    with gzip.open(filepath, "rt", encoding="utf-8") as archivo:
+        data = json.load(archivo)
+        return data
+
+def _read_jsonl(filepath):
+    with open(filepath, "rt", encoding="utf-8") as f:
+        data = [json.loads(line) for line in f if line.strip()]
+        return data
+    
+def _read_jsonl_gz(filepath):
+    with gzip.open(filepath, "rt", encoding="utf-8") as f:
+        data = [json.loads(line) for line in f if line.strip()]
+        return data
+ 
+def _read_parquet(filepath):
+    data = pd.read_parquet(filepath)
+    return data
+
+def _read_txt(filepath):
+    with open(filepath, "rt", encoding="utf-8") as f:
+        data = f.read()
+        return data
+
+# Funciones publicas
+
+def write_to_file(data, filepath):
+    """
+    Guarda un diccionario en el formato indicado en la ruta especificada.
+
+    Args:
+        datos (dict): Diccionario con la información a exportar. (Lista de diccionarios en caso de ser un jsonl)
+        ruta_archivo (str): Ruta del sistema de archivos.
+    
+    Returns:
+        None
+    """
+    try:
+        if filepath.suffix == ".json":
+            _save_json(data, filepath)
+        elif filepath.suffixes == [".json", ".gz"]:
+            _save_json_gz(data, filepath)
+        elif filepath.suffix == ".jsonl":
+            _append_jsonl(data, filepath)
+        elif filepath.suffixes == [".jsonl", ".gz"]:
+            _append_jsonl_gz(data, filepath)
+        elif filepath.suffix == ".parquet":
+            _save_parquet(data, filepath)
+        elif filepath.suffix == ".txt":
+            _save_txt(data, filepath)
+        else:
+            print(f"File extension not supported: {filepath.name}")
+
+    except TypeError as e:
+        # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
+        print(f"Serialization error: {e}")
+    except Exception as e:
+        # Cualquier otro tipo de error
+        print(f"Unexpected error occurred : {e}")
+
+def read_file(filepath):
+    """
+    Carga y decodifica un archivo desde una ruta local.
+
+    Args:
+        ruta_archivo (str): La ubicación física del archivo en el sistema.
+
+    Returns:
+        dict | None: Los datos contenidos en el JSON convertidos a tipos de Python. 
+        Retorna None si el archivo no se encuentra o si el contenido no es un JSON válido.
+    """
+    try:
+        datos = None
+        if filepath.suffix == ".json":
+            return _read_json(filepath)
+        elif filepath.suffixes == [".json", ".gz"]:
+            return _read_json_gz(filepath)
+        elif filepath.suffix == ".jsonl":
+            return _read_jsonl(filepath)
+        elif filepath.suffixes == [".jsonl", ".gz"]:
+            return _read_jsonl_gz(filepath)
+        elif filepath.suffix == ".parquet":
+            return _read_parquet(filepath)
+        elif filepath.suffix == ".txt":
+            return _read_txt(filepath)
+        else:
+            print(f"File extension not supported: {filepath.name}")
+        return datos
+    except FileNotFoundError:
+        print(f"Error: File {filepath.name} does not exist.")
+        return None
+    except json.JSONDecodeError:
+        print("Error: invalid JSON format.")
+        return None
+    except gzip.BadGzipFile:
+        print("Error: invalid gzip.JSON format.")
+        return None
+    except Exception as e:
+        print(f"Unexpected error occurred while reading {filepath.name}: {e}")
+        return None
