@@ -170,14 +170,14 @@ def busqueda_youtube(nombre_juego, fecha, sesion):
     
     return lista_enlaces
 
-def C1_informacion_youtube_busquedas(): # PARA TERMINAR SESIÓN: CTRL + C
+def C1_informacion_youtube_busquedas(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
     # Lanzamos TOR
     start_tor()
 
     # Cargamos los datos
     origin = "info_steam_games.json.gz"
     final = "info_steam_youtube1.json.gz"
-    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = Z_funciones.abrir_sesion(origin, final, False)
+    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = Z_funciones.abrir_sesion(origin, final, False, minio)
     if not juego_ini:
         return
 
@@ -217,8 +217,9 @@ def C1_informacion_youtube_busquedas(): # PARA TERMINAR SESIÓN: CTRL + C
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
-        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin)        
+        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin, minio)        
         sesion.quit()
 
 if __name__ == "__main__":
-    C1_informacion_youtube_busquedas()
+    # Poner a True para traer y mandar los datos a MinIO
+    C1_informacion_youtube_busquedas(False)

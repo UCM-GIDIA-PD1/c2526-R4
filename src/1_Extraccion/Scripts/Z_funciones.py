@@ -5,22 +5,35 @@ import gzip
 import pandas as pd
 import os
 from pathlib import Path
+from minio import Minio
+from minio.error import S3Error
 
 def proyect_root():
     return Path(__file__).resolve().parents[3]
 
-def cargar_datos_locales(ruta_archivo):
+def cliente_minio():
+    return Minio(endpoint = "minio.fdi.ucm.es",
+                access_key = os.environ.get("MINIO_ACCESS_KEY"),
+                secret_key = os.environ.get("MINIO_SECRET_KEY"))
+
+def cargar_datos(ruta_archivo, minio = False):
     """
     Carga y decodifica un archivo desde una ruta local.
 
     Args:
         ruta_archivo (str): La ubicación física del archivo en el sistema.
+        minio (bool): Activar para traer los datos del servidor de MinIO
 
     Returns:
         dict | None: Los datos contenidos en el JSON convertidos a tipos de Python. 
         Retorna None si el archivo no se encuentra o si el contenido no es un JSON válido.
     """
     try:
+        if minio:
+            cliente = cliente_minio()
+            ruta_minio = f"grupo4/{ruta_archivo.name}"
+            cliente.fget_object(bucket_name = "pd1", object_name = ruta_minio, file_path = ruta_archivo)
+
         datos = None
         if ruta_archivo.suffix == ".json":
             with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
@@ -36,6 +49,9 @@ def cargar_datos_locales(ruta_archivo):
         else:
             print(f"Extension no soportada: {ruta_archivo}")
         return datos
+    except S3Error as e:
+        print(f"Error de MinIO: {e}\n Se intentará leer el fichero localmente")
+        return cargar_datos(ruta_archivo)
     except FileNotFoundError:
         print(f"Error: El archivo en {ruta_archivo} no existe.")
         return None
@@ -46,17 +62,17 @@ def cargar_datos_locales(ruta_archivo):
         print("Error: El archivo no tiene un formato gzip.JSON válido.")
         return None
     except Exception as e:
-        print(f"Error desconocido al cargar el archivo: {e}")
+        print(f"Error desconocido al cargar el archivo o conectarse con el servidor: {e}")
         return None
 
-def guardar_datos_dict(datos, ruta_archivo):
+def guardar_datos_dict(datos, ruta_archivo, minio = False):
     """
     Guarda un diccionario en el formato indicado en la ruta especificada.
 
     Args:
         datos (dict): Diccionario con la información a exportar. (Lista de diccionarios en caso de ser un jsonl)
         ruta_archivo (str): Ruta del sistema de archivos.
-    
+        minio (bool): Activar para guardar los datos en el servidor de MinIO
     Returns:
         None
     """
@@ -74,6 +90,13 @@ def guardar_datos_dict(datos, ruta_archivo):
                 f.write(json.dumps(datos, ensure_ascii=False) + '\n')
         else:
             print(f"Extension no soportada: {ruta_archivo}")
+            return
+        
+        if minio:
+            cliente = cliente_minio()
+            ruta_minio = f"grupo4/{ruta_archivo.name}"
+            cliente.fput_object(bucket_name = "pd1", object_name = ruta_minio, file_path = ruta_archivo)
+            
     except TypeError as e:
         # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
         print(f"Error de tipo en la serialización: {e}")
@@ -173,7 +196,7 @@ def convertir_fecha_datetime(fecha_str):
                     elif numero >= 1 and numero <= 31:
                         dia = numero
         else:
-             # Soporta YYYY-MM-DD y DD-MM-YYYY
+            # Soporta YYYY-MM-DD y DD-MM-YYYY
             primero = int(partes[0])
             if primero >= 1900 and primero <= 2100:
                 anio = primero
@@ -187,12 +210,6 @@ def convertir_fecha_datetime(fecha_str):
         
         if anio and mes and dia:
                 return datetime(anio, mes, dia)
-        elif anio and mes:
-            # Si solo tenemos mes y año, usar día 1
-            return datetime(anio, mes, 1)
-        elif anio:
-            # Si solo tenemos año, usar 1 de enero
-            return datetime(anio, 1, 1)
         else:
             return None
     except Exception:
@@ -302,24 +319,18 @@ def convertir_fecha_steam(fecha_str):
         else: # Soporta YYYY-MM-DD y DD-MM-YYYY
             primero = int(partes[0])
             if primero >= 1900 and primero <= 2100:
-                anio = primero.zfill(2)
+                anio = str(primero).zfill(2)
                 mes = partes[1].zfill(2)
-                dia = int(partes[2]).zfill(2)
+                dia = partes[2].zfill(2)
             else:
-                dia = primero.zfill(2)
-                mes = int(partes[1]).zfill(2)
-                anio = int(partes[2]).zfill(2)
+                dia = str(primero).zfill(2)
+                mes = partes[1].zfill(2)
+                anio = partes[2].zfill(2)
             return f"{anio}-{mes}-{dia}"
 
 
         if anio and mes and dia:
             return f"{anio}-{mes}-{dia}"
-        elif anio and mes:
-            # Si solo tenemos mes y año, usar día 1
-            return f"{anio}-{mes}-01"
-        elif anio:
-            # Si solo tenemos año, usar 1 de enero
-            return f"{anio}-01-01"
         else:
             return None
 
@@ -388,30 +399,30 @@ def actualizar_configuracion(ruta_txt, nuevo_inicio, mismo_fin):
     except Exception as e:
         print(f"Error actualizando config: {e}")
 
-def guardar_sesion_final(ruta_jsonl, ruta_final_gzip):
+def guardar_sesion_final(ruta_jsonl, ruta_final_gzip, minio = False):
     """
     Borra un archivo jsonl pasando su contenido al json.gz especificado
 
     Args:
         ruta_jsonl (Path): Ruta del archivo jsonl temporal con los datos de la sesión
         ruta_final_gzip (Path): Ruta del archivo gz final donde se consolidarán los datos
+        minio (bool): Activar para traer y guardar los datos en el servidor de MinIO
     
     Returns:
         bool: True si la operación fue exitosa, False en caso contrario
     """
     try:
-        datos_nuevos = cargar_datos_locales(ruta_jsonl)
+        datos_nuevos = cargar_datos(ruta_jsonl)
         
         if not datos_nuevos:
             print("No hay datos nuevos en el archivo temporal")
             if os.path.exists(ruta_jsonl):
                 os.remove(ruta_jsonl)
             return False
-        
-        
-        # Si ya existe el archivo gz final
+
+        # Si ya existe el archivo gz final o se ha traido desde el servidor.
         if os.path.exists(ruta_final_gzip):
-            datos_existentes = cargar_datos_locales(ruta_final_gzip)
+            datos_existentes = cargar_datos(ruta_final_gzip, minio)
             
             if datos_existentes is None:
                 print("Error al cargar datos existentes. Se crearán desde cero.")
@@ -437,7 +448,7 @@ def guardar_sesion_final(ruta_jsonl, ruta_final_gzip):
         dict_final = {"data": datos_totales}
         
         try:
-            guardar_datos_dict(dict_final, ruta_final_gzip)
+            guardar_datos_dict(dict_final, ruta_final_gzip, minio)
             print(f"Datos guardados correctamente en {ruta_final_gzip}")
         except Exception as e:
             print(f"Error al guardar datos finales: {e}")
@@ -454,7 +465,7 @@ def guardar_sesion_final(ruta_jsonl, ruta_final_gzip):
         print(f"Error en guardar_sesion_final: {e}")
         return False
 
-def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin):
+def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guardado, juego_fin, minio = False):
     """
     Cierra la sesión de extracción de datos: guarda datos temporales en un JSON comprimido, borra
     el archivo temporal y actualiza el archivo de configuración.
@@ -471,7 +482,7 @@ def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guar
     """
     print("Cerrando sesión...")
 
-    exito = guardar_sesion_final(ruta_temp_jsonl, ruta_final_gzip)
+    exito = guardar_sesion_final(ruta_temp_jsonl, ruta_final_gzip, minio)
     
     if exito:
         nuevo_inicio = ultimo_idx_guardado + 1 
@@ -484,7 +495,7 @@ def cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, ultimo_idx_guar
     else:
         print("No se generaron datos nuevos o hubo un error en el guardado final")
 
-def abrir_sesion(archivo_origen, archivo_final, requires_identif = True):
+def abrir_sesion(archivo_origen, archivo_final, requires_identif = True, minio = False):
     """
     Generaliza la carga de datos para todos los scripts, devolviendo varios elementos necesarios para
     la ejecución de los mismos.
@@ -511,7 +522,7 @@ def abrir_sesion(archivo_origen, archivo_final, requires_identif = True):
     ruta_final_gzip = data_dir / archivo_final
 
     # Cargamos el JSON comprimido de la lista de appids
-    lista_juegos = cargar_datos_locales(ruta_origen)
+    lista_juegos = cargar_datos(ruta_origen, minio)
     if not lista_juegos:
         print("Error al cargar los juegos")
         return None, None, None, None, None, None
@@ -529,7 +540,7 @@ def abrir_sesion(archivo_origen, archivo_final, requires_identif = True):
 
     if not juegos_a_procesar:
         print("¡No queda nada pendiente en este rango!")
-        cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_juego_fin, idx_juego_fin)
+        cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_juego_fin, idx_juego_fin, minio)
         return None, None, None, None, None, None
     
     print(f"Sesión configurada: del índice {idx_juego_ini} al {idx_juego_fin}")
