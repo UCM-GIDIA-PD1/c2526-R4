@@ -2,7 +2,7 @@ import os
 import sys
 import importlib
 
-# Para que pueda usar los ficheros importados que están dentro de Scripts (Z_funciones)
+# Para que pueda usar los ficheros importados que están dentro de Scripts
 sys.path.append(os.path.join(os.path.dirname(__file__), "Scripts"))
 
 scripts_info = {

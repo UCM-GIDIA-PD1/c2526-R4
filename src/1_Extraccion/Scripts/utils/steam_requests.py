@@ -56,10 +56,13 @@ def get_appids(n_appids=1000000, last_appid = 0):
     Función que guarda en appid_list.json.gz una lista de appids (str). Ejemplo: ["10", "20", "30"]
     Requiere una api key de steam guardada en la una variable de entorno llamada 'STEAM_API_KEY'
     
-    :param n_appids (int): número de appids que se quiere extraer
-    :param last_appid (string): appid por el que se quiere comenzar a extraer, no se incluye
+    params:
+        n_appids (int): número de appids que se quiere extraer
+        last_appid (string): appid por el que se quiere comenzar a extraer, no se incluye
+    
+    returns:
+        appid_list (list): Devuelve la lista de los APPIDs
     """
-
 
     # url e info
     url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
