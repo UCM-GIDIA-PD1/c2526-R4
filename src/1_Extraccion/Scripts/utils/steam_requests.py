@@ -1,11 +1,9 @@
 import os
 import requests
 from tqdm import tqdm
-from files import write_to_file
-from date import format_date_string, unix_to_date_string
-from datetime import datetime
-from calendar import monthrange
-from exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
+from utils.files import write_to_file
+from utils.date import format_date_string, unix_to_date_string
+from utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
 
 def log_appid_errors(appid, reason, log_filepath):
     data = {appid : reason}
@@ -50,14 +48,16 @@ def _request_url(session, params_info, url):
     
     except ValueError as e:
         raise SteamAPIException(f"Json decodification error: {e}")
- 
+
+# Por defecto extrae todos los appids, desde el principio hasta el final. n_appids es mucho más que los juegos que hay en steam
+# La función se encarga de parar si no hay más datos
 def get_appids(n_appids=1000000, last_appid = 0):
     """
     Función que guarda en appid_list.json.gz una lista de appids (str). Ejemplo: ["10", "20", "30"]
     Requiere una api key de steam guardada en la una variable de entorno llamada 'STEAM_API_KEY'
     
-    :param n_appids: número de appids que se quiere extraer
-    :param last_appid: appid por el que se quiere comenzar a extraer, no se incluye
+    :param n_appids (int): número de appids que se quiere extraer
+    :param last_appid (string): appid por el que se quiere comenzar a extraer, no se incluye
     """
 
 
@@ -66,7 +66,8 @@ def get_appids(n_appids=1000000, last_appid = 0):
 
     # Cogemos la API
     API_KEY = os.environ.get("STEAM_API_KEY")
-    assert API_KEY, "Enviroment variable STEAM_API_KEY not found"
+    if API_KEY is None:
+        raise SteamAPIException("Enviroment variable STEAM_API_KEY not found")
 
     max_results = min(n_appids, 50000) # Cuantos resultados se quiere por request
     info = {"key": API_KEY, "max_results" : max_results, "last_appid": last_appid}
@@ -160,9 +161,13 @@ def get_appdetails(appid, sesion):
     appdetails["metacritic"] = game_data.get("metacritic")
 
     release_data = game_data.get("release_date",{})
-    appdetails["release_date"] = format_date_string(release_data.get("date",""))
-    if appdetails["release_date"] is None:
+    release_date = format_date_string(release_data.get("date",""))
+    if release_data.get("coming_soon", True):
+        raise AppdetailsException("Game filtered, coming soon")
+    if release_date is None:
         raise AppdetailsException(f"Failed to parse date: '{release_data.get('date','')}'", appid)
+    
+    appdetails["release_date"] = format_date_string(release_data.get("date","")) 
     
     return appdetails
 

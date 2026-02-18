@@ -1,6 +1,9 @@
 import os
 import requests
-from Z_funciones import solicitud_url, guardar_datos_dict, proyect_root, cliente_minio
+from utils.config import appidlist_file_path, appidlist_info_path
+from utils.files import read_file, write_to_file
+from utils.steam_requests import get_appids
+from Z_funciones import solicitud_url, guardar_datos_dict, proyect_root
 from tqdm import tqdm
 
 """
@@ -21,8 +24,65 @@ Salida:
 - Los datos se almacenan en la el directorio indicado.
 """
 
+def _handle_input(initial_message, _isValid = lambda x: True):
+    
+    respuesta = input(initial_message).strip()
+    while not _isValid(respuesta):
+        respuesta = input("Opción no válida, prueba de nuevo: ").strip()
+    return respuesta
 
-def A_lista_juegos(minio = False):
+def _tratar_existe_fichero():
+    """Devuelve booleano, si sobreescribir archivo meter appids nuevos"""
+
+    mensaje = """El fichero de lista de appids ya existe:
+    1. Añadir contenido al fichero existente
+    2. Sobreescribir fichero
+Introduce elección: """
+
+    def _isValid(respuesta):
+        valid_inputs ={"1", "2"}
+        return respuesta in valid_inputs
+
+    respuesta = _handle_input(mensaje, _isValid)
+    
+    return True if respuesta == "2" else False
+    
+def _parametros_de_request():
+    mensaje = """Elige modo de ejecución:
+    1. Elegir manualmente el los parámetros
+    2. Extraer nuevos juegos
+Introduce elección: """
+    def _isValid(respuesta):
+        valid_inputs ={"1", "2"}
+        return respuesta in valid_inputs
+    
+    respuesta = _handle_input(mensaje, _isValid)
+    n_appids = 0
+    last_appid = 0
+
+    def _isValid(respuesta):
+        return respuesta.isdigit()
+    
+    if respuesta == "1":
+        mensaje = "Número de appids a extraer: "
+        
+        n_appids = int(_handle_input(mensaje, _isValid))
+        mensaje = "Appid desde el que hay que extraer: "
+        last_appid = int(_handle_input(mensaje, _isValid))
+    elif respuesta == "2":
+        mensaje = "Número de appids nuevos a extraer: "
+        n_appids = int(_handle_input(mensaje, _isValid))
+        info = read_file(appidlist_info_path)
+        if info is None:
+            appid_list = read_file(appidlist_file_path)
+            last_appid = appid_list[-1]
+        else:
+            last_appid = info["last_appid"]
+
+    return int(n_appids), str(last_appid)
+
+
+def A_lista_juegos():
     """
     Obtiene la lista completa de appids de los juegos de Steam
 
@@ -32,64 +92,27 @@ def A_lista_juegos(minio = False):
     Returns:
         None
     """
-    # url e info
-    url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
+    data = []
+    seen = set()
+    if os.path.exists(appidlist_file_path):
+        overwrite_file = _tratar_existe_fichero()
+        if not overwrite_file:
+            old_data = read_file(appidlist_file_path)
+            data.extend(old_data)
+            seen = set(data)
 
-    # Cogemos la API
-    API_KEY = os.environ.get("STEAM_API_KEY")
-    assert API_KEY, "La API_KEY no ha sido cargada"
-
-    n_appids = 200000 # Cuantos appids quieres
-
-    max_results = min(n_appids, 50000) # Cuantos resultados se quiere por request
-    last_appid = 0 # appid a partir del cual comienza a buscar, no se incluye en la respuesta
-    info = {"key": API_KEY, "max_results" : max_results, "last_appid": last_appid}
-
-    # Creamos el json que va a tener todos los datos
-    content = []
-
-    # Creamos la sesión
-    session = requests.Session()
+    n_appids, last_appid = _parametros_de_request()
+    new_data = get_appids(n_appids, last_appid)
+    for appid in new_data:
+        if appid not in seen:
+            data.append(appid)
+            seen.add(appid)          
     
-    # Bucle que itera sobre los elementos restantes de la lista de APPID de Steam
-    print("Comenzando la extracción...")
-
-    with tqdm(total=n_appids, desc="appids extraidos: ", unit="appids") as pbar:
-        while n_appids > 0:
-            # Si existe data lo guardamos en el diccionario content
-            data = solicitud_url(session, info, url)
-            
-            if data:
-                content.extend([str(app["appid"]) for app in data["response"].get("apps",[])])
-            else:
-                print("Carga fallida")
-                return
-            
-            # Decrementamos el número de APPIDs restantes
-            appids_extraidos = len(data["response"].get("apps",[]))
-            pbar.update(appids_extraidos)
-            n_appids -= appids_extraidos
-            info["max_results"] = min(n_appids, 50000)
-
-            # Si no hay más juegos salir del bucle y dar proceso por completado
-            if not data["response"].get("have_more_results"):
-                pbar.total = pbar.n
-                pbar.refresh()
-                break
-            
-            # Modificamos el last_appid con el último de la petición anterior
-            info["last_appid"] = data["response"].get("last_appid")
-
-    # Guardamos en un JSON
-    json_dir = proyect_root() / "data" / "steam_apps.json.gz"
-
-    guardar_datos_dict(content, json_dir, minio)
-
-    if os.path.exists(json_dir) and not minio:
-        print("Lista de juegos guardada correctamente")
-    elif not minio:
-        print("No se ha podido guardar la lista de juegos")
+    write_to_file(data, appidlist_file_path)
+    list_info = {"last_appid": data[-1]}
+    write_to_file(list_info, appidlist_info_path)
+    
 
 if __name__ == "__main__":
-    # Poner a True para traer y mandar los datos a MinIO
-    A_lista_juegos(False)
+    A_lista_juegos()
+    
