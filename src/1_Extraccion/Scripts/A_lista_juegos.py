@@ -1,5 +1,5 @@
 import os
-from utils.config import appidlist_file_path, appidlist_info_path
+from utils.config import appidlist_file, appidlist_info_file
 from utils.files import read_file, write_to_file
 from utils.steam_requests import get_appids
 
@@ -85,9 +85,9 @@ Introduce elección: """
     elif respuesta == "2": # Extraer nuevos juegos
         mensaje = "Número de appids nuevos a extraer: "
         n_appids = int(_handle_input(mensaje, _isValid))
-        info = read_file(appidlist_info_path)
+        info = read_file(appidlist_info_file)
         if info is None:
-            appid_list = read_file(appidlist_file_path)
+            appid_list = read_file(appidlist_file)
             last_appid = appid_list[-1]
         else:
             last_appid = info["last_appid"]
@@ -109,10 +109,10 @@ def A_lista_juegos():
     seen = set()
 
     # Si existe lista anterior, ¿se quiere sobreescribir o seguir a partir del mismo?
-    if os.path.exists(appidlist_file_path):
+    if os.path.exists(appidlist_file):
         overwrite_file = _tratar_existe_fichero()
         if not overwrite_file:
-            old_data = read_file(appidlist_file_path)
+            old_data = read_file(appidlist_file)
             data.extend(old_data)
             seen = set(data)
 
@@ -125,9 +125,9 @@ def A_lista_juegos():
             seen.add(appid)          
     
     # Se guardan los datos obtenidos
-    write_to_file(data, appidlist_file_path)
-    list_info = {"last_appid": data[-1]}
-    write_to_file(list_info, appidlist_info_path)
+    write_to_file(data, appidlist_file)
+    list_info = {"last_appid": data[-1], "size":len(data)}
+    write_to_file(list_info, appidlist_info_file)
     
 
 if __name__ == "__main__":

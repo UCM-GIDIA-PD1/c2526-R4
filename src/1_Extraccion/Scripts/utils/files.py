@@ -3,11 +3,16 @@ import gzip
 import pandas as pd
 from os import remove, path, environ
 from minio import Minio
+from utils.config import steam_log_file
 
 def minio_client():
     return Minio(endpoint = "minio.fdi.ucm.es",
                 access_key = environ.get("MINIO_ACCESS_KEY"),
                 secret_key = environ.get("MINIO_SECRET_KEY"))
+
+def log_appid_errors(appid, reason):
+    data = {appid : reason}
+    write_to_file(data, steam_log_file)
 
 # Guardar datos a ficheros
 def _save_json(data, filepath):

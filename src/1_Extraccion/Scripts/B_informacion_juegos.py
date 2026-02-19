@@ -1,11 +1,12 @@
 import requests
-from bs4 import BeautifulSoup
-from Z_funciones import solicitud_url, convertir_fecha_datetime, abrir_sesion, guardar_datos_dict, cerrar_sesion, log_fallos, convertir_fecha_steam, timestamp_a_fecha
 import time
-from datetime import datetime
-from calendar import monthrange
+import os
 from random import uniform
 from tqdm import tqdm
+from utils.steam_requests import get_appdetails, get_appreviewhistogram
+from utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
+from utils.files import log_appid_errors, read_file, write_to_file
+from utils.config import appidlist_file, appidlist_info_file, gamelist_file, gamelist_info_file, get_appid_range
 
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
@@ -20,177 +21,44 @@ Salida:
 - Los datos se almacenan en la carpeta data/ en formato JSON comprimido.
 '''
 
-def get_appdetails(appid, sesion):
+def _handle_input(initial_message, isResponseValid = lambda x: True):
     """
-    Extrae y limpia los detalles técnicos y comerciales de un juego desde la API de Steam.
+    Función que maneja la entrada. Por defecto la función siempre devuelve True.
 
     Args:
-        appid (str): ID de la aplicación (AppID) en Steam.
-        sesion (requests.Session): Sesión persistente para realizar la petición HTTP.
+        mensaje (str): mensaje inicial. 
+        isResponseValid (function): función que verifica la validez de un input dado.
 
     Returns:
-        dict: Diccionario con la información procesada (nombre, precio, idiomas, etc.).
-        Retorna un diccionario vacío si la petición falla o el ID no es válido.
+        boolean: True si el input es correcto, false en caso contrario.
     """
-    # Creamos la url
-    url = "https://store.steampowered.com/api/appdetails"
+    respuesta = input(initial_message).strip()
 
-    # Hacemos el request a la página y creamos el json que va a almacenar la info
-    params_info = {"appids": appid, "cc": "eur"}
-    appdetails = {}
+    # Hasta que no se dé una respuesta válida no se puede salir del bucle
+    while not isResponseValid(respuesta):
+        respuesta = input("Opción no válida, prueba de nuevo: ").strip()
     
-    # La función solicitud_url trata las distintas excepciones posibles
-    data = solicitud_url(sesion, params_info, url)
+    return respuesta
 
-    if not data.get(appid, "") or not data[appid].get("success", False):
-        return appdetails
-
-    data_game = data[appid]["data"]
-
-    # Metemos la información útil
-    appdetails["name"] = data_game.get("name")
-    appdetails["required_age"] = data_game.get("required_age")
-    appdetails["short_description"] = data_game.get("short_description")
-    appdetails["header_url"] = data_game.get("header_image")
-    
-    if not data_game.get("price_overview"):
-        # Si el juego no tiene price_overview significa que es gratis, por lo que 
-        # metemos nosotros los valores a 0
-        appdetails["price_overview"] = {}
-        appdetails["price_overview"]["currency"] = "EUR"
-        appdetails["price_overview"]["initial"] = 0
-        appdetails["price_overview"]["final"] = 0
-        appdetails["price_overview"]["discount_percent"] = 0
-        appdetails["price_overview"]["initial_formatted"] = ""
-        appdetails["price_overview"]["final_formatted"] = "0€"
-    else:
-        # Si el juego no es gratis copiamos el price_overview directamente de data
-        appdetails["price_overview"] = data_game.get("price_overview")
-
-    # Limpiamos los lenguajes a los que están traducidos el juego
-    if data_game.get("supported_languages"):
-        try:
-            languages_raw_bs4 = BeautifulSoup(data_game.get("supported_languages"), features="lxml").text
-            clean_text = str(languages_raw_bs4).replace("idiomas con localización de audio", "").replace("*", "")
-            appdetails["supported_languages"] = list({lang.strip() for lang in clean_text.split(",")})
-        except:
-            appdetails["supported_languages"] = []
-
-    # Copiamos más información
-    appdetails["capsule_img"] = data_game.get("capsule_imagev5")
-    appdetails["header_img"] = data_game.get("header_image")
-    appdetails["screenshots"] = data_game.get("screenshots")
-
-    appdetails["developers"] = data_game.get("developers")
-    appdetails["publishers"] = data_game.get("publishers")
-
-    appdetails["categories"] = data_game.get("categories")
-    appdetails["genres"] = data_game.get("genres")
-    appdetails["metacritic"] = data_game.get("metacritic")
-
-    appdetails["release_date"] = data_game.get("release_date")
-    if appdetails["release_date"] and "date" in appdetails["release_date"]:
-        appdetails["release_date"]["date"] = convertir_fecha_steam(appdetails["release_date"]["date"])
-    else: 
-        return {}
-
-    return appdetails
-
-def get_appreviewhistogram(appid, sesion, fecha_salida):
+def _tratar_existe_fichero():
     """
-    Obtiene y procesa estadísticas de reseñas de un juego en Steam. Extrae métricas
-    generales y calcula el agregado de recomendaciones (positivas y negativas)
-    correspondientes aproximadamente al primer mes de vida del juego.
-
-    Args:
-        appid (str): El ID del juego en Steam (APPID).
-        sesion (requests.Session): Sesión ya abierta de requests.
-
-    Returns:
-        dict: Diccionario con las fechas de inicio/fin y los datos agregados de 'rollups'.
-        Retorna un diccionario vacío si no hay datos disponibles.
+    Menú con opción de añadir contenido al fichero existente o sobreescribirlo.
+    
+    returns:
+        boolean: True si sobreescribir archivo meter appids nuevos, False en caso contrario
     """
-    # Creamos la url
-    url = "https://store.steampowered.com/appreviewhistogram/" + appid
-    
-    # Hacemos el request a la página y creamos el json que va a almacenar la info
-    params_info = {"l": "english"}
-    appreviewhistogram = {}
-    
-    # La función solicitud_url trata las distintas excepciones posibles
-    data = solicitud_url(sesion, params_info, url)
 
-    # Caso en el que no haya ninguna review: los rollups están vacíos
-    if not data.get("results", "") or not data["results"].get("rollups",[]):
-        return appreviewhistogram
+    mensaje = """El fichero de lista de appids ya existe:\n\n1. Añadir contenido al fichero existente 
+2. Sobreescribir fichero\n\nIntroduce elección: """
 
-    appreviewhistogram["start_date"] = timestamp_a_fecha(data["results"]["start_date"])
-    appreviewhistogram["end_date"] = timestamp_a_fecha(data["results"]["end_date"])
-    appreviewhistogram["rollup_type"] = data["results"]["rollup_type"]
+    def _isValid(respuesta):
+        valid_inputs ={"1", "2"}
+        return respuesta in valid_inputs
 
-    # Buscamos que barra del histograma hay que coger
-    idx = -1
-    rollups = data["results"]["rollups"]
-    for i in range(len(rollups)):
-        rollup_dt = datetime.fromtimestamp(rollups[i].get("date"))
-        if appreviewhistogram["rollup_type"] == "week":
-            # Usamos .date() para asegurar que coincida el día ignorando la hora
-            if rollup_dt.date() == fecha_salida.date():
-                idx = i
-                break
-        else:
-            if rollup_dt.year == fecha_salida.year and rollup_dt.month == fecha_salida.month:
-                idx = i
-                break
+    respuesta = _handle_input(mensaje, _isValid)
+    return True if respuesta == "2" else False
 
-    if idx == -1:
-        if len(rollups) == 0:
-            return {}
-        else:
-            idx = 0
-
-    # Cogemos los datos de aproximadamente el primer mes (las valoraciones del primer mes)
-    if appreviewhistogram["rollup_type"] == "week":
-        l = {"date": timestamp_a_fecha(rollups[idx].get("date")), "recommendations_up": 0, "recommendations_down": 0}
-        for i in range(0, 4):
-            if (idx + i) < len(rollups):
-                l["recommendations_up"] += rollups[idx + i].get("recommendations_up", 0)
-                l["recommendations_down"] += rollups[idx + i].get("recommendations_down", 0)
-        appreviewhistogram["rollups"] = l
-    else:
-        # Si el dia es mayor que 15 y el primer mes no es el último del que se tiene información, se cogen también las del mes siguiente
-        fecha = datetime.fromtimestamp(rollups[idx].get("date"))
-        if fecha_salida.day > 15 and idx < len(rollups) - 1:
-            # Número de dias que se tienen en cuenta
-            # monthrange() devuelve (diaDeLaSemana, numDiasMes)
-            dias_mes_actual = monthrange(fecha.year, fecha.month)[1] - fecha_salida.day + 1
-            fecha_sig = datetime.fromtimestamp(rollups[idx + 1].get("date"))
-            dias_mes_siguiente = monthrange(fecha_sig.year, fecha_sig.month)[1]
-            dias = dias_mes_actual + dias_mes_siguiente
-            rec_up = int(rollups[idx].get("recommendations_up", 0)) + int(rollups[idx + 1].get("recommendations_up", 0))
-            rec_down = int(rollups[idx].get("recommendations_down", 0)) + int(rollups[idx + 1].get("recommendations_down", 0))
-        else:
-            dias = monthrange(fecha.year, fecha.month)[1] - fecha_salida.day + 1
-            rec_up = int(rollups[idx].get("recommendations_up", 0))
-            rec_down = int(rollups[idx].get("recommendations_down", 0))
-        
-        if dias == 0: 
-            dias = 1
-            
-        appreviewhistogram["rollups"] = {
-            "date": timestamp_a_fecha(rollups[idx].get("date")), 
-            "recommendations_up": rec_up, 
-            "recommendations_down": rec_down,
-            "recommendations_up_per_day": round(rec_up / dias, 4),
-            "recommendations_down_per_day": round(rec_down / dias, 4),
-            "total_recommendations": rec_up + rec_down,
-            "total_recommendations_per_day": round((rec_up + rec_down) / dias, 4),
-            "dias":dias
-        }
-
-    return appreviewhistogram
-
-def descargar_datos_juego(appid, sesion):
+def download_game_data(appid, session):
     """
     Fusiona la descarga completa de información de un juego usando varias funciones.
     Agrega los detalles del producto y el histograma de reseñas en un único objeto.
@@ -198,7 +66,7 @@ def descargar_datos_juego(appid, sesion):
 
     Args:
         appid: Identificador numérico del juego en Steam.
-        sesion (requests.Session): Sesión persistente para las peticiones HTTP.
+        session (requests.Session): Sesión persistente para las peticiones HTTP.
 
     Returns:
         dict: Diccionario estructurado con 'id', 'appdetails' y 'appreviewhistogram'.
@@ -208,65 +76,114 @@ def descargar_datos_juego(appid, sesion):
     game_info = {"id": appid, "appdetails": {}, "appreviewhistogram": {}}
 
     # Llamamos a funciones
-    game_info["appdetails"] = get_appdetails(appid, sesion)
-
-    release_data = game_info["appdetails"].get("release_date")
     
-    # Verificación estricta para que no falle si la fecha viene mal formada o es None
-    if not release_data or not isinstance(release_data, dict) or not release_data.get("date"):
-        return {}
-    
-    fecha_salida_datetime = convertir_fecha_datetime(release_data.get("date"))
-
-    if not fecha_salida_datetime:
-        return {}
-    
-    game_info["appreviewhistogram"] = get_appreviewhistogram(appid, sesion, fecha_salida_datetime)
+    game_info["appdetails"] = get_appdetails(appid, session)
+    release_date = game_info["appdetails"].get("release_date")
+    game_info["appreviewhistogram"] = get_appreviewhistogram(appid, session, release_date)
 
     return game_info
+    
+def get_pending_games():
+    appidlist = read_file(appidlist_file)
+
+    if appidlist is None:
+        return 0, -1
+
+    if os.path.exists(gamelist_info_file):
+        gamelist_info = read_file(gamelist_info_file)
+        start_idx, curr_idx, end_idx = gamelist_info["start_idx"], gamelist_info["curr_idx"], gamelist_info["end_idx"]
+        message = f"Existe sesión de extracción [{gamelist_info.get("start_idx")}, {gamelist_info.get("end_idx")}], quieres continuar con la sesión? [Y/N]: "
+
+        def _isValid(response):
+            return response.lower() in {"y", "n"}
+        response = _handle_input(message, _isValid)
+
+        if response.lower() == "y":
+            return appidlist[curr_idx : end_idx+1], start_idx, curr_idx, end_idx
+        else:
+            print("Configurando nueva sesión...\n")
+
+    appidlist_info = read_file(appidlist_info_file)
+
+    print(f"Tamaño lista de juegos: {appidlist_info.get('size', 0)}")
+    print(f"Rango de índices disponibles: [0, {appidlist_info.get('size', 0)-1}]")
+
+    message = """Opciones: \n\n1. Elegir rango manualmente\n2. Extraer rango correspondiente al identificador\n
+Introduce elección: """
+
+    def _isValid(response):
+        return response in {"1", "2"}
+    option = _handle_input(message, _isValid)
+
+    if option == "1":
+        def _isValid(response):
+            return response.isdigit() and int(response) >= 0 and int(response) < appidlist_info.get("size", 0)
+        message = f"Introduce índice inicial [0, {appidlist_info.get('size', 0)-1}]: "
+        start_idx = int(_handle_input(message,_isValid))
+        curr_idx = start_idx
+        def _isValid(response):
+            return response.isdigit() and int(response) >= start_idx and int(response) <= end_idx
+        message = f"Introduce índice final [{start_idx}, {appidlist_info.get('size', 0)-1}]:"
+        end_idx = int(_handle_input(message,_isValid))
+        
+    elif option == "2":
+        start_idx, curr_idx, end_idx = get_appid_range(appidlist_info["size"])
+    
+    return appidlist[start_idx:end_idx+1], start_idx, curr_idx, end_idx
+
+def _overwrite_confirmation():
+    def _isValid(response):
+        return response.lower() in {"y", "n"}
+    message = "¿Seguro que quieres eliminar la lista de juegos con su información [Y/N]?: "
+    response = _handle_input(message, _isValid)
+    return True if response.lower() == "y" else False
 
 def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
     # Cargamos los datos
-    origin = "steam_apps.json.gz"
-    final = "info_steam_games.json.gz"
-    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = abrir_sesion(origin, final, False, minio)
-    
-    if juego_ini is None:
-        return
-
-    # Creamos sesión con user-Agent para parecer un navegador (es recomendable cambiarlo si no se trabaja en Windows)
-    sesion = requests.Session()
-    sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}) 
-    
-    # Iteramos sobre la lista de juegos y lo metemos en un JSON nuevo
-    print("Comenzando extraccion de juegos...\n")
-    idx_actual = juego_ini
     try:
-        with tqdm(juegos_pendientes, unit = "appids") as pbar:
+        pending_games, start_idx, curr_idx, end_idx = get_pending_games()
+        
+        if os.path.exists(gamelist_file):
+            overwrite = _tratar_existe_fichero()
+            if overwrite:
+                if _overwrite_confirmation():
+                    os.remove(gamelist_file)
+                else:
+                    print("Operación cancelada")
+                    return
+                
+        if not pending_games:
+            print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
+            return
+
+        sesion = requests.Session()
+        sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+
+        print("Comenzando extraccion de juegos...\n")
+        with tqdm(pending_games, unit = "appids") as pbar:
             for appid in pbar:
                 pbar.set_description(f"Procesando appid: {appid}")
-
                 try:
-                    desc = descargar_datos_juego(appid, sesion)
-                    
-                    if desc:
-                        guardar_datos_dict(desc, ruta_temp_jsonl)
-                    else:
-                        log_fallos(appid, "appdetails: contenido filtrado")
-                        print(f"\nError procesando juego {appid}: contenido filtrado")
+                    desc = download_game_data(appid, sesion)
+                    write_to_file(desc, gamelist_file)
+                    curr_idx += 1
                     wait = uniform(1.5, 2)
                     time.sleep(wait)
-                    
-                except Exception as e:
-                    # Si falla un juego específico, lo logueamos y seguimos con el siguiente
-                    log_fallos(appid, "appdetails: " + str(e))
-                    print(f"\nError procesando juego {appid}: {e}")
-
-                idx_actual += 1
+                except(AppdetailsException, ReviewhistogramException) as e:
+                    pbar.write(e)
+                    log_appid_errors(e.appid, e)
+    except SteamAPIException as e:
+        print(e)
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
+    except Exception as e:
+        print(f"Error inesperado durante descarga de información sobre el juego: {e}")
     finally:
-        cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_actual, juego_fin, minio)
+        gamelist_info = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
+        if curr_idx > end_idx:
+            print("Rango completado")
+        write_to_file(gamelist_info, gamelist_info_file)
+    
 
 if __name__ == "__main__":
     # Poner a True para traer y mandar los datos a MinIO

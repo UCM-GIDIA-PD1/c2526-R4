@@ -1,13 +1,10 @@
 import os
 import requests
 from tqdm import tqdm
-from utils.files import write_to_file
+from utils.config import members
+from utils.files import write_to_file, read_file
 from utils.date import format_date_string, unix_to_date_string
 from utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
-
-def log_appid_errors(appid, reason, log_filepath):
-    data = {appid : reason}
-    write_to_file(data, log_filepath)
 
 def _parse_supported_languages(raw_html):
     if not raw_html:
@@ -49,8 +46,6 @@ def _request_url(session, params_info, url):
     except ValueError as e:
         raise SteamAPIException(f"Json decodification error: {e}")
 
-# Por defecto extrae todos los appids, desde el principio hasta el final. n_appids es mucho más que los juegos que hay en steam
-# La función se encarga de parar si no hay más datos
 def get_appids(n_appids=1000000, last_appid = 0):
     """
     Función que guarda en appid_list.json.gz una lista de appids (str). Ejemplo: ["10", "20", "30"]
@@ -166,14 +161,13 @@ def get_appdetails(appid, sesion):
     release_data = game_data.get("release_date",{})
     release_date = format_date_string(release_data.get("date",""))
     if release_data.get("coming_soon", True):
-        raise AppdetailsException("Game filtered, coming soon")
+        raise AppdetailsException("Game filtered, coming soon", appid)
     if release_date is None:
         raise AppdetailsException(f"Failed to parse date: '{release_data.get('date','')}'", appid)
     
     appdetails["release_date"] = format_date_string(release_data.get("date","")) 
     
     return appdetails
-
 
 def get_appreviewhistogram(appid, session, release_date):
     """
@@ -240,7 +234,7 @@ def get_appreviewhistogram(appid, session, release_date):
         days -= (release_day - hist_day)
             
     elif appreviewhistogram.get("rollup_type") == "month":
-        days = 30 - int(release_day), 1
+        days = 30 - int(release_day)
         data["recommendations_up"] += rollups[idx].get("recommendations_up", 0)
         data["recommendations_down"] += rollups[idx].get("recommendations_down", 0)
 
