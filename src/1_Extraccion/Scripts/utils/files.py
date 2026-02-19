@@ -3,6 +3,7 @@ import gzip
 import pandas as pd
 from os import remove, path, environ
 from minio import Minio
+from minio.error import S3Error
 from utils.config import steam_log_file
 
 def minio_client():
@@ -79,13 +80,14 @@ def _read_txt(filepath):
 
 # Funciones publicas
 
-def write_to_file(data, filepath, minio = False): # HACE FALTA COMPLETAR CON PARTE MINIO
+def write_to_file(data, filepath, minio = False):
     """
     Guarda un diccionario en el formato indicado en la ruta especificada.
 
     Args:
         datos (dict): Diccionario con la información a exportar. (Lista de diccionarios en caso de ser un jsonl)
-        ruta_archivo (str): Ruta del sistema de archivos.
+        filepath (str): Ruta del sistema de archivos.
+        minio (bool): Activar para traer y guardar los datos en el servidor de MinIO
     
     Returns:
         boolean: True si se ha escrito en el archivo correctamente, false en caso contrario.
@@ -105,6 +107,12 @@ def write_to_file(data, filepath, minio = False): # HACE FALTA COMPLETAR CON PAR
             _save_txt(data, filepath)
         else:
             print(f"File extension not supported: {filepath.name}")
+            return
+        
+        if minio:
+            client = minio_client()
+            minio_path = f"grupo4/{filepath.name}"
+            client.fput_object(bucket_name = "pd1", object_name = minio_path, file_path = filepath)
 
     except TypeError as e:
         # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
@@ -118,13 +126,19 @@ def read_file(filepath, minio = False):  # HACE FALTA CAMBIAR PARTE MINIO?
     Carga y decodifica un archivo desde una ruta local.
 
     Args:
-        ruta_archivo (str): La ubicación física del archivo en el sistema.
+        filepath (str): La ubicación física del archivo en el sistema.
+        minio (bool): Activar para traer los datos del servidor de MinIO
 
     Returns:
         dict | None: Los datos contenidos en el JSON convertidos a tipos de Python. 
         Retorna None si el archivo no se encuentra o si el contenido no es un JSON válido.
     """
     try:
+        if minio:
+            client = minio_client()
+            minio_path = f"grupo4/{filepath.name}"
+            client.fget_object(bucket_name = "pd1", object_name = minio_path, file_path = filepath)
+
         datos = None
         if filepath.suffix == ".json":
             return _read_json(filepath)
@@ -141,6 +155,9 @@ def read_file(filepath, minio = False):  # HACE FALTA CAMBIAR PARTE MINIO?
         else:
             print(f"File extension not supported: {filepath.name}")
         return datos
+    except S3Error as e:
+        print(f"Error de MinIO: {e}\n Se intentará leer el fichero localmente")
+        return read_file(filepath)
     except FileNotFoundError:
         print(f"Error: File {filepath.name} does not exist.")
         return None
