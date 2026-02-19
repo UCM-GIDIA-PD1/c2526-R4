@@ -76,7 +76,6 @@ def download_game_data(appid, session):
     game_info = {"id": appid, "appdetails": {}, "appreviewhistogram": {}}
 
     # Llamamos a funciones
-    
     game_info["appdetails"] = get_appdetails(appid, session)
     release_date = game_info["appdetails"].get("release_date")
     game_info["appreviewhistogram"] = get_appreviewhistogram(appid, session, release_date)

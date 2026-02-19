@@ -2,6 +2,7 @@ import os
 from utils.config import appidlist_file, appidlist_info_file
 from utils.files import read_file, write_to_file
 from utils.steam_requests import get_appids
+from utils.sesion import handle_input, tratar_existe_fichero
 
 # NOTA: HACE FALTA AÑADIR VINCULACIÓN CON MINIO y AÑADIR ARCHIVO DE CONFIGURACIÓN JSON PARA GUARDAR INFO DE SCRIPT A
 
@@ -21,70 +22,26 @@ Entrada:
 Salida:
 - Se almacena una lista de los APPIDs.
 """
-
-def _handle_input(initial_message, isResponseValid = lambda x: True):
-    """
-    Función que maneja la entrada. Por defecto la función siempre devuelve True.
-
-    Args:
-        mensaje (str): mensaje inicial. 
-        isResponseValid (function): función que verifica la validez de un input dado.
-
-    Returns:
-        boolean: True si el input es correcto, false en caso contrario.
-    """
-    respuesta = input(initial_message).strip()
-
-    # Hasta que no se dé una respuesta válida no se puede salir del bucle
-    while not isResponseValid(respuesta):
-        respuesta = input("Opción no válida, prueba de nuevo: ").strip()
-    
-    return respuesta
-
-def _tratar_existe_fichero():
-    """
-    Menú con opción de añadir contenido al fichero existente o sobreescribirlo.
-    
-    returns:
-        boolean: True si sobreescribir archivo meter appids nuevos, False en caso contrario
-    """
-
-    mensaje = """El fichero de lista de appids ya existe:\n\n1. Añadir contenido al fichero existente
-2. Sobreescribir fichero\n\nIntroduce elección: """
-
-    def _isValid(respuesta):
-        valid_inputs ={"1", "2"}
-        return respuesta in valid_inputs
-
-    respuesta = _handle_input(mensaje, _isValid)
-    return True if respuesta == "2" else False
     
 def _parametros_de_request():
     mensaje = """Elige modo de ejecución:\n\n1. Elegir manualmente el los parámetros\n2. Extraer nuevos juegos\n
 Introduce elección: """
-    # El input es "1" o "2"
-    def _isValid(respuesta):
-        valid_inputs ={"1", "2"}
-        return respuesta in valid_inputs
-    
-    respuesta = _handle_input(mensaje, _isValid)
+
+    respuesta = handle_input(mensaje, lambda x: x in {"1", "2"})
     n_appids = 0
     last_appid = 0
-
-    # El input es un número entero
-    def _isValid(respuesta):
-        return respuesta.isdigit()
     
+    is_integer =  lambda x: x.isdigit()
     if respuesta == "1": # Elegir manualmente el los parámetros
         mensaje = "Número de appids a extraer: "
-        n_appids = int(_handle_input(mensaje, _isValid))
+        n_appids = int(handle_input(mensaje, is_integer))
         
         mensaje = "Appid desde el que hay que extraer: "
-        last_appid = int(_handle_input(mensaje, _isValid))
+        last_appid = int(handle_input(mensaje, is_integer))
 
     elif respuesta == "2": # Extraer nuevos juegos
         mensaje = "Número de appids nuevos a extraer: "
-        n_appids = int(_handle_input(mensaje, _isValid))
+        n_appids = int(handle_input(mensaje, is_integer))
         info = read_file(appidlist_info_file)
         if info is None:
             appid_list = read_file(appidlist_file)
@@ -110,7 +67,7 @@ def A_lista_juegos():
 
     # Si existe lista anterior, ¿se quiere sobreescribir o seguir a partir del mismo?
     if os.path.exists(appidlist_file):
-        overwrite_file = _tratar_existe_fichero()
+        overwrite_file = tratar_existe_fichero()
         if not overwrite_file:
             old_data = read_file(appidlist_file)
             data.extend(old_data)

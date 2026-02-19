@@ -27,8 +27,7 @@ Salida:
 
 def _intervalo_rotacion_IP():
     """Cambio de IP manual randomizado cada 5-6 minutos"""
-    intervalo = 60 * random.uniform(5, 6)
-    return intervalo
+    return 60 * random.uniform(5, 6)
 
 def C1_informacion_youtube_busquedas(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
     # Lanzamos TOR
@@ -68,7 +67,7 @@ def C1_informacion_youtube_busquedas(minio = False): # PARA TERMINAR SESIÓN: CT
                     tqdm.write(f'Juego con entrada incompleta: {nombre}')
 
                 idx_actual += i
-                sesion.wait(4, scope=0.4)
+                sesion.wait(4, scope=0.4) # Espera aleatoria de entre 2.4 y 5.6 segundos
                 tiempo_actual = time()
                 if tiempo_actual - ultima_marca_tiempo >= intervalo:
                     ultima_marca_tiempo = tiempo_actual

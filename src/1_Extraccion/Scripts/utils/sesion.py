@@ -1,6 +1,39 @@
 from utils.files import read_file, write_to_file, erase_file
 import os
 
+def handle_input(initial_message, isResponseValid = lambda x: True):
+    """
+    Función que maneja la entrada. Por defecto la función siempre devuelve True.
+
+    Args:
+        mensaje (str): mensaje inicial. 
+        isResponseValid (function): función que verifica la validez de un input dado.
+
+    Returns:
+        boolean: True si el input es correcto, false en caso contrario.
+    """
+    respuesta = input(initial_message).strip()
+
+    # Hasta que no se dé una respuesta válida no se puede salir del bucle
+    while not isResponseValid(respuesta):
+        respuesta = input("Opción no válida, prueba de nuevo: ").strip()
+    
+    return respuesta
+
+def tratar_existe_fichero():
+    """
+    Menú con opción de añadir contenido al fichero existente o sobreescribirlo.
+    
+    returns:
+        boolean: True si sobreescribir archivo meter appids nuevos, False en caso contrario
+    """
+
+    mensaje = """El fichero de lista de appids ya existe:\n\n1. Añadir contenido al fichero existente
+2. Sobreescribir fichero\n\nIntroduce elección: """
+
+    respuesta = handle_input(mensaje, lambda x: x in {"1", "2"})
+    return True if respuesta == "2" else False
+
 def _get_extracted_data(jsonl_file, gzip_final_file):
     datos_nuevos = read_file(jsonl_file)
     if not datos_nuevos:
@@ -24,7 +57,7 @@ def _get_extracted_data(jsonl_file, gzip_final_file):
     
     return datos_totales
 
-def _save_final_sesion(jsonl_file, gzip_final_file, minio = False): # IMPORTANTE: No sé cómo se hace lo de MinIO, que se encargue otro por fa
+def _save_final_sesion(jsonl_file, gzip_final_file, minio = False):
     """
     Borra un archivo jsonl pasando su contenido al json.gz especificado
 
