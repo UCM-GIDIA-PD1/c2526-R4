@@ -7,28 +7,29 @@ from tqdm import tqdm
 from googleapiclient.errors import HttpError
 
 '''
-Segunda parte de la extracción de YouTube: videos.
+Segunda parte de la extracción de YouTube: estadisticas de los videos.
 
-Habiendo ya sacado la información de las búsquedas, este script busca las estadísticas relativas
-a los vídeos de cada juego buscado, mediante la API de YouTube.
-
-Información:
-- Tenemos un límite por día de 10000 unidades para usar en la API de YouTube, por lo que podemos sacar
-    la información de 10000 juegos por día.
+Habiendo ya sacado la información de las búsquedas (video_id, la parte final de los enlaces de videos de youtube), este script
+saca las estadísticas relativas a los vídeos mediante la API de Youtube. 
+Concretamente extraemos: visualizaciones, likes, favoritos y numero de comentarios.
 
 Requisitos:
 - Módulo `googleapiclient` para solicitar acceso a las API de YouTube de Python 
     (`pip install google-api-python-client`).
 - Tener la API de YouTube de desarrollador.
 
+Información:
+- Tenemos un límite por día de 10000 unidades para usar en la API de YouTube, por lo que podemos sacar
+    la información de 10000 juegos por día.
+
 Entrada:
-- Necesita para su ejecución el archivo info_steam_games_and_semiyoutube.json.gz.
+- Necesita para su ejecución el archivo info_steam_youtube.gz.
 
 Salida:
 - Los datos se almacenan en la el directorio indicado.
 '''
 
-def process_game(youtube_service, video_id_list, id_juego):
+def process_game(youtube_service, video_id_list):
     """
     Dado un array que contiene diccionarios conlos ids de los videos de un juego, obtiene las estadísticas de todos los videos 
     devolviendo una lista de video_statistics.
@@ -104,7 +105,7 @@ def C2_informacion_youtube_videos():
                     stats = {
                         'id' : id_juego,
                         'name' : nombre,
-                        'video_statistics' : process_game(youtube, video_id_list, id_juego)
+                        'video_statistics' : process_game(youtube, video_id_list)
                     }
                     info['data'].append(stats)
             except HttpError as e:
@@ -112,7 +113,7 @@ def C2_informacion_youtube_videos():
                     pbar.write("Límite de cuota de YouTube alcanzado. Abortando proceso.")
                     log_appid_errors("Quota exceeded (403)")
                     write_to_file(info, yt_statslist_file)
-                    raise  # 🔥 se relanza para parar TODO
+                    raise 
                 else:
                     pbar.write(str(e))
                     log_appid_errors(str(e))
