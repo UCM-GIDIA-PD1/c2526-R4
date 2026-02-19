@@ -70,3 +70,5 @@ steam_log_file = error_log_path() / "steam_log_file.jsonl"
 gamelist_file = data_path() / "games_info.jsonl.gz"
 gamelist_info_file = config_path() / "gamelist_info.json"
 
+videoid_list_file = data_path() / "info_steam_youtube_1.json.gz"
+yt_statslist_file =  data_path() / "youtube_statistics.json.gz"
