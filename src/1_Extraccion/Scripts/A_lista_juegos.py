@@ -1,8 +1,8 @@
 import os
-from utils.config import appidlist_file, appidlist_info_file
+from utils.config import appidlist_file, appidlist_info_file, config_file
 from utils.files import read_file, write_to_file
 from utils.steam_requests import get_appids
-from utils.sesion import handle_input, tratar_existe_fichero
+from utils.sesion import handle_input, tratar_existe_fichero, read_config, update_config
 
 # NOTA: HACE FALTA AÑADIR VINCULACIÓN CON MINIO y AÑADIR ARCHIVO DE CONFIGURACIÓN JSON PARA GUARDAR INFO DE SCRIPT A
 
@@ -31,23 +31,22 @@ Introduce elección: """
     n_appids = 0
     last_appid = 0
     
-    is_integer =  lambda x: x.isdigit()
     if respuesta == "1": # Elegir manualmente el los parámetros
         mensaje = "Número de appids a extraer: "
-        n_appids = int(handle_input(mensaje, is_integer))
+        n_appids = int(handle_input(mensaje, lambda x: x.isdigit()))
         
         mensaje = "Appid desde el que hay que extraer: "
-        last_appid = int(handle_input(mensaje, is_integer))
+        last_appid = handle_input(mensaje, lambda x: x.isdigit())
 
     elif respuesta == "2": # Extraer nuevos juegos
         mensaje = "Número de appids nuevos a extraer: "
-        n_appids = int(handle_input(mensaje, is_integer))
-        info = read_file(appidlist_info_file)
+        n_appids = int(handle_input(mensaje, lambda x: x.isdigit()))
+        info = read_config("A", {"last_appid" : 0, "size" : 0})
         if info is None:
             appid_list = read_file(appidlist_file)
             last_appid = appid_list[-1]
         else:
-            last_appid = info["last_appid"]
+            last_appid = info.get("last_appid")
 
     return int(n_appids), str(last_appid)
 
@@ -66,8 +65,11 @@ def A_lista_juegos():
     seen = set()
 
     # Si existe lista anterior, ¿se quiere sobreescribir o seguir a partir del mismo?
+    overwrite_file = False
     if os.path.exists(appidlist_file):
-        overwrite_file = tratar_existe_fichero()
+        mensaje = """El fichero de lista de appids ya existe:\n\n1. Añadir contenido al fichero existente
+2. Sobreescribir fichero\n\nIntroduce elección: """
+        overwrite_file = tratar_existe_fichero(mensaje)
         if not overwrite_file:
             old_data = read_file(appidlist_file)
             data.extend(old_data)
@@ -75,6 +77,7 @@ def A_lista_juegos():
 
     # Parámetros de request
     n_appids, last_appid = _parametros_de_request()
+
     new_data = get_appids(n_appids, last_appid)
     for appid in new_data:
         if appid not in seen:
@@ -84,7 +87,7 @@ def A_lista_juegos():
     # Se guardan los datos obtenidos
     write_to_file(data, appidlist_file)
     list_info = {"last_appid": data[-1], "size":len(data)}
-    write_to_file(list_info, appidlist_info_file)
+    update_config("A", list_info)
     
 
 if __name__ == "__main__":

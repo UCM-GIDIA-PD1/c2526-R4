@@ -231,7 +231,7 @@ def get_appreviewhistogram(appid, session, release_date):
             days += 7 # numero de dias en una semana
             data["recommendations_up"] += rollup.get("recommendations_up", 0)
             data["recommendations_down"] += rollup.get("recommendations_down", 0)
-        days -= (release_day - hist_day)
+        days -= (int(release_day) - int(hist_day))
             
     elif appreviewhistogram.get("rollup_type") == "month":
         days = 30 - int(release_day)

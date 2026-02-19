@@ -61,9 +61,12 @@ def error_log_path():
 
 # Variables de proyecto
 members = 6
+config_file = config_path() / "config.json"
+
 appidlist_file = data_path() / "appids_list.json.gz"
 appidlist_info_file = config_path() / "appid_list_info.json"
 
-steam_log_file = error_log_path() / "steam_log_path.jsonl"
+steam_log_file = error_log_path() / "steam_log_file.jsonl"
 gamelist_file = data_path() / "games_info.jsonl.gz"
 gamelist_info_file = config_path() / "gamelist_info.json"
+

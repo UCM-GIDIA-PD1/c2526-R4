@@ -121,7 +121,7 @@ def write_to_file(data, filepath, minio = False):
         # Cualquier otro tipo de error
         print(f"Unexpected error occurred : {e}")
 
-def read_file(filepath, minio = False):  # HACE FALTA CAMBIAR PARTE MINIO?
+def read_file(filepath, minio = False, default_return = None):  # HACE FALTA CAMBIAR PARTE MINIO?
     """
     Carga y decodifica un archivo desde una ruta local.
 
@@ -139,7 +139,7 @@ def read_file(filepath, minio = False):  # HACE FALTA CAMBIAR PARTE MINIO?
             minio_path = f"grupo4/{filepath.name}"
             client.fget_object(bucket_name = "pd1", object_name = minio_path, file_path = filepath)
 
-        datos = None
+        datos = default_return
         if filepath.suffix == ".json":
             return _read_json(filepath)
         elif filepath.suffixes == [".json", ".gz"]:
@@ -160,16 +160,16 @@ def read_file(filepath, minio = False):  # HACE FALTA CAMBIAR PARTE MINIO?
         return read_file(filepath)
     except FileNotFoundError:
         print(f"Error: File {filepath.name} does not exist.")
-        return None
+        return default_return
     except json.JSONDecodeError:
         print("Error: invalid JSON format.")
-        return None
+        return default_return
     except gzip.BadGzipFile:
         print("Error: invalid gzip.JSON format.")
-        return None
+        return default_return
     except Exception as e:
         print(f"Unexpected error occurred while reading {filepath.name}: {e}")
-        return None
+        return default_return
 
 def erase_file(filepath):
     """

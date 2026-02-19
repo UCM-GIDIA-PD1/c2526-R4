@@ -6,7 +6,8 @@ from tqdm import tqdm
 from utils.steam_requests import get_appdetails, get_appreviewhistogram
 from utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
 from utils.files import log_appid_errors, read_file, write_to_file
-from utils.config import appidlist_file, appidlist_info_file, gamelist_file, gamelist_info_file, get_appid_range
+from utils.config import appidlist_file, appidlist_info_file, gamelist_file, gamelist_info_file, get_appid_range, config_file
+from utils.sesion import handle_input, tratar_existe_fichero, read_config, update_config
 
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
@@ -20,43 +21,6 @@ Entrada:
 Salida:
 - Los datos se almacenan en la carpeta data/ en formato JSON comprimido.
 '''
-
-def _handle_input(initial_message, isResponseValid = lambda x: True):
-    """
-    Función que maneja la entrada. Por defecto la función siempre devuelve True.
-
-    Args:
-        mensaje (str): mensaje inicial. 
-        isResponseValid (function): función que verifica la validez de un input dado.
-
-    Returns:
-        boolean: True si el input es correcto, false en caso contrario.
-    """
-    respuesta = input(initial_message).strip()
-
-    # Hasta que no se dé una respuesta válida no se puede salir del bucle
-    while not isResponseValid(respuesta):
-        respuesta = input("Opción no válida, prueba de nuevo: ").strip()
-    
-    return respuesta
-
-def _tratar_existe_fichero():
-    """
-    Menú con opción de añadir contenido al fichero existente o sobreescribirlo.
-    
-    returns:
-        boolean: True si sobreescribir archivo meter appids nuevos, False en caso contrario
-    """
-
-    mensaje = """El fichero de lista de appids ya existe:\n\n1. Añadir contenido al fichero existente 
-2. Sobreescribir fichero\n\nIntroduce elección: """
-
-    def _isValid(respuesta):
-        valid_inputs ={"1", "2"}
-        return respuesta in valid_inputs
-
-    respuesta = _handle_input(mensaje, _isValid)
-    return True if respuesta == "2" else False
 
 def download_game_data(appid, session):
     """
@@ -82,68 +46,71 @@ def download_game_data(appid, session):
 
     return game_info
     
+def _get_session_info():
+    gamelist_info = read_config("B")
+    if gamelist_info is not None:
+        message = f"Existe sesión de extracción [{gamelist_info.get("start_idx")}, {gamelist_info.get("end_idx")}] índice actual: {gamelist_info.get("curr_idx")}, quieres continuar con la sesión? [Y/N]: "
+        response = handle_input(message, lambda x: x.lower() in {"y", "n"})
+        if response.lower() == "y":
+            start_idx, curr_idx, end_idx = gamelist_info["start_idx"], gamelist_info["curr_idx"], gamelist_info["end_idx"]
+            return True, start_idx, curr_idx, end_idx
+    
+    return False, -1, -1 ,-1
+        
 def get_pending_games():
     appidlist = read_file(appidlist_file)
-
+    start_idx, curr_idx, end_idx = -1, -1, -1
     if appidlist is None:
-        return 0, -1
+        return [], start_idx, curr_idx, end_idx 
 
-    if os.path.exists(gamelist_info_file):
-        gamelist_info = read_file(gamelist_info_file)
-        start_idx, curr_idx, end_idx = gamelist_info["start_idx"], gamelist_info["curr_idx"], gamelist_info["end_idx"]
-        message = f"Existe sesión de extracción [{gamelist_info.get("start_idx")}, {gamelist_info.get("end_idx")}], quieres continuar con la sesión? [Y/N]: "
+    if os.path.exists(config_file):
+        continue_session, start_idx, curr_idx, end_idx = _get_session_info()
+        if continue_session:
+            return appidlist[curr_idx:end_idx+1], start_idx, curr_idx, end_idx
+        
+    print("Configurando nueva sesión...\n")
 
-        def _isValid(response):
-            return response.lower() in {"y", "n"}
-        response = _handle_input(message, _isValid)
-
-        if response.lower() == "y":
-            return appidlist[curr_idx : end_idx+1], start_idx, curr_idx, end_idx
-        else:
-            print("Configurando nueva sesión...\n")
-
-    appidlist_info = read_file(appidlist_info_file)
-
+    appidlist_info = read_config("A") # debe existir lista de juegos con su info
     print(f"Tamaño lista de juegos: {appidlist_info.get('size', 0)}")
     print(f"Rango de índices disponibles: [0, {appidlist_info.get('size', 0)-1}]")
 
     message = """Opciones: \n\n1. Elegir rango manualmente\n2. Extraer rango correspondiente al identificador\n
 Introduce elección: """
+    option = handle_input(message, lambda x: x in {"1", "2"})
 
-    def _isValid(response):
-        return response in {"1", "2"}
-    option = _handle_input(message, _isValid)
-
-    if option == "1":
-        def _isValid(response):
+    if option == "1": # Elegir rango manualmente
+        def _isValidStart(response):
             return response.isdigit() and int(response) >= 0 and int(response) < appidlist_info.get("size", 0)
         message = f"Introduce índice inicial [0, {appidlist_info.get('size', 0)-1}]: "
-        start_idx = int(_handle_input(message,_isValid))
+        start_idx = int(handle_input(message,_isValidStart))
         curr_idx = start_idx
-        def _isValid(response):
-            return response.isdigit() and int(response) >= start_idx and int(response) <= end_idx
-        message = f"Introduce índice final [{start_idx}, {appidlist_info.get('size', 0)-1}]:"
-        end_idx = int(_handle_input(message,_isValid))
+
+        def _isValidEnd(response):
+            return response.isdigit() and int(response) >= start_idx and int(response) <= appidlist_info.get('size', 0)-1
+        message = f"Introduce índice final [{start_idx}, {appidlist_info.get('size', 0)-1}]: "
+        end_idx = int(handle_input(message,_isValidEnd))
         
-    elif option == "2":
+    elif option == "2": # usar rango del identificador, si no hay identificador, se hace completo
         start_idx, curr_idx, end_idx = get_appid_range(appidlist_info["size"])
     
-    return appidlist[start_idx:end_idx+1], start_idx, curr_idx, end_idx
+    return appidlist[curr_idx:end_idx+1], start_idx, curr_idx, end_idx
 
 def _overwrite_confirmation():
-    def _isValid(response):
-        return response.lower() in {"y", "n"}
     message = "¿Seguro que quieres eliminar la lista de juegos con su información [Y/N]?: "
-    response = _handle_input(message, _isValid)
+    response = handle_input(message, lambda x: x.lower() in {"y", "n"})
     return True if response.lower() == "y" else False
 
 def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
     # Cargamos los datos
     try:
+        start_idx, curr_idx, end_idx = -1,-1,-1
+        
         pending_games, start_idx, curr_idx, end_idx = get_pending_games()
         
         if os.path.exists(gamelist_file):
-            overwrite = _tratar_existe_fichero()
+            mensaje = """El fichero de información de juegtos ya existe:\n\n1. Añadir contenido al fichero existente
+2. Sobreescribir fichero\n\nIntroduce elección: """
+            overwrite = tratar_existe_fichero(mensaje)
             if overwrite:
                 if _overwrite_confirmation():
                     os.remove(gamelist_file)
@@ -165,23 +132,24 @@ def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
                 try:
                     desc = download_game_data(appid, sesion)
                     write_to_file(desc, gamelist_file)
-                    curr_idx += 1
                     wait = uniform(1.5, 2)
                     time.sleep(wait)
                 except(AppdetailsException, ReviewhistogramException) as e:
-                    pbar.write(e)
-                    log_appid_errors(e.appid, e)
+                    pbar.write(str(e))
+                    log_appid_errors(e.appid, str(e))
+                finally:
+                    curr_idx += 1
     except SteamAPIException as e:
         print(e)
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     except Exception as e:
-        print(f"Error inesperado durante descarga de información sobre el juego: {e}")
+        print(f"Error inesperado durante descarga de información sobre el juego: {e}")    
     finally:
         gamelist_info = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
         if curr_idx > end_idx:
             print("Rango completado")
-        write_to_file(gamelist_info, gamelist_info_file)
+        update_config("B", gamelist_info)
     
 
 if __name__ == "__main__":
