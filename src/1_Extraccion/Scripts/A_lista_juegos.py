@@ -1,10 +1,8 @@
 import os
-from utils.config import appidlist_file, appidlist_info_file, config_file
+from utils.config import appidlist_file
 from utils.files import read_file, write_to_file
 from utils.steam_requests import get_appids
 from utils.sesion import handle_input, tratar_existe_fichero, read_config, update_config
-
-# NOTA: HACE FALTA AÑADIR VINCULACIÓN CON MINIO y AÑADIR ARCHIVO DE CONFIGURACIÓN JSON PARA GUARDAR INFO DE SCRIPT A
 
 """
 Script que itera sobre la API de Steam y devuelve un JSON comprimido con n juegos y sus APPID.

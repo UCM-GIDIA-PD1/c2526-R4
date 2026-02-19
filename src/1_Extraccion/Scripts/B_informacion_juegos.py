@@ -5,8 +5,8 @@ from random import uniform
 from tqdm import tqdm
 from utils.steam_requests import get_appdetails, get_appreviewhistogram
 from utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
-from utils.files import log_appid_errors, read_file, write_to_file
-from utils.config import appidlist_file, appidlist_info_file, gamelist_file, gamelist_info_file, get_appid_range, config_file
+from utils.files import log_appid_errors, read_file, write_to_file, erase_file
+from utils.config import appidlist_file, gamelist_file, get_appid_range
 from utils.sesion import handle_input, tratar_existe_fichero, read_config, update_config
 
 '''
@@ -135,7 +135,7 @@ def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
             if overwrite:
                 # asegurarse de que se quiere eliminar toda la información
                 if _overwrite_confirmation():
-                    os.remove(gamelist_file)
+                    erase_file(gamelist_file)
                 else:
                     print("Operación cancelada")
                     return

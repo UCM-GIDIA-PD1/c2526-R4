@@ -18,8 +18,4 @@ error_logs
 *.jsonl
 *.jsonl.gz
 *.Rhistory
-
-# Archivos concretos
-config_rango.txt
-fallos.txt
-mc.exe
+*.exe

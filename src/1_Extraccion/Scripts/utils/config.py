@@ -63,10 +63,14 @@ def error_log_path():
 members = 6
 config_file = config_path() / "config.json"
 
+# Script A
 appidlist_file = data_path() / "appids_list.json.gz"
-appidlist_info_file = config_path() / "appid_list_info.json"
 
+# Script B
 steam_log_file = error_log_path() / "steam_log_file.jsonl"
 gamelist_file = data_path() / "games_info.jsonl.gz"
-gamelist_info_file = config_path() / "gamelist_info.json"
 
+# Script C1
+youtube_scraping_file = data_path() / "info_steam_youtube1.jsonl.gz"
+
+# Script C2
