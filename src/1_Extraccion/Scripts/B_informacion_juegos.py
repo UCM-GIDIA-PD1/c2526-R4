@@ -16,10 +16,10 @@ Requisitos:
 - Módulo `requests` para solicitar acceso a las APIs.
 
 Entrada:
-- Necesita para su ejecución el archivo steam_apps.json.gz
+- Necesita para su ejecución el archivo appids_list.json.gz y su información en el config.json
 
 Salida:
-- Los datos se almacenan en la carpeta data/ en formato JSON comprimido.
+- Los datos se almacenan en la carpeta data/ en formato JSONL comprimido.
 '''
 
 def download_game_data(appid, session):
@@ -34,7 +34,7 @@ def download_game_data(appid, session):
 
     Returns:
         dict: Diccionario estructurado con 'id', 'appdetails' y 'appreviewhistogram'.
-        Retorna un diccionario vacío si falla la obtención de cualquiera de las partes.
+        \nLanza las siguientes excepciones en caso de fallo: AppdetailsException, ReviewhistogramException
     """
     # Datos iniciales
     game_info = {"id": appid, "appdetails": {}, "appreviewhistogram": {}}
@@ -47,30 +47,46 @@ def download_game_data(appid, session):
     return game_info
     
 def _get_session_info():
+    """
+    Comprueba si hay una sesión de extracción abierta leyendo el config y retorna los parámetros de la sesión
+    si así lo quiere el usuario.
+
+    :returns boolean, start_idx, curr_idx, end_idx:
+    El booleano es True si se quiere usar la sesión y False en caso contrario.
+    Devuelve indices de la sesión o dummies si no hay sesión o el usuario quiere una nueva sesión
+    """
+    # Parámetros de B
     gamelist_info = read_config("B")
+    # Si existe sesión
     if gamelist_info is not None:
-        message = f"Existe sesión de extracción [{gamelist_info.get("start_idx")}, {gamelist_info.get("end_idx")}] índice actual: {gamelist_info.get("curr_idx")}, quieres continuar con la sesión? [Y/N]: "
+        message = f"Existe sesión de extracción [{gamelist_info.get('start_idx')}, {gamelist_info.get('end_idx')}] índice actual: {gamelist_info.get('curr_idx')}, quieres continuar con la sesión? [Y/N]: "
         response = handle_input(message, lambda x: x.lower() in {"y", "n"})
+        # si quiere usar los parámetros de la sesión existente
         if response.lower() == "y":
+            # devuelve los parámetros de la sesión y un booleano que indica la decsión del usuario
             start_idx, curr_idx, end_idx = gamelist_info["start_idx"], gamelist_info["curr_idx"], gamelist_info["end_idx"]
             return True, start_idx, curr_idx, end_idx
-    
+    # Si no hay sesión devuelve valores dummy
     return False, -1, -1 ,-1
-        
+
 def get_pending_games():
+    # leer la lista de appids
     appidlist = read_file(appidlist_file)
+    # inicializar indices dummy
     start_idx, curr_idx, end_idx = -1, -1, -1
+    # si no hay lista de juegos devolver una lista vacía
     if appidlist is None:
         return [], start_idx, curr_idx, end_idx 
 
-    if os.path.exists(config_file):
-        continue_session, start_idx, curr_idx, end_idx = _get_session_info()
-        if continue_session:
-            return appidlist[curr_idx:end_idx+1], start_idx, curr_idx, end_idx
-        
+    continue_session, start_idx, curr_idx, end_idx = _get_session_info()
+    # si se quiere usar información de sesión existente
+    if continue_session:
+        return appidlist[curr_idx:end_idx+1], start_idx, curr_idx, end_idx
+    
+    # si no se quiere usar sesión existente o no hay sesión existente
     print("Configurando nueva sesión...\n")
-
-    appidlist_info = read_config("A") # debe existir lista de juegos con su info
+    # muestra rangos disponibles de la lista
+    appidlist_info = read_config("A") 
     print(f"Tamaño lista de juegos: {appidlist_info.get('size', 0)}")
     print(f"Rango de índices disponibles: [0, {appidlist_info.get('size', 0)-1}]")
 
@@ -101,30 +117,32 @@ def _overwrite_confirmation():
     return True if response.lower() == "y" else False
 
 def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
-    # Cargamos los datos
     try:
+        # por si da un error en get_pending_games, evitar un UnboundLocalError en el finally
         start_idx, curr_idx, end_idx = -1,-1,-1
-        
+
         pending_games, start_idx, curr_idx, end_idx = get_pending_games()
         
+        if not pending_games:
+            print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
+            return
+        
+        # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
         if os.path.exists(gamelist_file):
             mensaje = """El fichero de información de juegtos ya existe:\n\n1. Añadir contenido al fichero existente
 2. Sobreescribir fichero\n\nIntroduce elección: """
             overwrite = tratar_existe_fichero(mensaje)
             if overwrite:
+                # asegurarse de que se quiere eliminar toda la información
                 if _overwrite_confirmation():
                     os.remove(gamelist_file)
                 else:
                     print("Operación cancelada")
                     return
                 
-        if not pending_games:
-            print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
-            return
-
+        # comienzo de extracción
         sesion = requests.Session()
         sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
-
         print("Comenzando extraccion de juegos...\n")
         with tqdm(pending_games, unit = "appids") as pbar:
             for appid in pbar:
