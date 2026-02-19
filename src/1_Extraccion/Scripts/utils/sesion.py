@@ -1,5 +1,5 @@
 from utils.files import read_file, write_to_file, erase_file
-from utils.config import config_file
+from utils.config import config_file, appidlist_file, gamelist_file, youtube_scraping_file, get_appid_range
 import os
 
 def read_config(script_id, default_return = None):
@@ -60,3 +60,82 @@ def tratar_existe_fichero(mensaje):
 
     respuesta = handle_input(mensaje, lambda x: x in {"1", "2"})
     return True if respuesta == "2" else False
+
+def _get_session_info(script_id):
+    """
+    Comprueba si hay una sesión de extracción abierta leyendo el config y retorna los parámetros de la sesión
+    si así lo quiere el usuario.
+
+    :returns boolean, start_idx, curr_idx, end_idx:
+    El booleano es True si se quiere usar la sesión y False en caso contrario.
+    Devuelve indices de la sesión o dummies si no hay sesión o el usuario quiere una nueva sesión
+    """
+    # Parámetros de B
+    gamelist_info = read_config(script_id)
+    # Si existe sesión
+    if gamelist_info is not None:
+        message = f"Existe sesión de extracción [{gamelist_info.get('start_idx')}, {gamelist_info.get('end_idx')}] índice actual: {gamelist_info.get('curr_idx')}, quieres continuar con la sesión? [Y/N]: "
+        response = handle_input(message, lambda x: x.lower() in {"y", "n"})
+        # si quiere usar los parámetros de la sesión existente
+        if response.lower() == "y":
+            # devuelve los parámetros de la sesión y un booleano que indica la decsión del usuario
+            start_idx, curr_idx, end_idx = gamelist_info["start_idx"], gamelist_info["curr_idx"], gamelist_info["end_idx"]
+            return True, start_idx, curr_idx, end_idx
+    # Si no hay sesión devuelve valores dummy
+    return False, -1, -1 ,-1
+
+def _get_script_file(script_id):
+    if script_id in ["B","D"]:
+        return appidlist_file
+    elif script_id in ["C1","E"]:
+        return gamelist_file
+    else:
+        return youtube_scraping_file
+    
+def get_pending_games(script_id):
+    # leer la lista de appids
+    file = _get_script_file(script_id)
+    file_list = read_file(file)
+    # inicializar indices dummy
+    start_idx, curr_idx, end_idx = -1, -1, -1
+    # si no hay lista de juegos devolver una lista vacía
+    if file_list is None:
+        return [], start_idx, curr_idx, end_idx 
+
+    continue_session, start_idx, curr_idx, end_idx = _get_session_info(script_id)
+    # si se quiere usar información de sesión existente
+    if continue_session:
+        return file_list[curr_idx:end_idx+1], start_idx, curr_idx, end_idx
+    
+    # si no se quiere usar sesión existente o no hay sesión existente
+    print("Configurando nueva sesión...\n")
+    # muestra rangos disponibles de la lista
+    filelist_info = read_config(script_id) 
+    print(f"Tamaño lista de juegos: {filelist_info.get('size', 0)}")
+    print(f"Rango de índices disponibles: [0, {filelist_info.get('size', 0)-1}]")
+
+    message = """Opciones: \n\n1. Elegir rango manualmente\n2. Extraer rango correspondiente al identificador\n
+Introduce elección: """
+    option = handle_input(message, lambda x: x in {"1", "2"})
+
+    if option == "1": # Elegir rango manualmente
+        def _isValidStart(response):
+            return response.isdigit() and int(response) >= 0 and int(response) < filelist_info.get("size", 0)
+        message = f"Introduce índice inicial [0, {filelist_info.get('size', 0)-1}]: "
+        start_idx = int(handle_input(message,_isValidStart))
+        curr_idx = start_idx
+
+        def _isValidEnd(response):
+            return response.isdigit() and int(response) >= start_idx and int(response) <= filelist_info.get('size', 0)-1
+        message = f"Introduce índice final [{start_idx}, {filelist_info.get('size', 0)-1}]: "
+        end_idx = int(handle_input(message,_isValidEnd))
+        
+    elif option == "2": # usar rango del identificador, si no hay identificador, se hace completo
+        start_idx, curr_idx, end_idx = get_appid_range(filelist_info["size"])
+    
+    return file_list[curr_idx:end_idx+1], start_idx, curr_idx, end_idx
+
+def overwrite_confirmation():
+    message = "¿Seguro que quieres eliminar la lista de juegos con su información [Y/N]?: "
+    response = handle_input(message, lambda x: x.lower() in {"y", "n"})
+    return True if response.lower() == "y" else False
