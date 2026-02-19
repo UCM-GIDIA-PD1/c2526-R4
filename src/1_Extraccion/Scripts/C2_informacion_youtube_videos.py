@@ -1,7 +1,10 @@
 import os
 from googleapiclient.discovery import build
-import Z_funciones
-from Z_funciones import proyect_root
+import utils
+from utils.config import videoid_list_file, yt_statslist_file
+from utils.files import log_appid_errors, read_file, write_to_file
+from tqdm import tqdm
+from googleapiclient.errors import HttpError
 
 '''
 Segunda parte de la extracción de YouTube: videos.
@@ -25,7 +28,7 @@ Salida:
 - Los datos se almacenan en la el directorio indicado.
 '''
 
-def procesar_juego(youtube_service, video_id_list, id_juego):
+def process_game(youtube_service, video_id_list, id_juego):
     """
     Dado un array que contiene diccionarios conlos ids de los videos de un juego, obtiene las estadísticas de todos los videos 
     devolviendo una lista de video_statistics.
@@ -41,82 +44,81 @@ def procesar_juego(youtube_service, video_id_list, id_juego):
         y las estadísticas (vistas, likes, etc.) del vídeo encontrado. Retorna una 
         lista vacía si ocurre un error o no hay resultados.
     """
-    try:
         
-        # Si el juego no tiene videos, no se procesa
-        if not video_id_list:
-            return []
-        
-        # Transformamos la lista diccionarios en un string con todos ids
-        ids_videos = [ video_id.get('id') for video_id in video_id_list]
-        ids_string = ','.join(ids_videos)
-
-        # Solicitud que gasta 1 unidad de cuota
-        videos_request = youtube_service.videos().list(
-            part="statistics",
-            id=ids_string
-        )
-        videos_response = videos_request.execute()
-
-        # Guardamos las estadísticas de los vídeos encontrados y las devolvemos
-        lista_estadisticas = []
-        for item in videos_response['items']:
-            lista_estadisticas.append(item)
-        return lista_estadisticas
-
-    except Exception as e:
-        print(f"Error buscando '{id_juego}': {e}")
+    # Si el juego no tiene videos, no se procesa
+    if not video_id_list:
         return []
+    
+    # Transformamos la lista diccionarios en un string con todos ids
+    ids_videos = [ video_id.get('id') for video_id in video_id_list]
+    ids_string = ','.join(ids_videos)
 
+    # Solicitud que gasta 1 unidad de cuota
+    videos_request = youtube_service.videos().list(
+        part="statistics",
+        id=ids_string
+    )
+    videos_response = videos_request.execute()
+
+    # Guardamos las estadísticas de los vídeos encontrados y las devolvemos
+    lista_estadisticas = []
+    for item in videos_response['items']:
+        lista_estadisticas.append(item)
+    return lista_estadisticas
+
+
+''' 
+TODO: Implementar un config de C2, este config almacena el último appid procesado, la cantidad de juegos totales por procesar y
+la cantidad de juegos procesados.
+'''
 def C2_informacion_youtube_videos():
-    # Cargamos la API del sistema
+    # Cargamos la API KEY del sistema
     API_KEY = os.environ.get('API_KEY_YT')
     assert API_KEY, "La API_KEY no ha sido cargada"
 
-    # Cargamos los datos del JSON que contiene los VIDEO ID de cada juego
-    ruta_json = proyect_root() / "data" / "info_steam_youtube_1_4.json.gz" # (CAMBIAR NOMBRE)
-    juegos = Z_funciones.cargar_datos_locales(ruta_json)
+    # Cargamos la lista de juegos
+    appidlist = read_file(videoid_list_file)
+    assert appidlist, "No se ha podido leer el archivo de lista de videos"
 
-    if not juegos:
-        print('Error al cargar la lista de juegos')
-        return
-    
-    print('Obteniendo estadísticas de los videos...\n')
+    # Cargamos la lista de juegos a procesar
+    datalist = appidlist.get('data')
 
     # Creamos el googleapiclient.discovery.Resource
     youtube = build('youtube', 'v3', developerKey=API_KEY)
 
-    info_json = {}
-    info_json['data'] = []
+    info = {}
+    info['data'] = []
+    print("Initiating video statistics request...\n")
+    with tqdm(datalist, unit = "appids") as pbar:
+        for app in pbar:
+            appid = app.get('id')
+            pbar.set_description(f"Procesando appid: {appid}")
+            try:
+                nombre = app.get("name")
+                id_juego = app.get('id')
+                video_id_list = app.get('video_statistics')
 
-    # Iteramos los juegos
-    lista_juegos = juegos.get("data")
-    contador = 0
-    for juego in lista_juegos:
-        nombre = juego.get("name")
-        id_juego = juego.get('id')
-        video_id_list = juego.get('video_statistics')
+                # Si la lista está vacía no se procesa el juego
+                if video_id_list:
+                    print(f"{nombre}")
+                    stats = {
+                        'id' : id_juego,
+                        'name' : nombre,
+                        'video_statistics' : process_game(youtube, video_id_list, id_juego)
+                    }
+                    info['data'].append(stats)
+            except HttpError as e:
+                if e.resp.status == 403:
+                    pbar.write("Límite de cuota de YouTube alcanzado. Abortando proceso.")
+                    log_appid_errors("Quota exceeded (403)")
+                    write_to_file(info, yt_statslist_file)
+                    raise  # 🔥 se relanza para parar TODO
+                else:
+                    pbar.write(str(e))
+                    log_appid_errors(str(e))
+            finally:
+                write_to_file(info, yt_statslist_file)
 
-        # Si la lista está vacía no se procesa el juego
-        if video_id_list:
-            print(f"{nombre}")
-            info = {}
-            info['id'] = id_juego
-            info['name'] = nombre
-            info['video_statistics'] = procesar_juego(youtube, video_id_list, id_juego)
-            info_json['data'].append(info)
-        else:
-            print(f'El juego {id_juego} no tiene video_statistics')
-        
-        # Placeholder para solo obtener información de 100 juegos (CAMBIAR EN LA VERSIÓN FINAL) 
-        contador += 1
-        if contador == 99: 
-            break
-
-
-    data_dir = proyect_root() / "data"
-    ruta_final_gzip = data_dir / 'info_steam_youtube.json.gz'
-    Z_funciones.guardar_datos_dict(info_json, ruta_final_gzip)
 
 if __name__ == "__main__":
     C2_informacion_youtube_videos()
