@@ -110,9 +110,9 @@ def get_pending_games(script_id):
     # si no se quiere usar sesión existente o no hay sesión existente
     print("Configurando nueva sesión...\n")
     # muestra rangos disponibles de la lista
-    filelist_info = read_config(script_id) 
-    print(f"Tamaño lista de juegos: {filelist_info.get('size', 0)}")
-    print(f"Rango de índices disponibles: [0, {filelist_info.get('size', 0)-1}]")
+    list_size =  len(file_list)
+    print(f"Tamaño lista de juegos: {list_size}")
+    print(f"Rango de índices disponibles: [0, {list_size-1}]")
 
     message = """Opciones: \n\n1. Elegir rango manualmente\n2. Extraer rango correspondiente al identificador\n
 Introduce elección: """
@@ -120,18 +120,18 @@ Introduce elección: """
 
     if option == "1": # Elegir rango manualmente
         def _isValidStart(response):
-            return response.isdigit() and int(response) >= 0 and int(response) < filelist_info.get("size", 0)
-        message = f"Introduce índice inicial [0, {filelist_info.get('size', 0)-1}]: "
+            return response.isdigit() and int(response) >= 0 and int(response) < list_size
+        message = f"Introduce índice inicial [0, {list_size-1}]: "
         start_idx = int(handle_input(message,_isValidStart))
         curr_idx = start_idx
 
         def _isValidEnd(response):
-            return response.isdigit() and int(response) >= start_idx and int(response) <= filelist_info.get('size', 0)-1
-        message = f"Introduce índice final [{start_idx}, {filelist_info.get('size', 0)-1}]: "
+            return response.isdigit() and int(response) >= start_idx and int(response) < list_size
+        message = f"Introduce índice final [{start_idx}, {list_size-1}]: "
         end_idx = int(handle_input(message,_isValidEnd))
         
     elif option == "2": # usar rango del identificador, si no hay identificador, se hace completo
-        start_idx, curr_idx, end_idx = get_appid_range(filelist_info["size"])
+        start_idx, curr_idx, end_idx = get_appid_range(list_size)
     
     return file_list[curr_idx:end_idx+1], start_idx, curr_idx, end_idx
 

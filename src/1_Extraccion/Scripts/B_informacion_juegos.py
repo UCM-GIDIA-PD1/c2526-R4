@@ -22,7 +22,7 @@ Salida:
 - Los datos se almacenan en la carpeta data/ en formato JSONL comprimido.
 '''
 
-def download_game_data(appid, session):
+def _download_game_data(appid, session):
     """
     Fusiona la descarga completa de información de un juego usando varias funciones.
     Agrega los detalles del producto y el histograma de reseñas en un único objeto.
@@ -78,7 +78,7 @@ def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
             for appid in pbar:
                 pbar.set_description(f"Procesando appid: {appid}")
                 try:
-                    desc = download_game_data(appid, sesion)
+                    desc = _download_game_data(appid, sesion)
                     write_to_file(desc, gamelist_file)
                     wait = uniform(1.5, 2)
                     time.sleep(wait)
