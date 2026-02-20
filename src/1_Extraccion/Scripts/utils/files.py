@@ -104,7 +104,10 @@ def write_to_file(data, filepath, minio = {"minio_write": False, "minio_read": F
             print(f"File extension not supported: {filepath.name}")
             return
         
-        if minio["minio_write"]: upload_to_minio(filepath)
+        if minio["minio_write"]: 
+            corrrectly_uploaded = upload_to_minio(filepath)
+            # Si se ha subido a minio correctamente lo borramos de local
+            if corrrectly_uploaded: erase_file(filepath)
 
     except TypeError as e:
         # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
@@ -183,7 +186,7 @@ def erase_file(filepath, minio = {"minio_write": False, "minio_read": False}):
     
 def file_exists(filepath, minio = {"minio_write": False, "minio_read": False}):
     if not minio["minio_read"]:
-        return os.path.exists(filepath)
+        return os.path.exists(filepath) or os.path.exists(os.path.join("data", filepath))
     else: 
         return file_exists_minio(filepath)
         
