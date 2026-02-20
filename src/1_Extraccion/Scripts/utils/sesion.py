@@ -4,10 +4,14 @@ import os
 
 def read_config(script_id, default_return = None):
     """
-    Devuelve parámetros para Script A
-    
-    :return info_A (dict): Keys: 'last_appid', 'size'
-    :return None: si no encuentra información o se produce error de lectura
+    Lee el archivo de configuración y devuelve la información del script requerido.
+        
+    Args:
+        script_id (str): identificador del script que llama a la función
+        default_return (default None): es devuelto en caso de que no exista la key del script en config_info
+
+    Returns:
+        dict: campo asociado a la key script_id en config_info
     """
     if os.path.exists(config_file):
         config_info = read_file(config_file)
@@ -17,10 +21,12 @@ def read_config(script_id, default_return = None):
 
 def update_config(script_id, info):
     """
-    Actualiza config con la información de A
+    Actualiza el campo de la key script_id en config_info.
     
-    :param info (dict): diccionario con la nueva informacion para script A
-    :return None:
+    Args:
+        script_id (str): identificador del script que llama a la función
+        info (dict): contiene la información a actualizar en el campo correspondiente de config_info
+    
     """
     if os.path.exists(config_file):
         config_info = read_file(config_file, default_return={})
@@ -36,7 +42,7 @@ def handle_input(initial_message, isResponseValid = lambda x: True):
     Función que maneja la entrada. Por defecto la función siempre devuelve True.
 
     Args:
-        mensaje (str): mensaje inicial. 
+        initial_mensagge (str): mensaje inicial. 
         isResponseValid (function): función que verifica la validez de un input dado.
 
     Returns:
@@ -50,15 +56,18 @@ def handle_input(initial_message, isResponseValid = lambda x: True):
     
     return respuesta
 
-def tratar_existe_fichero(mensaje):
+def tratar_existe_fichero(message):
     """
     Menú con opción de añadir contenido al fichero existente o sobreescribirlo.
     
-    returns:
+    Args:
+        message (str): mensaje que se muestra en el método handle_input 
+        
+    Returns:
         boolean: True si sobreescribir archivo meter appids nuevos, False en caso contrario
     """
 
-    respuesta = handle_input(mensaje, lambda x: x in {"1", "2"})
+    respuesta = handle_input(message, lambda x: x in {"1", "2"})
     return True if respuesta == "2" else False
 
 def _get_session_info(script_id):
@@ -66,9 +75,15 @@ def _get_session_info(script_id):
     Comprueba si hay una sesión de extracción abierta leyendo el config y retorna los parámetros de la sesión
     si así lo quiere el usuario.
 
-    :returns boolean, start_idx, curr_idx, end_idx:
-    El booleano es True si se quiere usar la sesión y False en caso contrario.
-    Devuelve indices de la sesión o dummies si no hay sesión o el usuario quiere una nueva sesión
+    Args:
+        script_id (str): mensaje que se muestra en el método handle_input
+        
+    Returns:
+        bool: True si se quiere usar la sesión y False en caso contrario.
+        int: start_idx.
+        int: curr_idx.
+        int: end_idx.
+            
     """
     # Parámetros de B
     gamelist_info = read_config(script_id)
@@ -93,7 +108,22 @@ def _get_script_file(script_id):
         return youtube_scraping_file
     
 def get_pending_games(script_id):
-    # leer la lista de appids
+    """
+    Devuelve lista con la información pedida del fichero necesario para
+    el script con id: script_id. Además se encarga de la gestión de la
+    información en los ficheros.
+    
+    Args:
+        script_id (str): identificador del script que llama a la función
+    
+    Returns:
+        file_list[] (array): array que contiene la información pedida a través
+        de las distintas opciones ofrecidas
+        start_idx (int): posición inicial del rango seleccionado
+        curr_idx (int): posición por la que continuar la extracción en el rango seleccionado
+        end_idx (int): posición final del rango seleccionado
+    """
+    # leer la lista del archivo necesario para el script con id script_id
     file = _get_script_file(script_id)
     file_list = read_file(file)
     # inicializar indices dummy
@@ -136,6 +166,13 @@ Introduce elección: """
     return file_list[curr_idx:end_idx+1], start_idx, curr_idx, end_idx
 
 def overwrite_confirmation():
+    """
+    Sirve para evitar que el usuario borre sin querer (sobrescribir) el fichero de información
+    ya existente.
+    
+    Returns:
+        bool: devuelve True en caso afirmativo (y) y False en caso contrario (n)
+    """
     message = "¿Seguro que quieres eliminar la lista de juegos con su información [Y/N]?: "
     response = handle_input(message, lambda x: x.lower() in {"y", "n"})
     return True if response.lower() == "y" else False
