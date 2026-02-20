@@ -3,12 +3,13 @@ import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image, ImageStat
-import Z_funciones
-from Z_funciones import proyect_root
 import requests
 import time
+from tqdm import tqdm
 import numpy as np
-from pathlib import Path
+from utils.files import write_to_file, erase_file
+from utils.config import banners_file, project_root
+from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
 
 """
 Script que extrae de las imágenes el brillo medio y un vector de embeddings mediante una red neuronal
@@ -68,16 +69,6 @@ def analiza_imagen(img_path, url,  trans, model):
     return caracteristicas
     
 def E_metadatos_imagenes(minio = False):
-    """
-    Itera por todas las imágenes en data/images y obtiene sus características, guardándolas en data/info_imagenes.json
-
-    Args:
-        None
-    
-    Returns:
-        None
-    """
-    
     os.environ['TORCH_HOME'] = r'data\torch_cache'
 
     # Se configura el modelo (ResNet18, preentrenado para reconocer formas).
@@ -93,56 +84,70 @@ def E_metadatos_imagenes(minio = False):
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    # Carga de datos
-    origin = "info_steam_games.json.gz"
-    final = "info_imagenes.json.gz"
-    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_destino, ruta_config = Z_funciones.abrir_sesion(origin, final, False, minio)    
-
-    if juego_ini == None:
-        return
+    # Carga de datos usando la nueva utilidad de sesión
+    pending_games, start_idx, curr_idx, end_idx = get_pending_games("E")
+    
+    if not pending_games:
+            print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
+            return
+    
+    # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
+    if os.path.exists(banners_file):
+        mensaje = """El fichero de información de banners ya existe:\n\n1. Añadir contenido al fichero existente
+2. Sobreescribir fichero\n\nIntroduce elección: """
+        overwrite = tratar_existe_fichero(mensaje)
+        if overwrite:
+            if overwrite_confirmation():
+                erase_file(banners_file)
+            else:
+                print("Operación cancelada")
+                return
     
     # Configuracion de direcciones
-    data_dir = proyect_root() / "data"
+    data_dir = project_root() / "data"
     ruta_imagenes = data_dir / "images"
     os.makedirs(ruta_imagenes, exist_ok=True)
 
     # Procesamiento de las imágenes
-    idx_actual = juego_ini - 1
-    ultimo_idx_guardado = juego_ini - 1
     try:
-        for i, juego in enumerate(Z_funciones.barra_progreso([x[1] for x in juegos_pendientes], keys=['id'])):
-            appid = juego.get("id")
-            idx_actual = juegos_pendientes[i][0]
-
-            url = juego.get("appdetails", {}).get("header_url")
-
-            if not url:
-                ultimo_idx_guardado = idx_actual
-                continue
-
-            try:
-                caracteristicas = analiza_imagen(ruta_imagenes, url, trans, model)
+        with tqdm(pending_games, unit="juegos") as pbar:
+            for juego in pbar:
+                appid = juego.get("id")
+                pbar.set_description(f"Procesando appid: {appid}")
                 
-                resultado_juego = {
-                    "id": appid,
-                    "brillo": caracteristicas["brillo_medio"],
-                    "vector_c": caracteristicas["vector_caracteristicas"]
-                }
+                url = juego.get("appdetails", {}).get("header_url")
 
-                Z_funciones.guardar_datos_dict(resultado_juego, ruta_temp_jsonl)
-                ultimo_idx_guardado = idx_actual
+                if not url:
+                    curr_idx += 1
+                    continue
 
-                time.sleep(np.random.uniform(0.1, 0.2))
+                try:
+                    caracteristicas = analiza_imagen(ruta_imagenes, url, trans, model)
+                    
+                    resultado_juego = {
+                        "id": appid,
+                        "brillo": caracteristicas["brillo_medio"],
+                        "vector_c": caracteristicas["vector_caracteristicas"]
+                    }
 
-            except Exception as e:
-                print(f"Error procesando imagen del juego {appid}: {e}")
-                continue
+                    write_to_file(resultado_juego, banners_file, minio)
+                    curr_idx += 1
+
+                    time.sleep(np.random.uniform(0.1, 0.2))
+
+                except Exception as e:
+                    print(f"Error procesando imagen del juego {appid}: {e}")
+                    curr_idx += 1
+                    continue
 
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
-    
     finally:
-        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_destino, ruta_config, ultimo_idx_guardado, juego_fin, minio)
+        # Guardamos el progreso en el config.json
+        gamelist_info = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
+        if curr_idx > end_idx:
+            print("Rango completado")
+        update_config("E", gamelist_info)
 
 if __name__ == "__main__":
     # Poner a True para traer y mandar los datos a MinIO
