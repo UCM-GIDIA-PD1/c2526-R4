@@ -52,7 +52,7 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
     Obtiene la información de los juegos especificados en el fichero appids_list.json.gz
 
     Args:
-        minio (dic): diccionario de la forma {"minio_upload": False, "minio_download": False} para activar y desactivar subida y bajada de MinIO
+        minio (dic): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y desactivar subida y bajada de MinIO
     
     Returns:
         None
@@ -69,7 +69,7 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
         
         # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
         if file_exists(gamelist_file, minio):
-            origen = " en MinIO" if minio["minio_download"] else ""
+            origen = " en MinIO" if minio["minio_read"] else ""
             mensaje = f"El fichero de lista de appids ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
             overwrite_file = tratar_existe_fichero(mensaje)
             if overwrite_file:
@@ -104,7 +104,7 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
     except Exception as e:
         print(f"Error inesperado durante descarga de información sobre el juego: {e}")    
     finally:
-        if minio["minio_upload"]:
+        if minio["minio_write"]:
             upload_to_minio(gamelist_file)
         gamelist_info = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
         if curr_idx > end_idx:

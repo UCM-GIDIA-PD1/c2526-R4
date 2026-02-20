@@ -53,7 +53,7 @@ def A_lista_juegos(minio):
     Obtiene la lista completa de appids de los juegos de Steam
 
     Args:
-        minio (dic): diccionario de la forma {"minio_upload": False, "minio_download": False} para activar y desactivar subida y bajada de MinIO
+        minio (dic): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y desactivar subida y bajada de MinIO
     
     Returns:
         None
@@ -64,7 +64,7 @@ def A_lista_juegos(minio):
     # Si existe lista anterior, ¿se quiere sobreescribir o seguir a partir del mismo?
     overwrite_file = False
     if file_exists(appidlist_file, minio):
-        origen = " en MinIO" if minio["minio_download"] else ""
+        origen = " en MinIO" if minio["minio_read"] else ""
         mensaje = f"El fichero de lista de appids ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
         overwrite_file = tratar_existe_fichero(mensaje)
         if not overwrite_file:

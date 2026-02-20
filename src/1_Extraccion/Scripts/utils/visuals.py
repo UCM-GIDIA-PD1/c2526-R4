@@ -1,6 +1,6 @@
 import os
-from .config import appidlist_file, gamelist_file, youtube_scraping_file
 from .files import file_exists
+from .dependences import minio_dependence
 
 settings = {
     "total_lenght" : 100,
@@ -47,15 +47,20 @@ def draw_scripts_section(scripts_info, keys):
     show_footer()
 
 def draw_files_section(scripts_info, keys, minio_info):
-    if minio_info["minio_download"]:
+    if minio_info["minio_read"]:
         show_header(" Ficheros (en MinIO) y dependencias ")
     else:
         show_header(" Ficheros y dependencias ")
     
+    
+
     # Ficheros
     for i in range(0, len(keys), 2):
         f1 = scripts_info[keys[i]]["salida"]
-        e1 = f"[{settings['obtained']}]" if file_exists(scripts_info[keys[i]]["salida"], minio_info) else "[ ]"
+        nombre_fichero = scripts_info[keys[i]]["salida"]
+        ruta_completa = os.path.join("data", nombre_fichero)
+        e1 = f"[{settings['obtained']}]" if file_exists(ruta_completa, minio_info) else "[ ]"
+        #e1 = f"[{settings['obtained']}]" if file_exists(scripts_info[keys[i]]["salida"], minio_info) else "[ ]"
         t1 = f"{e1} {f1}"
         
         t2 = ""
@@ -68,14 +73,14 @@ def draw_files_section(scripts_info, keys, minio_info):
     show_separator()
     
     # MinIO
-    m_s = f"[{settings['marked']}]" if minio_info["minio_upload"] else "[ ]"
-    m_d = f"[{settings['marked']}]" if minio_info["minio_download"] else "[ ]"
+    m_s = f"[{settings['marked']}]" if minio_info["minio_write"] else "[ ]"
+    m_d = f"[{settings['marked']}]" if minio_info["minio_read"] else "[ ]"
     t_s = f"{m_s} Subida de ficheros a MinIO"
     t_d = f"{m_d} Descarga de ficheros de MinIO"
     print(format_line_two_columns(t_s, t_d))
     
     seleccionados = [k for k, v in scripts_info.items() if v["usar"]]
-    minio_activo = minio_info["minio_upload"] or minio_info["minio_download"]
+    minio_activo = minio_info["minio_write"] or minio_info["minio_read"]
 
     if seleccionados or minio_activo:
         show_separator()
@@ -101,73 +106,3 @@ def show_menu(scripts_info, minio_info):
     print("\nPon la letra de un fichero para seleccionarlo/quitarlo.")
     print("Pon MinioS o MinioD para activar la subida y descarga de ficheros a MinIO.")
     print("Para ejecutar lo seleccionado RUN y para salir EXIT.")
-
-
-# DEPENDENCIAS
-
-class appidlist_file_dependence():
-    @staticmethod
-    def get_info():
-        return f"Fichero {appidlist_file.name} (script A)"
-    
-    @staticmethod
-    def check(minio):
-        return file_exists(appidlist_file, minio)
-    
-class gamelist_file_dependence():
-    @staticmethod
-    def get_info():
-        return f"Fichero {gamelist_file.name} (script B)"
-    
-    @staticmethod
-    def check(minio):
-        return file_exists(gamelist_file, minio)
-
-class youtube_scraping_file_dependence():
-    @staticmethod
-    def get_info():
-        return f"Fichero {youtube_scraping_file.name} (script C1)"
-    
-    @staticmethod
-    def check(minio):
-        return file_exists(youtube_scraping_file, minio)
-    
-class steam_api_dependence():
-    @staticmethod
-    def get_info():
-        return "API de Steam"
-    
-    @staticmethod
-    def check(minio):
-        API_KEY = os.environ.get("STEAM_API_KEY")
-        if API_KEY is None:
-            return False
-        else:
-            return True
-
-class youtube_api_dependence():
-    @staticmethod
-    def get_info():
-        return "API de YouTube"
-    
-    @staticmethod
-    def check(minio):
-        API_KEY = os.environ.get("API_KEY_YT")
-        if API_KEY is None:
-            return False
-        else:
-            return True
-    
-class minio_dependence():
-    @staticmethod
-    def get_info():
-        return "Claves (de acceso y secreta) de MinIO"
-    
-    @staticmethod
-    def check(minio):
-        API_KEY1 = os.environ.get("MINIO_ACCESS_KEY")
-        API_KEY2 = os.environ.get("MINIO_SECRET_KEY")
-        if API_KEY1 is None or API_KEY2 is None:
-            return False
-        else:
-            return True

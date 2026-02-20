@@ -75,7 +75,7 @@ def _read_txt(filepath):
 
 # Funciones publicas
 
-def write_to_file(data, filepath, minio = {"minio_upload": False, "minio_download": False}):
+def write_to_file(data, filepath, minio = {"minio_write": False, "minio_read": False}):
     """
     Guarda un diccionario en el formato indicado en la ruta especificada.
 
@@ -104,7 +104,7 @@ def write_to_file(data, filepath, minio = {"minio_upload": False, "minio_downloa
             print(f"File extension not supported: {filepath.name}")
             return
         
-        if minio["minio_upload"]: upload_to_minio(filepath)
+        if minio["minio_write"]: upload_to_minio(filepath)
 
     except TypeError as e:
         # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
@@ -113,7 +113,7 @@ def write_to_file(data, filepath, minio = {"minio_upload": False, "minio_downloa
         # Cualquier otro tipo de error
         print(f"Unexpected error occurred : {e}")
 
-def read_file(filepath, minio = {"minio_upload": False, "minio_download": False}, default_return = None):  
+def read_file(filepath, minio = {"minio_write": False, "minio_read": False}, default_return = None):  
     """
     Carga y decodifica un archivo desde una ruta local.
 
@@ -126,10 +126,10 @@ def read_file(filepath, minio = {"minio_upload": False, "minio_download": False}
         Retorna None si el archivo no se encuentra o si el contenido no es un JSON válido.
     """
     try:
-        if minio["minio_download"]: 
+        if minio["minio_read"]: 
             if not download_from_minio(filepath):
                 print(f"Error de MinIO: {e}\n Se intentará leer el fichero localmente")
-                return read_file(filepath, {"minio_upload": False, "minio_download": False})
+                return read_file(filepath, {"minio_write": False, "minio_read": False})
 
         datos = default_return
         if filepath.suffix == ".json":
@@ -160,7 +160,7 @@ def read_file(filepath, minio = {"minio_upload": False, "minio_download": False}
         print(f"Unexpected error occurred while reading {filepath.name}: {e}")
         return default_return
 
-def erase_file(filepath, minio = {"minio_upload": False, "minio_download": False}):
+def erase_file(filepath, minio = {"minio_write": False, "minio_read": False}):
     """
     Borra el archivo pasado por parámetro.
 
@@ -172,7 +172,7 @@ def erase_file(filepath, minio = {"minio_upload": False, "minio_download": False
         boolean: devuelve True si borra el archivo y False si no encuentra y no lo puede borrar.
     """
     if file_exists(filepath, minio):
-        if minio["minio_download"]:
+        if minio["minio_read"]:
             erase_from_minio(filepath)
         else:
             remove(filepath)
@@ -181,8 +181,8 @@ def erase_file(filepath, minio = {"minio_upload": False, "minio_download": False
     else:
         return False
     
-def file_exists(filepath, minio = {"minio_upload": False, "minio_download": False}):
-    if not minio["minio_download"]:
+def file_exists(filepath, minio = {"minio_write": False, "minio_read": False}):
+    if not minio["minio_read"]:
         return os.path.exists(filepath)
     else: 
         return file_exists_minio(filepath)

@@ -108,7 +108,7 @@ def _get_script_file(script_id):
     else:
         return youtube_scraping_file
     
-def get_pending_games(script_id, minio = {"minio_upload": False, "minio_download": False}):
+def get_pending_games(script_id, minio = {"minio_write": False, "minio_read": False}):
     """
     Devuelve lista con la información pedida del fichero necesario para
     el script con id: script_id. Además se encarga de la gestión de la

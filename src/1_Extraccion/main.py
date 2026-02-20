@@ -3,7 +3,7 @@ import sys
 import importlib
 from Scripts.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, steam_reviews_file, banners_file
 from Scripts.utils.visuals import show_menu
-from Scripts.utils.visuals import appidlist_file_dependence, gamelist_file_dependence, youtube_scraping_file_dependence, steam_api_dependence, youtube_api_dependence, minio_dependence
+from Scripts.utils.dependences import appidlist_file_dependence, gamelist_file_dependence, youtube_scraping_file_dependence, steam_api_dependence, youtube_api_dependence, minio_dependence
 
 # Para que pueda usar los ficheros importados que están dentro de Scripts
 sys.path.append(os.path.join(os.path.dirname(__file__), "Scripts"))
@@ -16,14 +16,14 @@ def ejecutar_scripts(scripts_info, minio_info):
             print(f">> Importando y ejecutando {clave}: {info['fichero']}...")
             modulo = importlib.import_module(f"Scripts.{info['fichero']}")
             funcion = getattr(modulo, info["ejecutable"])
-            minio = minio_info if minio_dependence.check(minio_info) else {"minio_upload": False, "minio_download": False}
+            minio = minio_info if minio_dependence.check(minio_info) else {"minio_write": False, "minio_read": False}
             funcion(minio)
 
     input("\nProceso terminado. Presiona Enter para volver al menú.")
 
 def main():
     # Cuando tengamos el fichero de config general esto lo muevo ahí 
-    minio_info = {"minio_upload": False, "minio_download": False}
+    minio_info = {"minio_write": False, "minio_read": False}
     scripts_info = {
         "A": {"fichero": "A_lista_juegos", "salida": appidlist_file.name, "ejecutable": "A_lista_juegos", "usar": False, "dependences" : [steam_api_dependence]},
         "B": {"fichero": "B_informacion_juegos", "salida": gamelist_file.name, "ejecutable": "B_informacion_juegos", "usar": False, "dependences" : [appidlist_file_dependence]},
@@ -42,9 +42,9 @@ def main():
         elif opcion == "RUN":
             ejecutar_scripts(scripts_info, minio_info)
         elif opcion == "MINIOS":
-            minio_info["minio_upload"] = not minio_info["minio_upload"]
+            minio_info["minio_write"] = not minio_info["minio_write"]
         elif opcion == "MINIOD":
-            minio_info["minio_download"] = not minio_info["minio_download"]
+            minio_info["minio_read"] = not minio_info["minio_read"]
         elif opcion in scripts_info:
             scripts_info[opcion]["usar"] = not scripts_info[opcion]["usar"]
 
