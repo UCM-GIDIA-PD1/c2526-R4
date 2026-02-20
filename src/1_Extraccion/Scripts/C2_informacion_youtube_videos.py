@@ -1,51 +1,49 @@
 import os
+import json
 from googleapiclient.discovery import build
-import utils
-from utils.config import videoid_list_file, yt_statslist_file
-from utils.files import log_appid_errors, read_file, write_to_file
-from tqdm import tqdm
 from googleapiclient.errors import HttpError
+from utils.sesion import get_pending_games, overwrite_confirmation, tratar_existe_fichero, update_config
+from utils.files import erase_file, file_exists, write_to_file
+from utils.config import yt_statslist_file
+from tqdm import tqdm
+from utils.minio_server import upload_to_minio
+
 
 '''
-Segunda parte de la extracción de YouTube: estadisticas de los videos.
-
-Habiendo ya sacado la información de las búsquedas (video_id, la parte final de los enlaces de videos de youtube), este script
-saca las estadísticas relativas a los vídeos mediante la API de Youtube. 
-Concretamente extraemos: visualizaciones, likes, favoritos y numero de comentarios.
+Script que almacena las estadísticas relativas a cada vídeo.
 
 Requisitos:
-- Módulo `googleapiclient` para solicitar acceso a las API de YouTube de Python 
-    (`pip install google-api-python-client`).
-- Tener la API de YouTube de desarrollador.
-
-Información:
-- Tenemos un límite por día de 10000 unidades para usar en la API de YouTube, por lo que podemos sacar
-    la información de 10000 juegos por día.
+- Módulo 'googleapiclient' para usar la API de youtube
 
 Entrada:
-- Necesita para su ejecución el archivo info_steam_youtube.gz.
+- Necesita para su ejecución el archivo info_steam_youtube.json.gz y su información en el config.json
 
 Salida:
-- Los datos se almacenan en la el directorio indicado.
+- Los datos se almacenan en la carpeta data/ en formato JSONL comprimido.
 '''
 
-def process_game(youtube_service, video_id_list):
-    """
-    Dado un array que contiene diccionarios conlos ids de los videos de un juego, obtiene las estadísticas de todos los videos 
-    devolviendo una lista de video_statistics.
+def _get_apikey():
+    '''
+    Devuelve la API KEY de Youtube de las variables del sistema
+    '''
+    # Cargamos la API KEY del sistema
+    key = os.environ.get('API_KEY_YT')
+    assert key, "La API_KEY no ha sido cargada"
+    return key
+
+
+def _process_game(youtube_service, video_id_list):
+    ''' 
+    Dada la build de cliente de la API de Youtube y un diccionario de ids de vídeos, devuelve una lista con el resultado del 
+    request de las estadísticas de esos vídeos (Solo se añaden los vídeos categorizados como gaming)
 
     Args:
-        youtube_service (googleapiclient.discovery.Resource): Objeto de servicio de Google API 
-            construido con la función build.
-        video_id_list (list): Lista que contiene un diccionario con los ids de los videos de un juego
-        id_juego (str): Id del juego 
+        - youtube_service (youtube api build): Build de la API de youtube
+        - video_id_list (dict): Diccionario que contiene una lista de ids de videos
 
     Returns:
-        list[dict]: Una lista de diccionarios, donde cada uno contiene el id del juego 
-        y las estadísticas (vistas, likes, etc.) del vídeo encontrado. Retorna una 
-        lista vacía si ocurre un error o no hay resultados.
-    """
-        
+        list: Lista con la información de las estadísticas de los vídeos (viewCount, likeCount, favoriteCount, commentCount)
+    '''
     # Si el juego no tiene videos, no se procesa
     if not video_id_list:
         return []
@@ -56,69 +54,96 @@ def process_game(youtube_service, video_id_list):
 
     # Solicitud que gasta 1 unidad de cuota
     videos_request = youtube_service.videos().list(
-        part="statistics",
+        part="statistics,snippet",
         id=ids_string
     )
     videos_response = videos_request.execute()
 
     # Guardamos las estadísticas de los vídeos encontrados y las devolvemos
-    lista_estadisticas = []
+    stats_list = []
     for item in videos_response['items']:
-        lista_estadisticas.append(item)
-    return lista_estadisticas
+        category = item['snippet'].get('categoryId')
+        if str(category) == '20': # Comprobar que la categoría sea gaming, solo si es gaming se guarda 
+            stats_list.append(
+                {
+                    'id' : item['id'],
+                    'video_statistics' : item['statistics']    
+                }
+            )
+    return stats_list
 
 
-''' 
-TODO: Implementar un config de C2, este config almacena el último appid procesado, la cantidad de juegos totales por procesar y
-la cantidad de juegos procesados.
-'''
-def C2_informacion_youtube_videos():
-    # Cargamos la API KEY del sistema
-    API_KEY = os.environ.get('API_KEY_YT')
-    assert API_KEY, "La API_KEY no ha sido cargada"
+def C2_informacion_youtube_videos(minio = False):
+    ''' 
+    
+    '''
+    try:
+        # Obtener información de la sesión
+        start_idx, curr_idx, end_idx = -1,-1,-1
+        pending_games, start_idx, curr_idx, end_idx = get_pending_games("C2")
 
-    # Cargamos la lista de juegos
-    appidlist = read_file(videoid_list_file)
-    assert appidlist, "No se ha podido leer el archivo de lista de videos"
+        # Si al obtener información de la sesión no hay juegos dentro del rango, acaba la ejecución
+        if not pending_games:
+            print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
+            return
+        
+        # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
+        if file_exists(yt_statslist_file, minio):
+            origen = " en MinIO" if minio["minio_read"] else ""
+            mensaje = f"El fichero de información de YouTube ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
+            overwrite_file = tratar_existe_fichero(mensaje)
+            if overwrite_file:
+                # asegurarse de que se quiere eliminar toda la información
+                if overwrite_confirmation():
+                    erase_file(yt_statslist_file, minio)
+                else:
+                    print("Operación cancelada")
+                    return
+                
+        API_KEY = _get_apikey()
+        youtube = build('youtube', 'v3', developerKey=API_KEY)
+        print('Comenzando requests a la API de Youtube...\n')
+        with tqdm(pending_games, unit="juegos") as pbar:
+            for app in pbar:
+                appid = app.get('id')
+                pbar.set_description(f"Procesando appid {appid}")
 
-    # Cargamos la lista de juegos a procesar
-    datalist = appidlist.get('data')
-
-    # Creamos el googleapiclient.discovery.Resource
-    youtube = build('youtube', 'v3', developerKey=API_KEY)
-
-    info = {}
-    info['data'] = []
-    print("Initiating video statistics request...\n")
-    with tqdm(datalist, unit = "appids") as pbar:
-        for app in pbar:
-            appid = app.get('id')
-            pbar.set_description(f"Procesando appid: {appid}")
-            try:
                 nombre = app.get("name")
-                id_juego = app.get('id')
                 video_id_list = app.get('video_statistics')
 
-                # Si la lista está vacía no se procesa el juego
+                # Obtenemos información del juego solo si la lista no está vacía
                 if video_id_list:
                     print(f"{nombre}")
-                    stats = {
-                        'id' : id_juego,
+                    jsonl = {
+                        'id' : appid,
                         'name' : nombre,
-                        'video_statistics' : process_game(youtube, video_id_list)
+                        'video_statistics' : _process_game(youtube, video_id_list)
                     }
-                    info['data'].append(stats)
-            except HttpError as e:
-                if e.resp.status == 403:
-                    pbar.write("Límite de cuota de YouTube alcanzado. Abortando proceso.")
-                    log_appid_errors("Quota exceeded (403)")
-                    write_to_file(info, yt_statslist_file)
-                    raise 
-                else:
-                    pbar.write(str(e))
-                    log_appid_errors(str(e))
-            finally:
-                write_to_file(info, yt_statslist_file)
+
+                curr_idx += 1
+                # Escribimos en el archivo destino
+                write_to_file(jsonl, yt_statslist_file,minio)
+
+    except KeyboardInterrupt:
+        print("\n\nDetenido por el usuario. Guardando antes de salir...")
+    except HttpError as e:
+        error_content = json.loads(e.content.decode("utf-8"))
+        reason = error_content["error"]["errors"][0]["reason"]
+
+        if reason in ("quotaExceeded", "dailyLimitExceeded"):
+            print("Límite de cuota de YouTube alcanzado")
+        else:
+            print(f"Error de YouTube API: {reason}")
+    finally:
+        if minio["minio_write"]: 
+            corrrectly_uploaded = upload_to_minio(yt_statslist_file)
+            if corrrectly_uploaded: erase_file(yt_statslist_file)
+
+        gamelist_info = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
+        if curr_idx > end_idx:
+            print("Rango completado")
+        update_config("C2", gamelist_info)
+
 
 
 if __name__ == "__main__":
