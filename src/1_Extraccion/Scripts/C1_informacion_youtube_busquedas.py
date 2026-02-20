@@ -31,9 +31,6 @@ def _intervalo_rotacion_IP():
     return 60 * random.uniform(5, 6)
 
 def C1_informacion_youtube_busquedas(minio = False):
-    # Lanzamos TOR
-    start_tor()
-
     try:
         start_idx, curr_idx, end_idx = -1,-1,-1
         pending_games, start_idx, curr_idx, end_idx = get_pending_games("C1")
@@ -54,7 +51,9 @@ def C1_informacion_youtube_busquedas(minio = False):
                 else:
                     print("Operación cancelada")
                     return
-                
+        # Lanzamos TOR
+        start_tor()
+
         # Definimos las opciones del navegador y cargamos la sesión
         sesion = new_configured_chromium_page()
 

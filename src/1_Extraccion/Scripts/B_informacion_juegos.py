@@ -1,7 +1,7 @@
 import requests
 import time
-import os
-from random import uniform
+from numpy.random import choice, uniform
+from utils.webscraping import user_agents
 from tqdm import tqdm
 from utils.steam_requests import get_appdetails, get_appreviewhistogram
 from utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
@@ -82,7 +82,8 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
                 
         # comienzo de extracción
         sesion = requests.Session()
-        sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        user_agent = choice(user_agents)
+        sesion.headers.update({'User-Agent': user_agent})
         print("Comenzando extraccion de juegos...\n")
         with tqdm(pending_games, unit = "appids") as pbar:
             for appid in pbar:
