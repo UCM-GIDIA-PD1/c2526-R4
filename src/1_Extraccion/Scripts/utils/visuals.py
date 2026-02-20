@@ -6,7 +6,7 @@ settings = {
     "total_lenght" : 100,
     "centered" : 50,
     "marked" : "X",
-    "obtained" : "✔"
+    "obtained" : "✓"
 }
 
 def show_header(title):
@@ -51,16 +51,11 @@ def draw_files_section(scripts_info, keys, minio_info):
         show_header(" Ficheros (en MinIO) y dependencias ")
     else:
         show_header(" Ficheros y dependencias ")
-    
-    
 
     # Ficheros
     for i in range(0, len(keys), 2):
         f1 = scripts_info[keys[i]]["salida"]
-        nombre_fichero = scripts_info[keys[i]]["salida"]
-        ruta_completa = os.path.join("data", nombre_fichero)
-        e1 = f"[{settings['obtained']}]" if file_exists(ruta_completa, minio_info) else "[ ]"
-        #e1 = f"[{settings['obtained']}]" if file_exists(scripts_info[keys[i]]["salida"], minio_info) else "[ ]"
+        e1 = f"[{settings['obtained']}]" if file_exists(f1, minio_info) else "[ ]"
         t1 = f"{e1} {f1}"
         
         t2 = ""
@@ -73,8 +68,8 @@ def draw_files_section(scripts_info, keys, minio_info):
     show_separator()
     
     # MinIO
-    m_s = f"[{settings['marked']}]" if minio_info["minio_write"] else "[ ]"
-    m_d = f"[{settings['marked']}]" if minio_info["minio_read"] else "[ ]"
+    m_s = f"[{settings["marked"]}]" if minio_info["minio_write"] else "[ ]"
+    m_d = f"[{settings["marked"]}]" if minio_info["minio_read"] else "[ ]"
     t_s = f"{m_s} Subida de ficheros a MinIO"
     t_d = f"{m_d} Descarga de ficheros de MinIO"
     print(format_line_two_columns(t_s, t_d))

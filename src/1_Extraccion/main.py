@@ -18,6 +18,7 @@ def ejecutar_scripts(scripts_info, minio_info):
             funcion = getattr(modulo, info["ejecutable"])
             minio = minio_info if minio_dependence.check(minio_info) else {"minio_write": False, "minio_read": False}
             funcion(minio)
+            info["usar"] = False
 
     input("\nProceso terminado. Presiona Enter para volver al menú.")
 

@@ -3,9 +3,9 @@ from numpy import random
 from time import time
 from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
 from tqdm import tqdm
-from utils.files import write_to_file, erase_file
+from utils.files import write_to_file, erase_file, file_exists
 from utils.config import youtube_scraping_file
-import os
+from utils.minio_server import upload_to_minio
 
 """
 Primera parte de la extracción de información de YouTube: búsqueda.
@@ -40,14 +40,14 @@ def C1_informacion_youtube_busquedas(minio = False):
             return
 
         # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
-        if os.path.exists(youtube_scraping_file):
-            mensaje = """El fichero de información de juegtos ya existe:\n\n1. Añadir contenido al fichero existente
-2. Sobreescribir fichero\n\nIntroduce elección: """
-            overwrite = tratar_existe_fichero(mensaje)
-            if overwrite:
+        if file_exists(youtube_scraping_file, minio):
+            origen = " en MinIO" if minio["minio_read"] else ""
+            mensaje = f"El fichero de información de YouTube ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
+            overwrite_file = tratar_existe_fichero(mensaje)
+            if overwrite_file:
                 # asegurarse de que se quiere eliminar toda la información
                 if overwrite_confirmation():
-                    erase_file(youtube_scraping_file)
+                    erase_file(youtube_scraping_file, minio)
                 else:
                     print("Operación cancelada")
                     return
@@ -90,6 +90,10 @@ def C1_informacion_youtube_busquedas(minio = False):
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
+        if minio["minio_write"]: 
+            corrrectly_uploaded = upload_to_minio(youtube_scraping_file)
+            if corrrectly_uploaded: erase_file(youtube_scraping_file)
+
         gamelist_info = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
         if curr_idx > end_idx:
             print("Rango completado")
