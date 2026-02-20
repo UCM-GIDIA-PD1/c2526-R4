@@ -5,9 +5,10 @@ from random import uniform
 from tqdm import tqdm
 from utils.steam_requests import get_appdetails, get_appreviewhistogram
 from utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
-from utils.files import log_appid_errors, write_to_file, erase_file
+from utils.files import log_appid_errors, write_to_file, erase_file, read_file, file_exists
 from utils.config import gamelist_file
 from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
+from utils.minio_server import upload_to_minio
 
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.
@@ -46,26 +47,35 @@ def _download_game_data(appid, session):
 
     return game_info
 
-def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
+def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
+    """
+    Obtiene la información de los juegos especificados en el fichero appids_list.json.gz
+
+    Args:
+        minio (dic): diccionario de la forma {"minio_upload": False, "minio_download": False} para activar y desactivar subida y bajada de MinIO
+    
+    Returns:
+        None
+    """
     try:
         # por si da un error en get_pending_games, evitar un UnboundLocalError en el finally
         start_idx, curr_idx, end_idx = -1,-1,-1
 
-        pending_games, start_idx, curr_idx, end_idx = get_pending_games("B")
+        pending_games, start_idx, curr_idx, end_idx = get_pending_games("B", minio)
         
         if not pending_games:
             print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
             return
         
         # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
-        if os.path.exists(gamelist_file):
-            mensaje = """El fichero de información de juegos ya existe:\n\n1. Añadir contenido al fichero existente
-2. Sobreescribir fichero\n\nIntroduce elección: """
-            overwrite = tratar_existe_fichero(mensaje)
-            if overwrite:
+        if file_exists(gamelist_file, minio):
+            origen = " en MinIO" if minio["minio_download"] else ""
+            mensaje = f"El fichero de lista de appids ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
+            overwrite_file = tratar_existe_fichero(mensaje)
+            if overwrite_file:
                 # asegurarse de que se quiere eliminar toda la información
                 if overwrite_confirmation():
-                    erase_file(gamelist_file)
+                    erase_file(gamelist_file, minio)
                 else:
                     print("Operación cancelada")
                     return
@@ -94,6 +104,8 @@ def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
     except Exception as e:
         print(f"Error inesperado durante descarga de información sobre el juego: {e}")    
     finally:
+        if minio["minio_upload"]:
+            upload_to_minio(gamelist_file)
         gamelist_info = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
         if curr_idx > end_idx:
             print("Rango completado")
@@ -101,5 +113,4 @@ def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
     
 
 if __name__ == "__main__":
-    # Poner a True para traer y mandar los datos a MinIO
-    B_informacion_juegos(False)
+    B_informacion_juegos()

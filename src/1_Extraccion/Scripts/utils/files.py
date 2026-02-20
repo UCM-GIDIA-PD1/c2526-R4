@@ -1,11 +1,10 @@
 import json
 import gzip
 import pandas as pd
-from os import remove, path, environ
-from minio import Minio
-from minio.error import S3Error
-from utils.config import steam_log_file
-from minio_server import upload_to_minio, download_from_minio
+from os import remove
+import os
+from .config import steam_log_file
+from .minio_server import upload_to_minio, download_from_minio, erase_from_minio, file_exists_minio
 
 def log_appid_errors(appid, reason):
     data = {appid : reason}
@@ -76,14 +75,14 @@ def _read_txt(filepath):
 
 # Funciones publicas
 
-def write_to_file(data, filepath, minio = False):
+def write_to_file(data, filepath, minio = {"minio_upload": False, "minio_download": False}):
     """
     Guarda un diccionario en el formato indicado en la ruta especificada.
 
     Args:
         datos (dict): Diccionario con la información a exportar. (Lista de diccionarios en caso de ser un jsonl)
         filepath (str): Ruta del sistema de archivos.
-        minio (bool): Activar para traer y guardar los datos en el servidor de MinIO
+        minio (dic): Activar para traer y guardar los datos en el servidor de MinIO
     
     Returns:
         boolean: True si se ha escrito en el archivo correctamente, false en caso contrario.
@@ -105,7 +104,7 @@ def write_to_file(data, filepath, minio = False):
             print(f"File extension not supported: {filepath.name}")
             return
         
-        if minio: upload_to_minio(filepath)
+        if minio["minio_upload"]: upload_to_minio(filepath)
 
     except TypeError as e:
         # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
@@ -114,20 +113,23 @@ def write_to_file(data, filepath, minio = False):
         # Cualquier otro tipo de error
         print(f"Unexpected error occurred : {e}")
 
-def read_file(filepath, minio = False, default_return = None):  # HACE FALTA CAMBIAR PARTE MINIO?
+def read_file(filepath, minio = {"minio_upload": False, "minio_download": False}, default_return = None):  
     """
     Carga y decodifica un archivo desde una ruta local.
 
     Args:
         filepath (str): La ubicación física del archivo en el sistema.
-        minio (bool): Activar para traer los datos del servidor de MinIO
+        minio (dic): Activar para traer los datos del servidor de MinIO
 
     Returns:
         dict | None: Los datos contenidos en el JSON convertidos a tipos de Python. 
         Retorna None si el archivo no se encuentra o si el contenido no es un JSON válido.
     """
     try:
-        if minio: download_from_minio(filepath)
+        if minio["minio_download"]: 
+            if not download_from_minio(filepath):
+                print(f"Error de MinIO: {e}\n Se intentará leer el fichero localmente")
+                return read_file(filepath, {"minio_upload": False, "minio_download": False})
 
         datos = default_return
         if filepath.suffix == ".json":
@@ -145,9 +147,6 @@ def read_file(filepath, minio = False, default_return = None):  # HACE FALTA CAM
         else:
             print(f"File extension not supported: {filepath.name}")
         return datos
-    except S3Error as e:
-        print(f"Error de MinIO: {e}\n Se intentará leer el fichero localmente")
-        return read_file(filepath)
     except FileNotFoundError:
         print(f"Error: File {filepath.name} does not exist.")
         return default_return
@@ -161,19 +160,31 @@ def read_file(filepath, minio = False, default_return = None):  # HACE FALTA CAM
         print(f"Unexpected error occurred while reading {filepath.name}: {e}")
         return default_return
 
-def erase_file(filepath):
+def erase_file(filepath, minio = {"minio_upload": False, "minio_download": False}):
     """
     Borra el archivo pasado por parámetro.
 
     Args:
         filepath (path): La ubicación física del archivo en el sistema.
+        minio (dic): Activar para borrar los datos del servidor de MinIO
 
     Returns:
         boolean: devuelve True si borra el archivo y False si no encuentra y no lo puede borrar.
     """
-    if path.exists(filepath):
-        remove(filepath)
+    if file_exists(filepath, minio):
+        if minio["minio_download"]:
+            erase_from_minio(filepath)
+        else:
+            remove(filepath)
         print(f"Archivo temporal eliminado: {filepath}")
         return True
     else:
         return False
+    
+def file_exists(filepath, minio = {"minio_upload": False, "minio_download": False}):
+    if not minio["minio_download"]:
+        return os.path.exists(filepath)
+    else: 
+        return file_exists_minio(filepath)
+        
+

@@ -1,6 +1,5 @@
-import os
 from utils.config import appidlist_file
-from utils.files import read_file, write_to_file
+from utils.files import read_file, write_to_file, file_exists
 from utils.steam_requests import get_appids
 from utils.sesion import handle_input, tratar_existe_fichero, read_config, update_config
 
@@ -49,12 +48,12 @@ Introduce elección: """
     return int(n_appids), str(last_appid)
 
 
-def A_lista_juegos():
+def A_lista_juegos(minio):
     """
     Obtiene la lista completa de appids de los juegos de Steam
 
     Args:
-        minio (bool): Activar para descargar los datos al servidor de MinIO en vez de en local
+        minio (dic): diccionario de la forma {"minio_upload": False, "minio_download": False} para activar y desactivar subida y bajada de MinIO
     
     Returns:
         None
@@ -64,12 +63,12 @@ def A_lista_juegos():
 
     # Si existe lista anterior, ¿se quiere sobreescribir o seguir a partir del mismo?
     overwrite_file = False
-    if os.path.exists(appidlist_file):
-        mensaje = """El fichero de lista de appids ya existe:\n\n1. Añadir contenido al fichero existente
-2. Sobreescribir fichero\n\nIntroduce elección: """
+    if file_exists(appidlist_file, minio):
+        origen = " en MinIO" if minio["minio_download"] else ""
+        mensaje = f"El fichero de lista de appids ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
         overwrite_file = tratar_existe_fichero(mensaje)
         if not overwrite_file:
-            old_data = read_file(appidlist_file)
+            old_data = read_file(appidlist_file, minio)
             data.extend(old_data)
             seen = set(data)
 
@@ -83,7 +82,7 @@ def A_lista_juegos():
             seen.add(appid)          
     
     # Se guardan los datos obtenidos
-    write_to_file(data, appidlist_file)
+    write_to_file(data, appidlist_file, minio)
     list_info = {"last_appid": data[-1], "size":len(data)}
     update_config("A", list_info)
     

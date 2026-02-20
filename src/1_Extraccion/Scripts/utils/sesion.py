@@ -1,4 +1,4 @@
-from utils.files import read_file, write_to_file, erase_file
+from utils.files import read_file, write_to_file, erase_file, file_exists
 from utils.config import config_file, appidlist_file, gamelist_file, youtube_scraping_file, get_appid_range
 import os
 
@@ -28,7 +28,8 @@ def update_config(script_id, info):
         info (dict): contiene la información a actualizar en el campo correspondiente de config_info
     
     """
-    if os.path.exists(config_file):
+    # El config siempre se escribe en local
+    if file_exists(config_file):
         config_info = read_file(config_file, default_return={})
         config_info[script_id] = info
         write_to_file(config_info, config_file)
@@ -107,7 +108,7 @@ def _get_script_file(script_id):
     else:
         return youtube_scraping_file
     
-def get_pending_games(script_id):
+def get_pending_games(script_id, minio = {"minio_upload": False, "minio_download": False}):
     """
     Devuelve lista con la información pedida del fichero necesario para
     el script con id: script_id. Además se encarga de la gestión de la
@@ -125,7 +126,7 @@ def get_pending_games(script_id):
     """
     # leer la lista del archivo necesario para el script con id script_id
     file = _get_script_file(script_id)
-    file_list = read_file(file)
+    file_list = read_file(file, minio)
     # inicializar indices dummy
     start_idx, curr_idx, end_idx = -1, -1, -1
     # si no hay lista de juegos devolver una lista vacía

@@ -8,7 +8,7 @@ from Scripts.utils.visuals import appidlist_file_dependence, gamelist_file_depen
 # Para que pueda usar los ficheros importados que están dentro de Scripts
 sys.path.append(os.path.join(os.path.dirname(__file__), "Scripts"))
 
-def ejecutar_scripts(scripts_info):
+def ejecutar_scripts(scripts_info, minio_info):
     print("\n--- INICIANDO EJECUCIÓN ---")
 
     for clave, info in sorted(scripts_info.items()):
@@ -16,7 +16,8 @@ def ejecutar_scripts(scripts_info):
             print(f">> Importando y ejecutando {clave}: {info['fichero']}...")
             modulo = importlib.import_module(f"Scripts.{info['fichero']}")
             funcion = getattr(modulo, info["ejecutable"])
-            funcion()
+            minio = minio_info if minio_dependence.check(minio_info) else {"minio_upload": False, "minio_download": False}
+            funcion(minio)
 
     input("\nProceso terminado. Presiona Enter para volver al menú.")
 
@@ -39,7 +40,7 @@ def main():
         if opcion == "EXIT":
             break
         elif opcion == "RUN":
-            ejecutar_scripts(scripts_info)
+            ejecutar_scripts(scripts_info, minio_info)
         elif opcion == "MINIOS":
             minio_info["minio_upload"] = not minio_info["minio_upload"]
         elif opcion == "MINIOD":
