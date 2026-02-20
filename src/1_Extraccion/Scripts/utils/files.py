@@ -5,11 +5,7 @@ from os import remove, path, environ
 from minio import Minio
 from minio.error import S3Error
 from utils.config import steam_log_file
-
-def minio_client():
-    return Minio(endpoint = "minio.fdi.ucm.es",
-                access_key = environ.get("MINIO_ACCESS_KEY"),
-                secret_key = environ.get("MINIO_SECRET_KEY"))
+from minio_server import upload_to_minio, download_from_minio
 
 def log_appid_errors(appid, reason):
     data = {appid : reason}
@@ -109,10 +105,7 @@ def write_to_file(data, filepath, minio = False):
             print(f"File extension not supported: {filepath.name}")
             return
         
-        if minio:
-            client = minio_client()
-            minio_path = f"grupo4/{filepath.name}"
-            client.fput_object(bucket_name = "pd1", object_name = minio_path, file_path = filepath)
+        if minio: upload_to_minio(filepath)
 
     except TypeError as e:
         # Ocurre cuando hay tipos no serializables (sets, objetos, etc.)
@@ -134,10 +127,7 @@ def read_file(filepath, minio = False, default_return = None):  # HACE FALTA CAM
         Retorna None si el archivo no se encuentra o si el contenido no es un JSON válido.
     """
     try:
-        if minio:
-            client = minio_client()
-            minio_path = f"grupo4/{filepath.name}"
-            client.fget_object(bucket_name = "pd1", object_name = minio_path, file_path = filepath)
+        if minio: download_from_minio(filepath)
 
         datos = default_return
         if filepath.suffix == ".json":
