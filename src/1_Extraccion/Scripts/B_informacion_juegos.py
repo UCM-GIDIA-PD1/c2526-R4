@@ -76,7 +76,7 @@ def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
         print("Comenzando extraccion de juegos...\n")
         with tqdm(pending_games, unit = "appids") as pbar:
             for appid in pbar:
-                pbar.set_description(f"Procesando appid: {appid}")
+                pbar.set_description(f"Procesando appid {appid}")
                 try:
                     desc = _download_game_data(appid, sesion)
                     write_to_file(desc, gamelist_file)

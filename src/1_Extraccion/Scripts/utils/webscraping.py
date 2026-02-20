@@ -1,11 +1,11 @@
 from DrissionPage import ChromiumPage, ChromiumOptions
 from numpy import random as np_random
-from stem.control import Controller, Signal, SocketError
+import stem.control
 from psutil import process_iter
 from subprocess import Popen, DEVNULL
 from time import sleep
 from random import choice
-from utils.config import project_root
+from utils.config import config_path
 
 """
 Módulo enfocado al WebScraping que tiene como objectivo administrar la sesión de TOR (abrir y
@@ -29,6 +29,8 @@ resoluciones_comunes = [
     (1920, 1080), (1366, 768), (1536, 864), 
     (1440, 900), (1280, 720), (1600, 900)
 ]
+
+TORRC_DIR = config_path() / "torrc"
 
 def _is_tor_running():
     """
@@ -63,7 +65,6 @@ def start_tor():
         print("Ejecutando TOR...")
 
         # Abrimos TOR (IMPORTANTE: hace falta tener la carpeta de TOR en PATH para que se pueda abrir)
-        TORRC_DIR = project_root() / "config" / "torrc"
         Popen(["tor.exe", '-f', TORRC_DIR], stdout=DEVNULL, stderr=DEVNULL, shell=True)
         sleep(10)
         assert _is_tor_running(), "TOR no se ha ejecutado correctamente"
@@ -76,7 +77,7 @@ def renew_tor_ip(sesion):
     crea otro ChromiumPage ya configurado con la nueva IP.
 
     Args:
-        sesion (ChromiumPage): sesión de trabajo anterior. 
+        sesion (ChromiumPage): sesión de trabajo anterior.
 
     Returns:
         ChromiumPage: Nueva sesión de ChromiumPage con IP nueva.
@@ -88,10 +89,10 @@ def renew_tor_ip(sesion):
 
     # Rotación de IP
     try:
-        with Controller.from_port(port=9051) as controller:
+        with stem.control.Controller.from_port(port=9051) as controller:
             controller.authenticate()
-            controller.signal(Signal.NEWNYM)
-    except SocketError:
+            controller.signal(stem.Signal.NEWNYM)
+    except stem.SocketError:
         print("Error: No se pudo conectar con el puerto de control de Tor (9051).")
         return None
     

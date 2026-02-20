@@ -1,10 +1,11 @@
 from utils.webscraping import start_tor, renew_tor_ip, new_configured_chromium_page, busqueda_youtube
 from numpy import random
 from time import time
-import utils.sesion
+from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
 from tqdm import tqdm
-from utils.date import format_date_string
-from utils.files import write_to_file
+from utils.files import write_to_file, erase_file
+from utils.config import youtube_scraping_file
+import os
 
 """
 Primera parte de la extracción de información de YouTube: búsqueda.
@@ -29,45 +30,57 @@ def _intervalo_rotacion_IP():
     """Cambio de IP manual randomizado cada 5-6 minutos"""
     return 60 * random.uniform(5, 6)
 
-def C1_informacion_youtube_busquedas(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
+def C1_informacion_youtube_busquedas(minio = False):
     # Lanzamos TOR
     start_tor()
 
-    # Cargamos los datos
-    origin = "info_steam_games.json.gz"
-    final = "info_steam_youtube1.json.gz"
-    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = utils.sesion.abrir_sesion(origin, final, False, minio)
-    if not juego_ini:
-        return
-
-    # Definimos las opciones del navegador y cargamos la sesión
-    sesion = new_configured_chromium_page()
-
-    # Iteramos sobre la lista de juegos
-    ultima_marca_tiempo = time()
-    intervalo = _intervalo_rotacion_IP()
-
-    print('Comenzando extracción de juegos en YouTube...\n')
-    idx_actual = juego_ini
     try:
-        with tqdm(juegos_pendientes, unit="juegos") as pbar:
-            for i, juego in enumerate(pbar):
+        start_idx, curr_idx, end_idx = -1,-1,-1
+        pending_games, start_idx, curr_idx, end_idx = get_pending_games("C1")
+        
+        if not pending_games:
+            print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
+            return
+
+        # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
+        if os.path.exists(youtube_scraping_file):
+            mensaje = """El fichero de información de juegtos ya existe:\n\n1. Añadir contenido al fichero existente
+2. Sobreescribir fichero\n\nIntroduce elección: """
+            overwrite = tratar_existe_fichero(mensaje)
+            if overwrite:
+                # asegurarse de que se quiere eliminar toda la información
+                if overwrite_confirmation():
+                    erase_file(youtube_scraping_file)
+                else:
+                    print("Operación cancelada")
+                    return
+                
+        # Definimos las opciones del navegador y cargamos la sesión
+        sesion = new_configured_chromium_page()
+
+        # Iteramos sobre la lista de juegos
+        ultima_marca_tiempo = time()
+        intervalo = _intervalo_rotacion_IP()
+
+        print('Comenzando extracción de juegos en YouTube...\n')
+        with tqdm(pending_games, unit="juegos") as pbar:
+            for juego in pbar:
                 # Cargamos los datos
-                appid = juego.get('appid')
+                appid = juego.get('id')
                 nombre = juego.get('appdetails').get("name")
-                fecha = juego.get('appdetails').get("release_date").get("date")
-                fecha_formateada = format_date_string(fecha)
-                pbar.set_description(f"Procesando appid: {appid}")
+                fecha = juego.get('appdetails').get("release_date")
+                pbar.set_description(f"Procesando appid {appid}")
 
                 # Si se han cargado los datos correctamente, hacemos búsqueda en YouTube
-                if nombre and fecha_formateada:
-                    lista_ids = busqueda_youtube(nombre, fecha_formateada, sesion)
-                    write_to_file({'id':id,'name':nombre,'video_statistics':lista_ids}, ruta_temp_jsonl)
+                if nombre and fecha:
+                    lista_ids = busqueda_youtube(nombre, fecha, sesion)
+                    jsonl = {'id':appid,'name':nombre,'video_statistics':lista_ids}
+                    write_to_file(jsonl, youtube_scraping_file, minio)
+                    sesion.wait(4, scope=0.4) # Espera aleatoria de entre 2.4 y 5.6 segundos
                 else:
                     tqdm.write(f'Juego con entrada incompleta: {nombre}')
 
-                idx_actual += i
-                sesion.wait(4, scope=0.4) # Espera aleatoria de entre 2.4 y 5.6 segundos
+                curr_idx += 1
                 tiempo_actual = time()
                 if tiempo_actual - ultima_marca_tiempo >= intervalo:
                     ultima_marca_tiempo = tiempo_actual
@@ -75,11 +88,13 @@ def C1_informacion_youtube_busquedas(minio = False): # PARA TERMINAR SESIÓN: CT
                     sesion = renew_tor_ip(sesion)
                     if not sesion:
                         break
-                
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
-        utils.sesion.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_actual, juego_fin, minio)        
+        gamelist_info = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
+        if curr_idx > end_idx:
+            print("Rango completado")
+        update_config("C1", gamelist_info)
         sesion.quit()
 
 if __name__ == "__main__":
