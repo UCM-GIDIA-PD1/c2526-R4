@@ -90,13 +90,13 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
                 try:
                     desc = _download_game_data(appid, sesion)
                     write_to_file(desc, gamelist_file)
-                    wait = uniform(1.7, 2.5)
-                    time.sleep(wait)
                 except(AppdetailsException, ReviewhistogramException, SteamAPIException) as e:
                     pbar.write(str(e))
                     log_appid_errors(e.appid, str(e))
                 finally:
                     curr_idx += 1
+                    wait = uniform(1.7, 2.5)
+                    time.sleep(wait)    
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     except Exception as e:
