@@ -2,9 +2,13 @@ import requests
 import Z_funciones
 from random import uniform
 import time
+import os
 from tqdm import tqdm
 from utils.steam_requests import get_resenyas
-from utils.config import config_file
+from utils.config import gamelist_file, steam_reviews_file
+from utils.sesion import get_pending_games, tratar_existe_fichero, overwrite_confirmation, update_config
+from utils.files import erase_file, write_to_file, log_appid_errors
+from utils.exceptions import SteamAPIException
 
 '''
 Script que guarda la información procedente de appreviews
@@ -19,7 +23,7 @@ Salida:
 Los datos se almacenan en la carpeta data/ en formato JSON.
 '''
 
-def download_game_data(id, sesion):
+def _download_game_data(id, sesion):
     # Obtiene la info de un juego
     game_info = {"id": id, "resenyas": []}
     game_info["resenyas"] = get_resenyas(id, sesion)
@@ -28,40 +32,54 @@ def download_game_data(id, sesion):
 
 def D_informacion_resenyas(minio = False):
     # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
-    origin = "steam_apps.json.gz"
-    final = "info_steam_resenyas.json.gz"
-    juego_ini, juego_fin, juegos_pendientes, ruta_temp_jsonl, ruta_final_gzip, ruta_config = Z_funciones.abrir_sesion(origin, final, True, minio)
-    if not juego_ini:
-        return
-
-    sesion = requests.Session()
-    sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
-
-    idx_actual = juego_ini
     try:
-        with tqdm(juegos_pendientes, unit = "appids") as pbar:
+        # por si da un error en get_pending_games, evitar un UnboundLocalError en el finally
+        start_idx, curr_idx, end_idx = -1,-1,-1
+
+        pending_games, start_idx, curr_idx, end_idx = get_pending_games("D")
+        
+        if not pending_games:
+            print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
+            return
+        
+        # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
+        if os.path.exists(steam_reviews_file):
+            mensaje = """El fichero de información de juegos ya existe:\n\n1. Añadir contenido al fichero existente
+2. Sobreescribir fichero\n\nIntroduce elección: """
+            overwrite = tratar_existe_fichero(mensaje)
+            if overwrite:
+                # asegurarse de que se quiere eliminar toda la información
+                if overwrite_confirmation():
+                    erase_file(steam_reviews_file)
+                else:
+                    print("Operación cancelada")
+                    return
+                
+        # comienzo de extracción
+        sesion = requests.Session()
+        sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        print("Comenzando extraccion de juegos...\n")
+        with tqdm(pending_games, unit = "appids") as pbar:
             for appid in pbar:
-                try:
-                    data = download_game_data(appid, sesion)
-                    
-                    if data != {}:
-                        Z_funciones.guardar_datos_dict(data, ruta_temp_jsonl)
-                        
-
-                    # Pausa para respetar la API
-                    wait = uniform(1.5, 2)
-                    time.sleep(wait)
-
-                except Exception as e:
-                    # Si falla un juego específico, lo logueamos y seguimos con el siguiente
-                    print(f"Error procesando juego {appid}: {e}")
-                    continue
-                idx_actual += 1
-
+                pbar.set_description(f"Procesando appid: {appid}")
+                desc = _download_game_data(appid, sesion)
+                write_to_file(desc, steam_reviews_file)
+                wait = uniform(1.5, 2)
+                time.sleep(wait)
+                curr_idx += 1
+                
+    except SteamAPIException as e:
+        print(e)
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
+    except Exception as e:
+        print(f"Error inesperado durante descarga de información sobre el juego: {e}")    
     finally:
-        Z_funciones.cerrar_sesion(ruta_temp_jsonl, ruta_final_gzip, ruta_config, idx_actual, juego_fin, minio)
+        reviews_file = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
+        if curr_idx > end_idx:
+            print("Rango completado")
+        update_config("D", reviews_file)
+
 
 
 if __name__ == "__main__":

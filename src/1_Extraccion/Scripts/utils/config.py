@@ -77,7 +77,7 @@ youtube_scraping_file = data_path() / "info_steam_youtube1.jsonl.gz"
 yt_statslist_file =  data_path() / "youtube_statistics.json.gz"
 
 # Script D
-steam_reviews_file = data_path() / "info_steam_resenyas.json.gz"
+steam_reviews_file = data_path() / "info_steam_resenyas.jsonl.gz"
 
 # Script E
 banners_file = data_path() / "info_imagenes.json.gz"

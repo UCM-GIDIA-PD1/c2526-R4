@@ -59,7 +59,7 @@ def B_informacion_juegos(minio = False): # PARA TERMINAR SESIÓN: CTRL + C
         
         # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
         if os.path.exists(gamelist_file):
-            mensaje = """El fichero de información de juegtos ya existe:\n\n1. Añadir contenido al fichero existente
+            mensaje = """El fichero de información de juegos ya existe:\n\n1. Añadir contenido al fichero existente
 2. Sobreescribir fichero\n\nIntroduce elección: """
             overwrite = tratar_existe_fichero(mensaje)
             if overwrite:
