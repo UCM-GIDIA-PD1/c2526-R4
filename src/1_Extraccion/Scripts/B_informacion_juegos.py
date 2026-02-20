@@ -104,8 +104,10 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
     except Exception as e:
         print(f"Error inesperado durante descarga de información sobre el juego: {e}")    
     finally:
-        if minio["minio_write"]:
-            upload_to_minio(gamelist_file)
+        if minio["minio_write"]: 
+            corrrectly_uploaded = upload_to_minio(gamelist_file)
+            if corrrectly_uploaded: erase_file(gamelist_file)
+
         gamelist_info = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
         if curr_idx > end_idx:
             print("Rango completado")

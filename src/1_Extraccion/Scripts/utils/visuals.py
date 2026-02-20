@@ -6,7 +6,7 @@ settings = {
     "total_lenght" : 100,
     "centered" : 50,
     "marked" : "X",
-    "obtained" : "✔"
+    "obtained" : "✓"
 }
 
 def show_header(title):
