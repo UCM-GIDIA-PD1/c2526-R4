@@ -1,6 +1,6 @@
 import os
 from .files import file_exists
-from .dependences import minio_dependence
+from .dependences import minio_dependence, ucm_vpn_dependence
 
 settings = {
     "total_lenght" : 100,
@@ -88,6 +88,8 @@ def draw_files_section(scripts_info, keys, minio_info):
         # Dependencia de MinIO
         if minio_activo:
             draw_dependency_line("MinIO", minio_dependence, minio_info)
+            if minio_dependence.check():
+                draw_dependency_line("MinIO", ucm_vpn_dependence, minio_info)
         
     show_footer()
 
