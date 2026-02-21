@@ -1,6 +1,5 @@
 import requests
 import time
-import os
 from random import uniform
 from tqdm import tqdm
 from utils.steam_requests import get_appdetails, get_appreviewhistogram

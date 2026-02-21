@@ -1,13 +1,12 @@
 import requests
-import Z_funciones
 from random import uniform
 import time
-import os
 from tqdm import tqdm
 from utils.steam_requests import get_resenyas
-from utils.config import gamelist_file, steam_reviews_file
+from utils.config import steam_reviews_file
 from utils.sesion import get_pending_games, tratar_existe_fichero, overwrite_confirmation, update_config
-from utils.files import erase_file, write_to_file, log_appid_errors
+from utils.files import erase_file, write_to_file, file_exists
+from utils.minio_server import upload_to_minio
 from utils.exceptions import SteamAPIException
 
 '''
@@ -30,27 +29,27 @@ def _download_game_data(id, sesion):
 
     return game_info
 
-def D_informacion_resenyas(minio = False):
+def D_informacion_resenyas(minio):
     # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
     try:
         # por si da un error en get_pending_games, evitar un UnboundLocalError en el finally
         start_idx, curr_idx, end_idx = -1,-1,-1
 
-        pending_games, start_idx, curr_idx, end_idx = get_pending_games("D")
+        pending_games, start_idx, curr_idx, end_idx = get_pending_games("D", minio)
         
         if not pending_games:
             print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
             return
         
         # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
-        if os.path.exists(steam_reviews_file):
-            mensaje = """El fichero de información de juegos ya existe:\n\n1. Añadir contenido al fichero existente
-2. Sobreescribir fichero\n\nIntroduce elección: """
-            overwrite = tratar_existe_fichero(mensaje)
-            if overwrite:
+        if file_exists(steam_reviews_file, minio):
+            origen = " en MinIO" if minio["minio_read"] else ""
+            mensaje = f"El fichero de reseñas ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
+            overwrite_file = tratar_existe_fichero(mensaje)
+            if overwrite_file:
                 # asegurarse de que se quiere eliminar toda la información
                 if overwrite_confirmation():
-                    erase_file(steam_reviews_file)
+                    erase_file(steam_reviews_file, minio)
                 else:
                     print("Operación cancelada")
                     return
@@ -75,6 +74,10 @@ def D_informacion_resenyas(minio = False):
     except Exception as e:
         print(f"Error inesperado durante descarga de información sobre el juego: {e}")    
     finally:
+        if minio["minio_write"]: 
+            corrrectly_uploaded = upload_to_minio(steam_reviews_file)
+            if corrrectly_uploaded: erase_file(steam_reviews_file)
+        
         reviews_file = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
         if curr_idx > end_idx:
             print("Rango completado")
@@ -83,5 +86,4 @@ def D_informacion_resenyas(minio = False):
 
 
 if __name__ == "__main__":
-    # Poner a True para traer y mandar los datos a MinIO
-    D_informacion_resenyas(False)
+    D_informacion_resenyas()

@@ -75,7 +75,7 @@ def C1_informacion_youtube_busquedas(minio = False):
                 if nombre and fecha:
                     lista_ids = busqueda_youtube(nombre, fecha, sesion)
                     jsonl = {'id':appid,'name':nombre,'video_statistics':lista_ids}
-                    write_to_file(jsonl, youtube_scraping_file, minio)
+                    write_to_file(jsonl, youtube_scraping_file)
                     sesion.wait(4, scope=0.4) # Espera aleatoria de entre 2.4 y 5.6 segundos
                 else:
                     tqdm.write(f'Juego con entrada incompleta: {nombre}')
@@ -102,5 +102,4 @@ def C1_informacion_youtube_busquedas(minio = False):
         sesion.quit()
 
 if __name__ == "__main__":
-    # Poner a True para traer y mandar los datos a MinIO
-    C1_informacion_youtube_busquedas(False)
+    C1_informacion_youtube_busquedas()

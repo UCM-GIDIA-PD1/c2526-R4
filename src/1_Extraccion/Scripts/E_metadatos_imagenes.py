@@ -7,7 +7,8 @@ import requests
 import time
 from tqdm import tqdm
 import numpy as np
-from utils.files import write_to_file, erase_file
+from utils.minio_server import upload_to_minio
+from utils.files import write_to_file, erase_file, file_exists
 from utils.config import banners_file, project_root
 from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
 
@@ -68,7 +69,7 @@ def analiza_imagen(img_path, url,  trans, model):
     caracteristicas = {"brillo_medio": brillo,"vector_caracteristicas": vector} # Vector de 512 elementos
     return caracteristicas
     
-def E_metadatos_imagenes(minio = False):
+def E_metadatos_imagenes(minio):
     os.environ['TORCH_HOME'] = r'data\torch_cache'
 
     # Se configura el modelo (ResNet18, preentrenado para reconocer formas).
@@ -85,23 +86,24 @@ def E_metadatos_imagenes(minio = False):
     ])
 
     # Carga de datos usando la nueva utilidad de sesión
-    pending_games, start_idx, curr_idx, end_idx = get_pending_games("E")
+    pending_games, start_idx, curr_idx, end_idx = get_pending_games("E", minio)
     
     if not pending_games:
             print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
             return
     
     # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
-    if os.path.exists(banners_file):
-        mensaje = """El fichero de información de banners ya existe:\n\n1. Añadir contenido al fichero existente
-2. Sobreescribir fichero\n\nIntroduce elección: """
-        overwrite = tratar_existe_fichero(mensaje)
-        if overwrite:
-            if overwrite_confirmation():
-                erase_file(banners_file)
-            else:
-                print("Operación cancelada")
-                return
+    if file_exists(banners_file, minio):
+            origen = " en MinIO" if minio["minio_read"] else ""
+            mensaje = f"El fichero de lista de appids ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
+            overwrite_file = tratar_existe_fichero(mensaje)
+            if overwrite_file:
+                # asegurarse de que se quiere eliminar toda la información
+                if overwrite_confirmation():
+                    erase_file(banners_file, minio)
+                else:
+                    print("Operación cancelada")
+                    return
     
     # Configuracion de direcciones
     data_dir = project_root() / "data"
@@ -130,7 +132,7 @@ def E_metadatos_imagenes(minio = False):
                         "vector_c": caracteristicas["vector_caracteristicas"]
                     }
 
-                    write_to_file(resultado_juego, banners_file, minio)
+                    write_to_file(resultado_juego, banners_file)
                     curr_idx += 1
 
                     time.sleep(np.random.uniform(0.1, 0.2))
@@ -143,6 +145,9 @@ def E_metadatos_imagenes(minio = False):
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     finally:
+        if minio["minio_write"]: 
+            corrrectly_uploaded = upload_to_minio(banners_file)
+            if corrrectly_uploaded: erase_file(banners_file)
         # Guardamos el progreso en el config.json
         gamelist_info = {"start_idx" : start_idx, "curr_idx" : curr_idx, "end_idx" : end_idx}
         if curr_idx > end_idx:
@@ -150,5 +155,4 @@ def E_metadatos_imagenes(minio = False):
         update_config("E", gamelist_info)
 
 if __name__ == "__main__":
-    # Poner a True para traer y mandar los datos a MinIO
-    E_metadatos_imagenes(False)
+    E_metadatos_imagenes()
