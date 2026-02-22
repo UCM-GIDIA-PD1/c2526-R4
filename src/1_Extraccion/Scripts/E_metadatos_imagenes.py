@@ -23,7 +23,7 @@ Salida:
 - Los datos se almacenan en la el directorio indicado.
 """
 
-def analiza_imagen(img_path, url,  trans, model):
+def analiza_imagen(img_path, url,  trans, model, appid):
     """
     Analiza las características de una imagen
 
@@ -36,7 +36,8 @@ def analiza_imagen(img_path, url,  trans, model):
         caracteristicas (dict): diccionario con el brillo medio y vector de características de la imagen
     """
     # Descargamos imagen y la metemos en la ruta    
-    ruta_temporal = os.path.join(img_path, "header.jpg")
+    nombre_imagen = f"{appid}_header.jpg"
+    ruta_temporal = os.path.join(img_path, nombre_imagen)
     
     response = requests.get(url, timeout=10)
     response.raise_for_status() # Para lanzar excepción si da error la petición
@@ -63,8 +64,6 @@ def analiza_imagen(img_path, url,  trans, model):
 
     # Borramos la imagen
     img.close() 
-    if os.path.exists(ruta_temporal):
-        os.remove(ruta_temporal)
     
     caracteristicas = {"brillo_medio": brillo,"vector_caracteristicas": vector} # Vector de 512 elementos
     return caracteristicas
@@ -124,7 +123,7 @@ def E_metadatos_imagenes(minio):
                     continue
 
                 try:
-                    caracteristicas = analiza_imagen(ruta_imagenes, url, trans, model)
+                    caracteristicas = analiza_imagen(ruta_imagenes, url, trans, model, appid)
                     
                     resultado_juego = {
                         "id": appid,
