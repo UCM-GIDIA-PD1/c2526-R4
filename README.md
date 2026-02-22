@@ -55,16 +55,16 @@ cd c2526-R4
 ``` shell
 uv sync
 ```
-Este entorno virtual funciona gracias a los archivos ``pyproject.tolm`` y ``uv.lock``, que se encuentran dentro del repositorio. A partir de ahora, para ejecutar *scripts* usaremos:
+Este entorno virtual funciona gracias a los archivos ``pyproject.tolm`` y ``uv.lock``, que se encuentran dentro del repositorio. Teniendo esto instalado ya puedes ejecutar *scripts* desde nuestro menú ejecutando:
 ```shell
-uv run src\script.py
+uv run src/1_Extraccion/main.py
 ```
 
 3. **Obtener los datos**. Para ello, existen dos opciones:
 	1. Descargar los datos directamente desde el servidor de [MinIO](https://minio.fdi.ucm.es/minio-console/login).
 	2. Extraer los datos de forma manual, explicado posteriormente.
 ### Extracción de datos
-Se debe tener en cuenta que la extracción manual de los datos tarda un tiempo largo, por lo que se recomienda descargar los datos directamente del servidor de *MinIO*.
+Se debe tener en cuenta que la extracción manual de los datos tarda un tiempo largo, por lo que se recomienda descargar o usar los datos directamente del servidor de *MinIO*.
 
 Si se desea extraer la información en grupo de 6 personas, se debe crear una variable del sistema nueva llamada `PD1_ID`, que tendrá un valor de entre 1 y 6. Si no se crea esta variable se extraerá la información de manera completa. Ejecutamos:
 ```shell

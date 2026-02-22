@@ -73,14 +73,14 @@ def _process_game(youtube_service, video_id_list):
     return stats_list
 
 
-def C2_informacion_youtube_videos(minio = False):
+def C2_informacion_youtube_videos(minio):
     ''' 
     
     '''
     try:
         # Obtener información de la sesión
         start_idx, curr_idx, end_idx = -1,-1,-1
-        pending_games, start_idx, curr_idx, end_idx = get_pending_games("C2")
+        pending_games, start_idx, curr_idx, end_idx = get_pending_games("C2", minio)
 
         # Si al obtener información de la sesión no hay juegos dentro del rango, acaba la ejecución
         if not pending_games:
@@ -122,7 +122,7 @@ def C2_informacion_youtube_videos(minio = False):
 
                 curr_idx += 1
                 # Escribimos en el archivo destino
-                write_to_file(jsonl, yt_statslist_file,minio)
+                write_to_file(jsonl, yt_statslist_file)
 
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
