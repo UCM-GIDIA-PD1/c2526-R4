@@ -9,7 +9,7 @@ from tqdm import tqdm
 import numpy as np
 from utils.minio_server import upload_to_minio
 from utils.files import write_to_file, erase_file, file_exists
-from utils.config import banners_file, project_root
+from utils.config import banners_file, project_root, data_path
 from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
 
 """
@@ -69,7 +69,7 @@ def analiza_imagen(img_path, url,  trans, model, appid):
     return caracteristicas
     
 def E_metadatos_imagenes(minio):
-    os.environ['TORCH_HOME'] = r'data\torch_cache'
+    os.environ['TORCH_HOME'] = str(data_path(), "torch_cache")
 
     # Se configura el modelo (ResNet18, preentrenado para reconocer formas).
     model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
