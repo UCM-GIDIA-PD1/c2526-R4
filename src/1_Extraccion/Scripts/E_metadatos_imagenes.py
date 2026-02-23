@@ -10,7 +10,8 @@ import numpy as np
 from utils.minio_server import upload_to_minio
 from utils.files import write_to_file, erase_file, file_exists
 from utils.config import banners_file, project_root
-from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
+from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation, handle_input
+from sentence_transformers import SentenceTransformer
 
 """
 Script que extrae de las imágenes el brillo medio y un vector de embeddings mediante una red neuronal
@@ -23,14 +24,18 @@ Salida:
 - Los datos se almacenan en la el directorio indicado.
 """
 
-def analiza_imagen(img_path, url,  trans, model, appid):
+def analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet, model_clip, model_convnext):
     """
     Analiza las características de una imagen
 
     Args:
         img_path (str): ruta del archivo de imagen.
         trans (callable): transformaciones de preprocesamiento (ej. Resize, Normalize).
-        model (torch.nn.Module): modelo preentrenado para extracción de embeddings.
+        appid (int): appid del juego analizado
+        download_images (bool): hay o no hay que descargar la imagen
+        model_resnet (torch.nn.Module): modelo preentrenado para extracción de embeddings.
+        model_clip (sentence_transformers.SentenceTransformer): modelo preentrenado para extracción de embeddings.
+        model_convnext (torch.nn.Module): modelo preentrenado para extracción de embeddings.
 
     Returns:
         caracteristicas (dict): diccionario con el brillo medio y vector de características de la imagen
@@ -39,11 +44,12 @@ def analiza_imagen(img_path, url,  trans, model, appid):
     nombre_imagen = f"{appid}_header.jpg"
     ruta_temporal = os.path.join(img_path, nombre_imagen)
     
-    response = requests.get(url, timeout=10)
-    response.raise_for_status() # Para lanzar excepción si da error la petición
+    if download_images:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status() # Para lanzar excepción si da error la petición
     
-    with open(ruta_temporal, 'wb') as f:
-        f.write(response.content)
+        with open(ruta_temporal, 'wb') as f:
+            f.write(response.content)
 
     # Análisis de la imagen
     img = Image.open(ruta_temporal).convert('RGB')
@@ -57,24 +63,47 @@ def analiza_imagen(img_path, url,  trans, model, appid):
     batch_t = torch.unsqueeze(img_preprocesada, 0)
 
     with torch.no_grad():
-        embedding = model(batch_t)
-        # Convertimos el tensor a una lista de Python para el JSON y nos quedamos solo con 4 decimales
-        vector = embedding.flatten().tolist()
-        vector = [round(float(x), 4) for x in vector]
+        # Inferencia ResNet
+        feat_resnet = model_resnet(batch_t)
+        vector_resnet = [round(float(x), 4) for x in feat_resnet.flatten().tolist()]
 
-    # Borramos la imagen
+        # Inferencia ConvNeXt
+        feat_convnext = model_convnext(batch_t)
+        vector_convnext = [round(float(x), 4) for x in feat_convnext.flatten().tolist()]
+
+        # Inferencia CLIP (Usa la imagen PIL 'img' directamente)
+        feat_clip = model_clip.encode(img)
+        vector_clip = [round(float(x), 4) for x in feat_clip.tolist()]
+
     img.close() 
     
-    caracteristicas = {"brillo_medio": brillo,"vector_caracteristicas": vector} # Vector de 512 elementos
+    caracteristicas = {
+        "brillo_medio": brillo,
+        "vector_resnet": vector_resnet,
+        "vector_convnext": vector_convnext,
+        "vector_clip": vector_clip
+    }
+
     return caracteristicas
     
 def E_metadatos_imagenes(minio):
     os.environ['TORCH_HOME'] = r'data\torch_cache'
 
-    # Se configura el modelo (ResNet18, preentrenado para reconocer formas).
-    model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-    model = torch.nn.Sequential(*(list(model.children())[:-1]))
-    model.eval()
+    # Configuración de modelos
+    
+    # Resnet, entrenado para reconocer formas
+    model_resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+    model_resnet = torch.nn.Sequential(*(list(model_resnet.children())[:-1]))
+    model_resnet.eval()
+
+    # ConvNeXt, optimizado para texturas y detalles finos
+    model_convnext = models.convnext_tiny(weights=models.ConvNeXt_Tiny_Weights.DEFAULT)
+    model_convnext.classifier = torch.nn.Identity() # Quitamos la capa de clasificación
+    model_convnext.eval()
+
+    # Clip, modelo de OpenAI que reconoce conceptos semánticos, estilos y estética
+    model_clip = SentenceTransformer('clip-ViT-B-32')
+    model_clip.eval()
 
     # Definimos las trasnformaciones que vamos a hacer a cada imagen (para poder meterlas en el modelo)
     trans = transforms.Compose([
@@ -103,6 +132,10 @@ def E_metadatos_imagenes(minio):
                 else:
                     print("Operación cancelada")
                     return
+                
+    message = "¿Quieres que se descarguen las imágenes? [Y/N] :"
+    response = handle_input(message, lambda x: x.lower() in {"y", "n"})
+    download_images = True if response.lower() == "y" else False
     
     # Configuracion de direcciones
     data_dir = project_root() / "data"
@@ -116,25 +149,30 @@ def E_metadatos_imagenes(minio):
                 appid = juego.get("id")
                 pbar.set_description(f"Procesando appid: {appid}")
                 
-                url = juego.get("appdetails", {}).get("header_url")
-
-                if not url:
-                    curr_idx += 1
-                    continue
+                if download_images:
+                    url = juego.get("appdetails", {}).get("header_url")
+                    if not url:
+                        curr_idx += 1
+                        continue
+                else:
+                    url = None
 
                 try:
-                    caracteristicas = analiza_imagen(ruta_imagenes, url, trans, model, appid)
-                    
+                    caracteristicas = analiza_imagen(ruta_imagenes, url, trans, appid, download_images, model_resnet, model_clip, model_convnext)
+
                     resultado_juego = {
                         "id": appid,
                         "brillo": caracteristicas["brillo_medio"],
-                        "vector_c": caracteristicas["vector_caracteristicas"]
+                        "v_resnet": caracteristicas["vector_resnet"],
+                        "v_convnext": caracteristicas["vector_convnext"],
+                        "v_clip": caracteristicas["vector_clip"]
                     }
 
                     write_to_file(resultado_juego, banners_file)
                     curr_idx += 1
-
-                    time.sleep(np.random.uniform(0.1, 0.2))
+                    
+                    if download_images: 
+                        time.sleep(np.random.uniform(0.1, 0.2))
 
                 except Exception as e:
                     print(f"Error procesando imagen del juego {appid}: {e}")
