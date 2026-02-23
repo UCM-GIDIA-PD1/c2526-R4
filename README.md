@@ -71,9 +71,9 @@ En Windows ejecutamos:
 ```shell
 setx PD1_ID identificador_grupo
 ```
-En Linux nos metemos en ~/.bashrc y añadimos:
+En Linux hay que crear un archivo .env y añadir:
 ```bash
-export PD1_ID="identificador_grupo"
+export PD1_ID=identificador_grupo
 ```
 
 #### Dependencias
@@ -93,12 +93,12 @@ setx API_KEY_YT clave_api
 setx MINIO_ACCESS_KEY clave_de_acceso
 setx MINIO_SECRET_KEY clave_secreta
 ```
-En Linux hay que entrar en ~/.bashrc y añado:
+En Linux hay que crear un archivo .env y añadir:
 ```bash
-export STEAM_API_KEY="clave_api"
-export API_KEY_YT="clave_api"
-export MINIO_ACCESS_KEY="clave_de_acceso"
-export MINIO_SECRET_KEY="clave_secreta"
+export STEAM_API_KEY=clave_api
+export API_KEY_YT=clave_api
+export MINIO_ACCESS_KEY=clave_de_acceso
+export MINIO_SECRET_KEY=clave_secreta
 ```
 
 Además para poder conectarse a MinIO hay que descargarse el [mc.exe](https://dl.min.io/client/mc/release/windows-amd64/mc.exe) y meterlo en la raiz del proyecto.

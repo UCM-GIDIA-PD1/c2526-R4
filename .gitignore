@@ -6,6 +6,7 @@ torch_cache
 data
 error_logs
 .Rproj.user
+.env
 
 # Extensiones de archivos
 *.csv
