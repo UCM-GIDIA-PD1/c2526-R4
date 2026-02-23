@@ -6,6 +6,7 @@ from subprocess import Popen, DEVNULL
 from time import sleep
 from random import choice
 from utils.config import config_path
+import platform
 
 """
 Módulo enfocado al WebScraping que tiene como objectivo administrar la sesión de TOR (abrir y
@@ -43,9 +44,11 @@ def _is_tor_running():
     Returns:
         bool: True si se encuentra un proceso llamado exactamente "tor.exe" activo, False en caso contrario.
     """
+    tor_name = "tor.exe" if platform.system() == "Windows" else "tor"
+
     for process in process_iter(attrs=['pid', 'name']):
         try:
-            if "tor.exe" == process.info['name'].lower():
+            if tor_name == process.info['name'].lower():
                 return True
         except:
             continue
@@ -65,7 +68,8 @@ def start_tor():
         print("Ejecutando TOR...")
 
         # Abrimos TOR (IMPORTANTE: hace falta tener la carpeta de TOR en PATH para que se pueda abrir)
-        Popen(["tor.exe", '-f', TORRC_DIR], stdout=DEVNULL, stderr=DEVNULL, shell=True)
+        tor_name = "tor.exe" if platform.system() == "Windows" else "tor"
+        Popen([tor_name, '-f', str(TORRC_DIR)], stdout=DEVNULL, stderr=DEVNULL)
         sleep(10)
         assert _is_tor_running(), "TOR no se ha ejecutado correctamente"
     else:
