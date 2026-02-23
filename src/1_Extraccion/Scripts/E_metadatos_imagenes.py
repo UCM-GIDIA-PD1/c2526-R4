@@ -69,7 +69,7 @@ def analiza_imagen(img_path, url,  trans, model, appid):
     return caracteristicas
     
 def E_metadatos_imagenes(minio):
-    os.environ['TORCH_HOME'] = str(data_path(), "torch_cache")
+    os.environ['TORCH_HOME'] = str(data_path() / "torch_cache")
 
     # Se configura el modelo (ResNet18, preentrenado para reconocer formas).
     model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
