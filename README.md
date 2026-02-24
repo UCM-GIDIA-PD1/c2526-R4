@@ -105,7 +105,24 @@ Además para poder conectarse a MinIO hay que descargarse el [mc.exe](https://dl
 
 Para Scrapear YouTube necesitamos tener tanto una versión de Google Chrome reciente, como TOR bundle descargado de la [página oficial de TOR](https://www.torproject.org/download/tor/).
 
-Después de descargar TOR, ejecutad el archivo ``tor.exe`` para que creen los archivos por defecto para el correcto funcionamiento del mismo. Cuando el proceso de TOR llegue al 100%, cerradlo. Posteriormente, añadid la carpeta de TOR al PATH de vuestro sistema. El script C1 usará como configuración de TOR el archivo `torrc` que podéis encontrar en el repositorio, no hace falta hacer nada con él, pero sirve para que funcione correctamente la rotación de IP.
+En **Windows**:
+Después de descargar TOR, ejecutad el archivo ``tor.exe`` que podéis encontrar dentro de la subcarpeta tor para que se creen los archivos por defecto para el correcto funcionamiento del mismo. Cuando el proceso de TOR llegue al 100%, cerradlo. Posteriormente, abrid las variables de entorno del sistema y clicad en la variable PATH. Hecho eso, añadid la carpeta de TOR como nueva variable de entorno. El script C1 usará como configuración de TOR el archivo `torrc` que podéis encontrar en el repositorio, no hace falta hacer nada con él, pero sirve para que funcione correctamente la rotación de IP.
+
+En **Linux**:
+- Mediante `apt` (gran parte de distros):
+```bash
+sudo apt install tor
+```
+- Mediante `pacman` (Arch):
+```bash
+sudo pacman -S tor
+```
+
+En **MacOS**:
+- Mediante `brew`:
+```bash
+brew install tor
+```
 
 ---
 
