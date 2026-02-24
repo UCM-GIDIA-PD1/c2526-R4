@@ -131,7 +131,7 @@ def read_file(filepath, minio = {"minio_write": False, "minio_read": False}, def
     try:
         if minio["minio_read"]: 
             if not download_from_minio(filepath):
-                print(f"Error de MinIO: {e}\n Se intentará leer el fichero localmente")
+                print(f"Error de MinIO: \n Se intentará leer el fichero localmente")
                 return read_file(filepath, {"minio_write": False, "minio_read": False})
 
         datos = default_return

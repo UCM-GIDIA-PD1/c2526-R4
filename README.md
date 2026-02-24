@@ -66,10 +66,16 @@ uv run src/1_Extraccion/main.py
 ### Extracción de datos
 Se debe tener en cuenta que la extracción manual de los datos tarda un tiempo largo, por lo que se recomienda descargar o usar los datos directamente del servidor de *MinIO*.
 
-Si se desea extraer la información en grupo de 6 personas, se debe crear una variable del sistema nueva llamada `PD1_ID`, que tendrá un valor de entre 1 y 6. Si no se crea esta variable se extraerá la información de manera completa. Ejecutamos:
+Si se desea extraer la información en grupo de 6 personas, se debe crear una variable del sistema nueva llamada `PD1_ID`, que tendrá un valor de entre 1 y 6. Si no se crea esta variable se extraerá la información de manera completa. 
+En Windows ejecutamos:
 ```shell
 setx PD1_ID identificador_grupo
 ```
+En Linux hay que crear un archivo .env y añadir:
+```bash
+export PD1_ID=identificador_grupo
+```
+
 #### Dependencias
 Para realizar la extracción de la lista de juegos de Steam así como de las estadísticas individuales de los vídeos *scrapeados*, necesitamos antes conseguir acceso a varias APIs, a las que se adjuntan documentación del proceso de obtención:
 - La ``STEAM_API_KEY`` de [Steam](https://steamcommunity.com/dev/apikey).
@@ -80,11 +86,19 @@ Además, si queremos guardar los datos en el servidor de la FDI de MinIO necesit
 - Clave secreta del servidor de MinIO
 
 Una vez conseguidas, vamos a incluirlas como variables del sistema para que el código las detecte:
+En Windows:
 ```shell
 setx STEAM_API_KEY clave_api
 setx API_KEY_YT clave_api
 setx MINIO_ACCESS_KEY clave_de_acceso
 setx MINIO_SECRET_KEY clave_secreta
+```
+En Linux hay que crear un archivo .env y añadir:
+```bash
+export STEAM_API_KEY=clave_api
+export API_KEY_YT=clave_api
+export MINIO_ACCESS_KEY=clave_de_acceso
+export MINIO_SECRET_KEY=clave_secreta
 ```
 
 Además para poder conectarse a MinIO hay que descargarse el [mc.exe](https://dl.min.io/client/mc/release/windows-amd64/mc.exe) y meterlo en la raiz del proyecto.
