@@ -32,6 +32,8 @@ def _intervalo_rotacion_IP():
 
 def C1_informacion_youtube_busquedas(minio):
     try:
+        sesion = None
+        
         start_idx, curr_idx, end_idx = -1,-1,-1
         pending_games, start_idx, curr_idx, end_idx = get_pending_games("C1")
         
@@ -101,7 +103,8 @@ def C1_informacion_youtube_busquedas(minio):
         if curr_idx > end_idx:
             print("Rango completado")
         update_config("C1", gamelist_info)
-        sesion.quit()
+        if sesion:
+            sesion.quit()
 
 if __name__ == "__main__":
     C1_informacion_youtube_busquedas()
