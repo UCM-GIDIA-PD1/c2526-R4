@@ -133,8 +133,8 @@ def E_metadatos_imagenes(minio):
                     return
                 
     message = "¿Quieres que se descarguen las imágenes? [Y/N] :"
-    response = handle_input(message, lambda x: x.lower() in {"y", "n"})
-    download_images = True if response.lower() == "y" else False
+    response = handle_input(message, lambda x: x.lower() in {"y", "n", ""})
+    download_images = True if response.lower() == "y" or response.lower() == "" else False
     
     # Configuracion de direcciones
     data_dir = project_root() / "data"
