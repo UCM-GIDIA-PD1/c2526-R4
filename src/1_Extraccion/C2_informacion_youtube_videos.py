@@ -2,7 +2,7 @@ import os
 import json
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from utils.sesion import get_pending_games, overwrite_confirmation, tratar_existe_fichero, update_config
+from utils_extraccion.sesion import get_pending_games, overwrite_confirmation, tratar_existe_fichero, update_config
 from utils.files import erase_file, file_exists, write_to_file
 from utils.config import yt_statslist_file
 from tqdm import tqdm

@@ -10,7 +10,7 @@ import numpy as np
 from utils.minio_server import upload_to_minio
 from utils.files import write_to_file, erase_file, file_exists
 from utils.config import banners_file, project_root, data_path
-from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation, handle_input
+from utils_extraccion.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation, handle_input
 from sentence_transformers import SentenceTransformer
 """
 Script que extrae de las imágenes el brillo medio y un vector de embeddings mediante una red neuronal

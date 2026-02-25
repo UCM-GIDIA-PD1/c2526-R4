@@ -1,7 +1,7 @@
-from utils.webscraping import start_tor, renew_tor_ip, new_configured_chromium_page, busqueda_youtube
+from utils_extraccion.webscraping import start_tor, renew_tor_ip, new_configured_chromium_page, busqueda_youtube
 from numpy import random
 from time import time
-from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
+from utils_extraccion.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
 from tqdm import tqdm
 from utils.files import write_to_file, erase_file, file_exists
 from utils.config import youtube_scraping_file

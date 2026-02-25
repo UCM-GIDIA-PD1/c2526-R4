@@ -2,9 +2,9 @@ import requests
 from random import uniform
 import time
 from tqdm import tqdm
-from utils.steam_requests import get_resenyas
+from utils_extraccion.steam_requests import get_resenyas
 from utils.config import steam_reviews_file
-from utils.sesion import get_pending_games, tratar_existe_fichero, overwrite_confirmation, update_config
+from utils_extraccion.sesion import get_pending_games, tratar_existe_fichero, overwrite_confirmation, update_config
 from utils.files import erase_file, write_to_file, file_exists
 from utils.minio_server import upload_to_minio
 from utils.exceptions import SteamAPIException
