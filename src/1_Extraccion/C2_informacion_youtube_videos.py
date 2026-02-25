@@ -2,11 +2,13 @@ import os
 import json
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from utils.sesion import get_pending_games, overwrite_confirmation, tratar_existe_fichero, update_config
-from utils.files import erase_file, file_exists, write_to_file
-from utils.config import yt_statslist_file
 from tqdm import tqdm
-from utils.minio_server import upload_to_minio
+
+from src.utils.files import erase_file, file_exists, write_to_file
+from src.utils.config import yt_statslist_file
+from src.utils.minio_server import upload_to_minio
+
+from utils_extraccion.sesion import get_pending_games, overwrite_confirmation, tratar_existe_fichero, update_config
 
 
 '''

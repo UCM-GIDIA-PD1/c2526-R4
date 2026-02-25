@@ -1,10 +1,10 @@
 import os
 import requests
 from tqdm import tqdm
-from utils.config import members
-from utils.files import write_to_file, read_file
-from utils.date import format_date_string, unix_to_date_string
-from utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
+from src.utils.config import members
+from src.utils.files import write_to_file, read_file
+from src.utils.date import format_date_string, unix_to_date_string
+from src.utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
 
 def _parse_supported_languages(raw_html):
     if not raw_html:

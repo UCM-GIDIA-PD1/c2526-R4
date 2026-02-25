@@ -1,12 +1,14 @@
 import os
 import sys
 import importlib
-from utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, steam_reviews_file, banners_file
-from utils.visuals import show_menu
-from utils.dependences import appidlist_file_dependence, gamelist_file_dependence, youtube_scraping_file_dependence, steam_api_dependence, youtube_api_dependence, minio_dependence, ucm_vpn_dependence
+
+from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, steam_reviews_file, banners_file
+from src.utils.visuals import show_menu
+from src.utils.dependences import appidlist_file_dependence, gamelist_file_dependence, youtube_scraping_file_dependence, steam_api_dependence, youtube_api_dependence, minio_dependence, ucm_vpn_dependence
 
 # Para que pueda usar los ficheros importados que están dentro de Scripts
-sys.path.append(os.path.join(os.path.dirname(__file__), "Scripts"))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(BASE_DIR, "1_Extraccion"))
 
 def ejecutar_scripts(scripts_info, minio_info):
     print("\n--- INICIANDO EJECUCIÓN ---")

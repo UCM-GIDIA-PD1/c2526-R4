@@ -1,11 +1,14 @@
-from utils.webscraping import start_tor, renew_tor_ip, new_configured_chromium_page, busqueda_youtube
 from numpy import random
 from time import time
-from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
 from tqdm import tqdm
-from utils.files import write_to_file, erase_file, file_exists
-from utils.config import youtube_scraping_file
-from utils.minio_server import upload_to_minio
+
+from src.utils.files import write_to_file, erase_file, file_exists
+from src.utils.config import youtube_scraping_file
+from src.utils.minio_server import upload_to_minio
+
+from utils_extraccion.webscraping import start_tor, renew_tor_ip, new_configured_chromium_page, busqueda_youtube
+from utils_extraccion.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
+
 
 """
 Primera parte de la extracción de información de YouTube: búsqueda.

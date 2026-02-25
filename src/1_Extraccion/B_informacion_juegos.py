@@ -1,14 +1,16 @@
 import requests
 import time
 from numpy.random import choice, uniform
-from utils.webscraping import user_agents
 from tqdm import tqdm
-from utils.steam_requests import get_appdetails, get_appreviewhistogram
-from utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
-from utils.files import log_appid_errors, write_to_file, erase_file, file_exists
-from utils.config import gamelist_file
-from utils.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
-from utils.minio_server import upload_to_minio
+
+from src.utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
+from src.utils.files import log_appid_errors, write_to_file, erase_file, file_exists
+from src.utils.config import gamelist_file
+from src.utils.minio_server import upload_to_minio
+
+from utils_extraccion.webscraping import user_agents
+from utils_extraccion.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
+from utils_extraccion.steam_requests import get_appdetails, get_appreviewhistogram
 
 '''
 Script que guarda tanto la información de appdetails como de appreviewhistogram.

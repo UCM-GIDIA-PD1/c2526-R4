@@ -1,5 +1,5 @@
-from utils.files import read_file, write_to_file, erase_file, file_exists
-from utils.config import config_file, appidlist_file, gamelist_file, youtube_scraping_file, get_appid_range
+from src.utils.files import read_file, write_to_file, erase_file, file_exists
+from src.utils.config import config_file, appidlist_file, gamelist_file, youtube_scraping_file, get_appid_range
 import os
 
 def read_config(script_id, default_return = None):

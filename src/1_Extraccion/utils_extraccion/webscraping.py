@@ -5,7 +5,7 @@ from psutil import process_iter
 from subprocess import Popen, DEVNULL
 from time import sleep
 from random import choice
-from utils.config import config_path
+from src.utils.config import config_path
 import platform
 
 """

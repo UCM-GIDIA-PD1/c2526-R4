@@ -57,7 +57,7 @@ uv sync
 ```
 Este entorno virtual funciona gracias a los archivos ``pyproject.tolm`` y ``uv.lock``, que se encuentran dentro del repositorio. Teniendo esto instalado ya puedes ejecutar *scripts* desde nuestro menú ejecutando:
 ```shell
-uv run src/1_Extraccion/main.py
+uv run -m src.main
 ```
 
 3. **Obtener los datos**. Para ello, existen dos opciones:
