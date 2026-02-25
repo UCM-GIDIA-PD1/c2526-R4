@@ -41,7 +41,13 @@ def get_appid_range(length):
 
 # Paths
 def project_root():
-    return Path(__file__).resolve().parents[4]
+    current = Path(__file__).resolve()
+
+    for parent in current.parents:
+        if (parent / ".git").exists():
+            current = parent
+            break
+    return current
 
 def data_path():
     path = project_root() / "data"

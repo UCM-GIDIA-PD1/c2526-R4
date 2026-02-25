@@ -14,7 +14,7 @@ def ejecutar_scripts(scripts_info, minio_info):
     for clave, info in sorted(scripts_info.items()):
         if info["usar"]:
             print(f">> Importando y ejecutando {clave}: {info['fichero']}...")
-            modulo = importlib.import_module(f"Scripts.{info['fichero']}")
+            modulo = importlib.import_module(f"{info['fichero']}")
             funcion = getattr(modulo, info["ejecutable"])
             minio = minio_info if minio_dependence.check(minio_info) else {"minio_write": False, "minio_read": False}
             funcion(minio)
