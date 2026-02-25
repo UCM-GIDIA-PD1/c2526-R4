@@ -91,9 +91,9 @@ def _get_session_info(script_id):
     # Si existe sesión
     if gamelist_info is not None:
         message = f"Existe sesión de extracción [{gamelist_info.get('start_idx')}, {gamelist_info.get('end_idx')}] índice actual: {gamelist_info.get('curr_idx')}, quieres continuar con la sesión? [Y/N]: "
-        response = handle_input(message, lambda x: x.lower() in {"y", "n"})
+        response = handle_input(message, lambda x: x.lower() in {"y", "n", ""})
         # si quiere usar los parámetros de la sesión existente
-        if response.lower() == "y":
+        if response.lower() == "y" or response.lower() == "":
             # devuelve los parámetros de la sesión y un booleano que indica la decsión del usuario
             start_idx, curr_idx, end_idx = gamelist_info["start_idx"], gamelist_info["curr_idx"], gamelist_info["end_idx"]
             return True, start_idx, curr_idx, end_idx
@@ -175,5 +175,5 @@ def overwrite_confirmation():
         bool: devuelve True en caso afirmativo (y) y False en caso contrario (n)
     """
     message = "¿Seguro que quieres eliminar la lista de juegos con su información [Y/N]?: "
-    response = handle_input(message, lambda x: x.lower() in {"y", "n"})
-    return True if response.lower() == "y" else False
+    response = handle_input(message, lambda x: x.lower() in {"y", "n", ""})
+    return True if response.lower() == "y" or response.lower() == "" else False

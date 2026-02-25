@@ -30,11 +30,10 @@ def _intervalo_rotacion_IP():
     """Cambio de IP manual randomizado cada 5-6 minutos"""
     return 60 * random.uniform(5, 6)
 
-def C1_informacion_youtube_busquedas(minio = False):
-    # Lanzamos TOR
-    start_tor()
-
+def C1_informacion_youtube_busquedas(minio):
     try:
+        sesion = None
+        
         start_idx, curr_idx, end_idx = -1,-1,-1
         pending_games, start_idx, curr_idx, end_idx = get_pending_games("C1")
         
@@ -54,7 +53,10 @@ def C1_informacion_youtube_busquedas(minio = False):
                 else:
                     print("Operación cancelada")
                     return
-                
+        
+        # Lanzamos TOR
+        start_tor()
+
         # Definimos las opciones del navegador y cargamos la sesión
         sesion = new_configured_chromium_page()
 
@@ -74,6 +76,8 @@ def C1_informacion_youtube_busquedas(minio = False):
                 # Si se han cargado los datos correctamente, hacemos búsqueda en YouTube
                 if nombre and fecha:
                     lista_ids = busqueda_youtube(nombre, fecha, sesion)
+                    if lista_ids == []:
+                        tqdm.write(f'Juego sin vídeos: {nombre}')
                     jsonl = {'id':appid,'name':nombre,'video_statistics':lista_ids}
                     write_to_file(jsonl, youtube_scraping_file)
                     sesion.wait(4, scope=0.4) # Espera aleatoria de entre 2.4 y 5.6 segundos
@@ -99,7 +103,8 @@ def C1_informacion_youtube_busquedas(minio = False):
         if curr_idx > end_idx:
             print("Rango completado")
         update_config("C1", gamelist_info)
-        sesion.quit()
+        if sesion:
+            sesion.quit()
 
 if __name__ == "__main__":
     C1_informacion_youtube_busquedas()
