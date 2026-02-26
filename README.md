@@ -109,6 +109,23 @@ En **Windows**:
 Después de descargar TOR, ejecutad el archivo ``tor.exe`` que podéis encontrar dentro de la subcarpeta tor para que se creen los archivos por defecto para el correcto funcionamiento del mismo. Cuando el proceso de TOR llegue al 100%, cerradlo. Posteriormente, abrid las variables de entorno del sistema y clicad en la variable PATH. Hecho eso, añadid la carpeta de TOR como nueva variable de entorno. El script C1 usará como configuración de TOR el archivo `torrc` que podéis encontrar en el repositorio, no hace falta hacer nada con él, pero sirve para que funcione correctamente la rotación de IP.
 
 En **Linux**:
+Algunas distros de linux ejecutan un proceso en segundo plano de TOR al iniciar. Si el script C1 diese error al cambiar de IP, se deben ejecutar los siguientes comandos en consola:
+
+Para detener el proceso actual:
+```bash
+sudo systemctl stop tor
+```
+
+Para matar cualquier posible proceso fantasma:
+```bash
+sudo pkill -f tor
+```
+
+Recomendado: Para que el OS no ejecute nunca TOR al iniciar:
+```bash
+sudo systemctl disable tor
+```
+
 - Mediante `apt` (gran parte de distros):
 ```bash
 sudo apt install tor

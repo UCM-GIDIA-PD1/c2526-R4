@@ -8,6 +8,7 @@ from random import choice
 from src.utils.config import config_path
 import platform
 
+
 """
 Módulo enfocado al WebScraping que tiene como objectivo administrar la sesión de TOR (abrir y
 rotar la IP), scrapeando directamente de YouTube.
@@ -105,7 +106,8 @@ def renew_tor_ip(sesion):
     print("Cambiamos de IP")
 
     # Cerramos la sesión antigua
-    sesion.quit()
+    if sesion:
+        sesion.quit()
 
     # Rotación de IP
     try:
@@ -135,6 +137,7 @@ def new_configured_chromium_page():
     # Configuramos el nuevo ChromiumPage
     co.set_user_agent(np_random.choice(user_agents))
     co.set_argument('--proxy-server=socks5://127.0.0.1:9050') # Puerto que usa TOR
+    co.set_argument('--password-store=basic') # Evitar que pida contraseña en Linux
     ancho_base, alto_base = choice(resoluciones_comunes)
     alto = alto_base + np_random.randint(-20, 0) # Simulamos el tamaño de la barra de tareas de manera aleatoria
     co.set_argument(f'--window-size={ancho_base},{alto}')
