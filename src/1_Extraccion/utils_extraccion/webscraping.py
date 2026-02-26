@@ -39,8 +39,6 @@ elif sys_platform == 'Darwin': # Mac
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:140.0) Gecko/20100101 Firefox/140.0',
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/115.0.0.0'
     ]
-    
-
 
 # Resoluciones de pantalla comunes:
 resoluciones_comunes = [
@@ -114,6 +112,7 @@ def renew_tor_ip(sesion):
         with stem.control.Controller.from_port(port=9051) as controller:
             controller.authenticate()
             controller.signal(stem.Signal.NEWNYM)
+            sleep(5)
     except stem.SocketError:
         print("Error: No se pudo conectar con el puerto de control de Tor (9051).")
         return None
