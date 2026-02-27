@@ -113,14 +113,16 @@ def C2_informacion_youtube_videos(minio):
                 nombre = app.get("name")
                 video_id_list = app.get('video_statistics')
 
+                jsonl = {
+                    'id' : appid,
+                    'name' : nombre,
+                    'video_statistics' : []
+                }
+
                 # Obtenemos información del juego solo si la lista no está vacía
                 if video_id_list:
                     print(f"{nombre}")
-                    jsonl = {
-                        'id' : appid,
-                        'name' : nombre,
-                        'video_statistics' : _process_game(youtube, video_id_list)
-                    }
+                    jsonl['video_statistics'] = _process_game(youtube, video_id_list)
 
                 curr_idx += 1
                 # Escribimos en el archivo destino
