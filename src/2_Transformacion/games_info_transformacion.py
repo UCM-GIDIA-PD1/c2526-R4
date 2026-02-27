@@ -4,7 +4,7 @@ de pandas creando columnas nuevas y eliminando columnas innecesarias.
 '''
 
 import pandas as pd
-from src.utils.config import project_root
+from src.utils.config import data_path
 from src.utils.files import read_file
 
 def _get_name(x):
@@ -79,8 +79,7 @@ def price_range(x):
 if __name__ == '__main__':
 
     print('Obteniendo archivo')
-    ROOT_DIR = project_root()
-    games_info_path = ROOT_DIR / 'data' / 'games_info.jsonl.gz'
+    games_info_path = data_path() / 'games_info.jsonl.gz'
     games_info = read_file(games_info_path)
     assert games_info, 'No se ha podido leer el archivo'
 
