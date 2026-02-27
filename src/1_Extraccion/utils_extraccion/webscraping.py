@@ -8,6 +8,7 @@ from random import choice
 from src.utils.config import config_path
 import platform
 
+
 """
 Módulo enfocado al WebScraping que tiene como objectivo administrar la sesión de TOR (abrir y
 rotar la IP), scrapeando directamente de YouTube.
@@ -38,8 +39,6 @@ elif sys_platform == 'Darwin': # Mac
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:140.0) Gecko/20100101 Firefox/140.0',
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/115.0.0.0'
     ]
-    
-
 
 # Resoluciones de pantalla comunes:
 resoluciones_comunes = [
@@ -105,13 +104,15 @@ def renew_tor_ip(sesion):
     print("Cambiamos de IP")
 
     # Cerramos la sesión antigua
-    sesion.quit()
+    if sesion:
+        sesion.quit()
 
     # Rotación de IP
     try:
         with stem.control.Controller.from_port(port=9051) as controller:
             controller.authenticate()
             controller.signal(stem.Signal.NEWNYM)
+            sleep(5)
     except stem.SocketError:
         print("Error: No se pudo conectar con el puerto de control de Tor (9051).")
         return None
@@ -135,6 +136,7 @@ def new_configured_chromium_page():
     # Configuramos el nuevo ChromiumPage
     co.set_user_agent(np_random.choice(user_agents))
     co.set_argument('--proxy-server=socks5://127.0.0.1:9050') # Puerto que usa TOR
+    co.set_argument('--password-store=basic') # Evitar que pida contraseña en Linux
     ancho_base, alto_base = choice(resoluciones_comunes)
     alto = alto_base + np_random.randint(-20, 0) # Simulamos el tamaño de la barra de tareas de manera aleatoria
     co.set_argument(f'--window-size={ancho_base},{alto}')

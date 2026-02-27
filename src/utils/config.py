@@ -54,6 +54,16 @@ def data_path():
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def raw_data_path():
+    path = data_path() / "raw"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def processed_data_path():
+    path = data_path() / "processed"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
 def config_path():
     path = project_root() / "config_files"
     path.mkdir(parents=True, exist_ok=True)
@@ -70,20 +80,24 @@ members = 6
 config_file = config_path() / "config.json"
 
 # Script A
-appidlist_file = data_path() / "appids_list.json.gz"
+appidlist_file = raw_data_path() / "appids_list.json.gz"
 
 # Script B
 steam_log_file = error_log_path() / "steam_log_file.jsonl"
-gamelist_file = data_path() / "games_info.jsonl.gz"
+gamelist_file = raw_data_path() / "games_info.jsonl.gz"
 
 # Script C1
-youtube_scraping_file = data_path() / "info_steam_youtube1.jsonl.gz"
+youtube_scraping_file = raw_data_path() / "info_steam_youtube1.jsonl.gz"
 
 # Script C2
-yt_statslist_file =  data_path() / "youtube_statistics.jsonl.gz"
+yt_statslist_file =  raw_data_path() / "youtube_statistics.jsonl.gz"
 
 # Script D
-steam_reviews_file = data_path() / "info_steam_resenyas.jsonl.gz"
+steam_reviews_file = raw_data_path() / "info_steam_resenyas.jsonl.gz"
 
 # Script E
-banners_file = data_path() / "info_imagenes.jsonl.gz"
+banners_file = raw_data_path() / "info_imagenes.jsonl.gz"
+
+# ------ SCRIPTS DE TRANSFORMACIÓN ------ #
+# transformación de imágenes
+P_banners_file = processed_data_path() / "P_info_imagenes.jsonl.gz"
