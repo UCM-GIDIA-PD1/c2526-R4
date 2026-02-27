@@ -4,7 +4,7 @@ de pandas creando columnas nuevas y eliminando columnas innecesarias.
 '''
 
 import pandas as pd
-from src.utils.config import data_path
+from src.utils.config import raw_data_path, processed_data_path
 from src.utils.files import read_file
 
 def _get_name(x):
@@ -79,7 +79,7 @@ def price_range(x):
 if __name__ == '__main__':
 
     print('Obteniendo archivo')
-    games_info_path = data_path() / 'games_info.jsonl.gz'
+    games_info_path = raw_data_path() / 'games_info.jsonl.gz'
     games_info = read_file(games_info_path)
     assert games_info, 'No se ha podido leer el archivo'
 
@@ -111,5 +111,5 @@ if __name__ == '__main__':
 
     print('Almacenando')
     # Almacenamos en parquet y csv
-    df.to_parquet('data/games_info.parquet')
+    df.to_parquet(processed_data_path() / "games_info.parquet")
     # df.to_csv('data/games_info.csv', index=False)
