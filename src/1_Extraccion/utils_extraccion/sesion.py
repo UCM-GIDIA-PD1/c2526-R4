@@ -1,5 +1,5 @@
 from src.utils.files import read_file, write_to_file, erase_file, file_exists
-from src.utils.config import config_file, appidlist_file, gamelist_file, youtube_scraping_file, get_appid_range
+from src.utils.config import config_file, appidlist_file, gamelist_file, youtube_scraping_file, steam_reviews_top100_file, steam_reviews_rest_file, get_appid_range
 import os
 
 def read_config(script_id, default_return = None):
@@ -101,10 +101,12 @@ def _get_session_info(script_id):
     return False, -1, -1 ,-1
 
 def _get_script_file(script_id):
-    if script_id in ["B","D"]:
+    if script_id in ["B"]:
         return appidlist_file
     elif script_id in ["C1","E"]:
         return gamelist_file
+    elif script_id in ["D"]:
+        return [steam_reviews_top100_file, steam_reviews_rest_file]
     else:
         return youtube_scraping_file
     
@@ -126,7 +128,15 @@ def get_pending_games(script_id, minio = {"minio_write": False, "minio_read": Fa
     """
     # leer la lista del archivo necesario para el script con id script_id
     file = _get_script_file(script_id)
-    file_list = read_file(file, minio)
+    # Para manejar distintos ficheros
+    if isinstance(file, list):
+        file_list = []
+        for f in file:
+            data = read_file(f, minio)
+            if data:
+                file_list.extend(data)
+    else:
+        file_list = read_file(file, minio)
     # inicializar indices dummy
     start_idx, curr_idx, end_idx = -1, -1, -1
     # si no hay lista de juegos devolver una lista vacía

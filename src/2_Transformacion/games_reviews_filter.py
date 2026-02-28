@@ -55,7 +55,7 @@ if __name__ == "__main__":
     df["total_reviews"] = df["appreviewhistogram"].apply(lambda x : _get_total_reviews(x))
 
     # El dataframe se queda con las columnas name y total_reviews
-    df = df[["name","total_reviews"]]
+    df = df[["id", "name", "total_reviews"]]
     # Se crea un dataframe ordenado por total_reviews
     df_sorted = df.sort_values(by="total_reviews", ascending= False)
 

@@ -25,12 +25,9 @@ Salida:
 Los datos se almacenan en la carpeta data/ en formato JSON.
 '''
 
-def _download_game_data(id, sesion):
+def _download_game_data(game, curr_idx, sesion):
     # Obtiene la info de un juego
-    game_info = {"id": id, "resenyas": []}
-    game_info["resenyas"] = get_resenyas(id, sesion)
-
-    return game_info
+    game["reviews"] = get_resenyas(game["id"], sesion, curr_idx < 100)
 
 def D_informacion_resenyas(minio):
     # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
@@ -61,11 +58,12 @@ def D_informacion_resenyas(minio):
         sesion = requests.Session()
         sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
         print("Comenzando extraccion de juegos...\n")
-        with tqdm(pending_games, unit = "appids") as pbar:
-            for appid in pbar:
+        with tqdm(pending_games, unit = "games") as pbar:
+            for game in pbar:
+                appid = game.get("id")
                 pbar.set_description(f"Procesando appid: {appid}")
-                desc = _download_game_data(appid, sesion)
-                write_to_file(desc, steam_reviews_file)
+                _download_game_data(game, curr_idx, sesion)
+                write_to_file(game, steam_reviews_file)
                 wait = uniform(1.5, 2)
                 time.sleep(wait)
                 curr_idx += 1

@@ -1,5 +1,8 @@
-from src.utils.dependences import appidlist_file_dependence, gamelist_file_dependence, youtube_scraping_file_dependence, steam_api_dependence, youtube_api_dependence, minio_dependence, ucm_vpn_dependence
-from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, steam_reviews_file, banners_file
+from src.utils.dependences import appidlist_file_dependence, gamelist_file_dependence, youtube_scraping_file_dependence
+from src.utils.dependences import steam_api_dependence, youtube_api_dependence, minio_dependence, ucm_vpn_dependence
+from src.utils.dependences import steam_reviews_top100_file_dependence, steam_reviews_rest_file_dependence
+from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file
+from src.utils.config import steam_reviews_file, banners_file
 
 main_scripts_info = {
         "A": {"fichero": "A_lista_juegos", 
@@ -30,7 +33,7 @@ main_scripts_info = {
               "salida": steam_reviews_file.name, 
               "ejecutable": "D_informacion_resenyas", 
               "usar": False, 
-              "dependences" : [appidlist_file_dependence]
+              "dependences" : [steam_reviews_top100_file_dependence, steam_reviews_rest_file_dependence]
         },
         "E": {"fichero": "E_metadatos_imagenes", 
               "salida": banners_file.name, 

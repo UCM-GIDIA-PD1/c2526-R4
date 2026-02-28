@@ -1,5 +1,6 @@
 from .files import file_exists
 from .config import appidlist_file, gamelist_file, youtube_scraping_file
+from .config import steam_reviews_top100_file, steam_reviews_rest_file
 from .minio_server import file_exists_minio
 import os
 
@@ -78,4 +79,21 @@ class ucm_vpn_dependence():
     @staticmethod
     def check(minio = None):
         return file_exists_minio("grupo.txt")
-   
+
+class steam_reviews_top100_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {steam_reviews_top100_file.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(steam_reviews_top100_file, minio)
+    
+class steam_reviews_rest_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {steam_reviews_rest_file.name}"
+    
+    @staticmethod
+    def check(minio):
+        return file_exists(steam_reviews_rest_file, minio)

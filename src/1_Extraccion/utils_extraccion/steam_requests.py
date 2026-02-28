@@ -261,7 +261,7 @@ def get_appreviewhistogram(appid, session, release_date):
 if __name__ == "__main__":
     pass
 
-def get_resenyas(id, sesion):
+def get_resenyas(id, sesion, is_top_100):
     """
     Obtiene y procesa información relativa a las reseñas de un juego de Steam. Extrae
     las métricas más importantes que almacena en un diccionario.
@@ -279,32 +279,36 @@ def get_resenyas(id, sesion):
     # con un máximo de 100 reseñas por página. Por último se actualiza el cursor para obtener la url de la siguiente página
     url_begin = "https://store.steampowered.com/appreviews/"
     url = url_begin + str(id)
-    resenyas_juego = {"datos_resumen": {}, "lista_resenyas": []}
+    game_reviews = {"datos_resumen": {}, "lista_resenyas": []}
     
     info = {"json":1, "language":"english", "purchase_type":"all", "filter":"all", "num_per_page":100,"cursor":"*"}
     data_json = _request_url(sesion, info, url)
     if not data_json:
         return {}
     
-    resenyas_juego["datos_resumen"] = data_json["query_summary"]
+    game_reviews["datos_resumen"] = data_json["query_summary"]
     
-    # Contador para obtener sólo la primera página de resultados, en caso de querer obtener más páginas modificar el valor en
-    # el while, si se quieren obtener todos las reseñas del juego, eliminar el parámetro cont
+    # Cont lleva la cuenta de cuantas reseñas llevamos
+    max_reviews = 1000 if is_top_100 else 10
     cont = 0
     
-    while (data_json["query_summary"].get("num_reviews") > 0 and cont < 1):
+    while (data_json["query_summary"].get("num_reviews") > 0 and cont < max_reviews):
         # Por cada review obtiene los valores más importantes
-        for review in data_json["reviews"]:
-            resenya = {}
-            resenya["id_resenya"] = review["recommendationid"]
-            resenya["id_usuario"] = review["author"].get("steamid")
-            resenya["texto"] = review["review"]
-            resenya["valoracion"] = review["voted_up"]
+        for rev in data_json["reviews"]:
+            if cont >= max_reviews:
+                break
+
+            review = {}
+            review["id_resenya"] = rev["recommendationid"]
+            review["id_usuario"] = rev["author"].get("steamid")
+            review["texto"] = rev["review"]
+            review["valoracion"] = rev["voted_up"]
             # El atributo peso determina la utilidad de la reseña, cuánto mayor es este mayor utilidad tiene la review,
             # el valor del peso puede ser string o int, esto debe ser tenido en cuenta a la hora de entrenar el modelo
-            resenya["peso"] = review["weighted_vote_score"]
-            resenya["early_access"] = review["written_during_early_access"]
-            resenyas_juego["lista_resenyas"].append(resenya)
+            review["peso"] = rev["weighted_vote_score"]
+            review["early_access"] = rev["written_during_early_access"]
+            game_reviews["lista_resenyas"].append(review)
+            cont += 1
         
         # Actualiza el valor del cursor
         info["cursor"] = data_json["cursor"]
@@ -312,7 +316,6 @@ def get_resenyas(id, sesion):
         # Se cargan los datos de la siguiente página de reviews
         data_json = _request_url(sesion, info, url)
         if not data_json:
-            return {}
-        cont = cont + 1
+            break
     
-    return resenyas_juego
+    return game_reviews
