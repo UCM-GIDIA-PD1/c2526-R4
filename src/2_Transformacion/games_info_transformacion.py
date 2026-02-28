@@ -100,13 +100,13 @@ if __name__ == '__main__':
     
     df['publishers'] = df['publishers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
     df['developers'] = df['developers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
-    df['required_age'] = df['required_age'].apply(lambda x: int(x))
+    df['num_languages'] = df['supported_languages'].apply(lambda x: len(x))
  
     # Dropeamos nulos y columnas sin usar
     df.dropna(subset=["recomendaciones_positivas","recomendaciones_negativas"],inplace = True)
     df["recomendaciones_totales"] = df["recomendaciones_positivas"] + df["recomendaciones_negativas"]
 
-    df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic'], inplace=True,errors="ignore")
+    df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', 'required_age'], inplace=True,errors="ignore")
     
 
     print('Almacenando')
