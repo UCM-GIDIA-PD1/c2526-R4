@@ -95,7 +95,7 @@ yt_statslist_file =  raw_data_path() / "youtube_statistics.jsonl.gz"
 # Script D
 steam_reviews_top100_file = raw_data_path() / "rest_games_total_reviews.json.gz"
 steam_reviews_rest_file = raw_data_path() / "top_100_games_total_reviews.json.gz"
-steam_reviews_file = raw_data_path() / "steam_reviews.json.gz"
+steam_reviews_file = raw_data_path() / "steam_reviews.jsonl.gz"
 
 # Script E
 banners_file = raw_data_path() / "info_imagenes.jsonl.gz"
