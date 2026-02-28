@@ -301,7 +301,7 @@ def get_resenyas(id, sesion, is_top_100):
             review = {}
             review["id_resenya"] = rev["recommendationid"]
             review["id_usuario"] = rev["author"].get("steamid")
-            review["texto"] = rev["review"]
+            review["texto"] = rev["review"].strip()
             review["valoracion"] = rev["voted_up"]
             # El atributo peso determina la utilidad de la reseña, cuánto mayor es este mayor utilidad tiene la review,
             # el valor del peso puede ser string o int, esto debe ser tenido en cuenta a la hora de entrenar el modelo

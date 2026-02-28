@@ -42,11 +42,12 @@ def _get_name(x):
 
 if __name__ == "__main__":
     
+    print('Obteniendo archivo')
     input_file = raw_data_path() / "games_info.jsonl.gz"
-
     data = read_file(input_file)
     assert data, 'No se ha podido leer el archivo'
     
+    print('Tranformando a dataframe')
     # Se crea el dataframe base
     df = pd.DataFrame(data)
     
@@ -70,6 +71,7 @@ if __name__ == "__main__":
     filepath_top100 = raw_data_path() / "top_100_games_total_reviews.json.gz"
     filepath_rest = raw_data_path() / "rest_games_total_reviews.json.gz"
     
+    print('Almacenando')
     # Almacenar los dataframes en las rutas indicadas
     df_top_100_sorted.to_json(filepath_top100, orient= "records", compression= "gzip")
     df_rest_sorted.to_json(filepath_rest, orient= "records", compression= "gzip")

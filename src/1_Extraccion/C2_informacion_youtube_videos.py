@@ -121,7 +121,7 @@ def C2_informacion_youtube_videos(minio):
 
                 # Obtenemos información del juego solo si la lista no está vacía
                 if video_id_list:
-                    print(f"{nombre}")
+                    pbar.write(f"{nombre}")
                     jsonl['video_statistics'] = _process_game(youtube, video_id_list)
 
                 curr_idx += 1
