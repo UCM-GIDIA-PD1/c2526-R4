@@ -6,7 +6,7 @@ de juegos (19900).
 """
 
 import pandas as pd
-from src.utils.config import raw_data_path, processed_data_path
+from src.utils.config import raw_data_path
 from src.utils.files import read_file
 
 def _get_total_reviews(x):
@@ -67,8 +67,8 @@ if __name__ == "__main__":
     # Dataframe con los juegos restantes
     df_rest_sorted = df_sorted.iloc[100:20000]
 
-    filepath_top100 = processed_data_path() / "top_100_games_total_reviews.json.gz"
-    filepath_rest = processed_data_path() / "rest_games_total_reviews.json.gz"
+    filepath_top100 = raw_data_path() / "top_100_games_total_reviews.json.gz"
+    filepath_rest = raw_data_path() / "rest_games_total_reviews.json.gz"
     
     # Almacenar los dataframes en las rutas indicadas
     df_top_100_sorted.to_json(filepath_top100, orient= "records", compression= "gzip")
