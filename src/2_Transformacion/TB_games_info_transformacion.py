@@ -6,6 +6,7 @@ de pandas creando columnas nuevas y eliminando columnas innecesarias.
 import pandas as pd
 from src.utils.config import raw_data_path, processed_data_path
 from src.utils.files import read_file
+from src.utils.config import steam_games_parquet_file, gamelist_file
 
 def _get_name(x):
     '''
@@ -79,8 +80,7 @@ def price_range(x):
 if __name__ == '__main__':
 
     print('Obteniendo archivo')
-    games_info_path = raw_data_path() / 'games_info.jsonl.gz'
-    games_info = read_file(games_info_path)
+    games_info = read_file(gamelist_file)
     assert games_info, 'No se ha podido leer el archivo'
 
     print('Tranformando a dataframe')
@@ -111,5 +111,5 @@ if __name__ == '__main__':
 
     print('Almacenando')
     # Almacenamos en parquet y csv
-    df.to_parquet(processed_data_path() / "games_info.parquet")
+    df.to_parquet(steam_games_parquet_file)
     # df.to_csv('data/games_info.csv', index=False)

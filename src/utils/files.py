@@ -186,6 +186,11 @@ def erase_file(filepath, minio = {"minio_write": False, "minio_read": False}):
     
 def file_exists(filepath, minio = {"minio_write": False, "minio_read": False}):
     if not minio["minio_read"]:
+        if isinstance(filepath, list):
+            ret = True
+            for file in filepath:
+                ret = ret and (os.path.exists(file) or os.path.exists(os.path.join("data", file)))
+            return ret
         return os.path.exists(filepath) or os.path.exists(os.path.join("data", filepath))
     else: 
         return file_exists_minio(filepath)
