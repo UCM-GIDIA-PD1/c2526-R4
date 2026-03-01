@@ -10,6 +10,7 @@ dependencies = [
     "google-api-python-client>=2.189.0",
     "importlib>=1.0.4",
     "ipykernel>=7.2.0",
+    "langdetect>=1.0.9",
     "lxml>=6.0.2",
     "matplotlib>=3.10.8",
     "minio>=7.2.20",
@@ -26,4 +27,5 @@ dependencies = [
     "torch>=2.10.0",
     "torchvision>=0.25.0",
     "tqdm>=4.67.3",
+    "unidecode>=1.4.0",
 ]
