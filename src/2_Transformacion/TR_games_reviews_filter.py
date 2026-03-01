@@ -6,7 +6,7 @@ de juegos (19900).
 """
 
 import pandas as pd
-from src.utils.config import raw_data_path
+from src.utils.config import steam_reviews_top100_file, steam_reviews_rest_file, gamelist_file
 from src.utils.files import read_file
 
 def _get_total_reviews(x):
@@ -43,8 +43,7 @@ def _get_name(x):
 if __name__ == "__main__":
     
     print('Obteniendo archivo')
-    input_file = raw_data_path() / "games_info.jsonl.gz"
-    data = read_file(input_file)
+    data = read_file(gamelist_file)
     assert data, 'No se ha podido leer el archivo'
     
     print('Tranformando a dataframe')
@@ -68,11 +67,9 @@ if __name__ == "__main__":
     # Dataframe con los juegos restantes
     df_rest_sorted = df_sorted.iloc[100:20000]
 
-    filepath_top100 = raw_data_path() / "top_100_games_total_reviews.json.gz"
-    filepath_rest = raw_data_path() / "rest_games_total_reviews.json.gz"
     
     print('Almacenando')
     # Almacenar los dataframes en las rutas indicadas
-    df_top_100_sorted.to_json(filepath_top100, orient= "records", compression= "gzip")
-    df_rest_sorted.to_json(filepath_rest, orient= "records", compression= "gzip")
+    df_top_100_sorted.to_json(steam_reviews_top100_file, orient= "records", compression= "gzip")
+    df_rest_sorted.to_json(steam_reviews_rest_file, orient= "records", compression= "gzip")
     
