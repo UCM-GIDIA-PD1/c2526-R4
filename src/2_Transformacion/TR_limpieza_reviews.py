@@ -1,4 +1,4 @@
-from src.utils.config import steam_reviews_parquet_file, steam_reviews_file
+from src.utils.config import steam_reviews_parquet_file, raw_data_path
 from src.utils.files import read_file
 import pandas as pd
 import unicodedata
@@ -53,7 +53,8 @@ def limpieza_final(texto):
 
 if __name__ == "__main__":
     print("Ejecutando limpieza reseñas\n")
-    raw = read_file(steam_reviews_file)
+    path = raw_data_path() / "steam_reviews.jsonl.gz"
+    raw = read_file(path)
     df = to_dataframe(raw) # columnas: appid, is_positive, weight, text
 
     print("Primera fase limpieza...")
