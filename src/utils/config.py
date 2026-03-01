@@ -76,6 +76,7 @@ def error_log_path():
 
 
 # Variables de proyecto
+id = "" if os.environ.get("PD1_ID") is None else f"_{os.environ.get('PD1_ID')}"
 members = 6
 config_file = config_path() / "config.json"
 
@@ -84,16 +85,16 @@ appidlist_file = raw_data_path() / "appids_list.json.gz"
 
 # Script B
 steam_log_file = error_log_path() / "steam_log_file.jsonl"
-gamelist_file = raw_data_path() / "games_info.jsonl.gz"
+gamelist_file = raw_data_path() / f"games_info{id}.jsonl.gz"
 
 # Script C1
-youtube_scraping_file = raw_data_path() / "info_steam_youtube1.jsonl.gz"
+youtube_scraping_file = raw_data_path() / f"info_steam_youtube1{id}.jsonl.gz"
 
 # Script C2
-yt_statslist_file =  raw_data_path() / "youtube_statistics.jsonl.gz"
+yt_statslist_file =  raw_data_path() / f"youtube_statistics{id}.jsonl.gz"
 
 # Script D
-steam_reviews_file = raw_data_path() / "steam_reviews.jsonl.gz"
+steam_reviews_file = raw_data_path() / f"steam_reviews{id}.jsonl.gz"
 
 # Script E
 banners_file = raw_data_path() / "info_imagenes.jsonl.gz"

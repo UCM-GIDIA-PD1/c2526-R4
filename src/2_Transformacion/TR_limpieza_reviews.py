@@ -66,7 +66,7 @@ if __name__ == "__main__":
     print("Segunda fase limpieza...")
     df_en["text"] = df_en["text"].apply(limpieza_final) # emojis, unicode, ascii
     df_en["weight"] = df_en["weight"].astype(float)
-
+    df.drop(columns=["language"], inplace=True)
     print("Guardando fichero")
     df_en.to_parquet(steam_reviews_parquet_file)
     print("Fin de ejecución")
