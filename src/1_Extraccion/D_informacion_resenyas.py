@@ -64,8 +64,6 @@ def D_informacion_resenyas(minio):
                 pbar.set_description(f"Procesando appid: {appid}")
                 _download_game_data(game, curr_idx, sesion)
                 write_to_file(game, steam_reviews_file)
-                wait = uniform(1.5, 2)
-                time.sleep(wait)
                 curr_idx += 1
                 
     except SteamAPIException as e:

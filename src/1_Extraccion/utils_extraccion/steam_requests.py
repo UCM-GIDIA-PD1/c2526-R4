@@ -281,7 +281,7 @@ def get_resenyas(id, sesion, is_top_100):
     url = url_begin + str(id)
     game_reviews = {"datos_resumen": {}, "lista_resenyas": []}
     
-    info = {"json":1, "language":"english", "purchase_type":"all", "filter":"all", "num_per_page":100,"cursor":"*"}
+    info = {"json":1, "language":"english", "purchase_type":"all", "filter":"recent", "num_per_page":100,"cursor":"*"}
     data_json = _request_url(sesion, info, url)
     if not data_json:
         return {}
