@@ -108,3 +108,7 @@ steam_reviews_rest_file = raw_data_path() / "top_100_games_total_reviews.json.gz
 
 # Script TB
 steam_games_parquet_file = processed_data_path() / "games_info.parquet"
+
+# Script TY
+yt_stats_parquet_file = processed_data_path() / "yt_stats.parquet"
+yt_statsPCA_parquet_file = processed_data_path() / "yt_statsPCA.parquet"
