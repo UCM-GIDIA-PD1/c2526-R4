@@ -76,7 +76,7 @@ def error_log_path():
 
 
 # Variables de proyecto
-id = "" if os.environ.get("PD1_ID") is None else f"_{os.environ.get('PD1_ID')}"
+#id = "" if os.environ.get("PD1_ID") is None else f"_{os.environ.get('PD1_ID')}"
 members = 6
 config_file = config_path() / "config.json"
 
@@ -85,19 +85,21 @@ appidlist_file = raw_data_path() / "appids_list.json.gz"
 
 # Script B
 steam_log_file = error_log_path() / "steam_log_file.jsonl"
-gamelist_file = raw_data_path() / f"games_info{id}.jsonl.gz"
+gamelist_file = raw_data_path() / f"games_info.jsonl.gz"
 
 # Script C1
-youtube_scraping_file = raw_data_path() / f"info_steam_youtube1{id}.jsonl.gz"
+youtube_scraping_file = raw_data_path() / f"info_steam_youtube1.jsonl.gz"
 
 # Script C2
-yt_statslist_file =  raw_data_path() / f"youtube_statistics{id}.jsonl.gz"
+yt_statslist_file =  raw_data_path() / f"youtube_statistics.jsonl.gz"
 
 # Script D
-steam_reviews_file = raw_data_path() / f"steam_reviews{id}.jsonl.gz"
+steam_reviews_file = raw_data_path() / f"steam_reviews.jsonl.gz"
 
 # Script E
 banners_file = raw_data_path() / "info_imagenes.jsonl.gz"
+banners_file_popularity = raw_data_path() / "info_imagenes_popularidad.jsonl.gz"
+banners_file_prices = raw_data_path() / "info_imagenes_precios.jsonl.gz"
 
 # ------ SCRIPTS DE TRANSFORMACIÓN ------ #
 # Script TI
@@ -109,7 +111,14 @@ steam_reviews_rest_file = raw_data_path() / "top_100_games_total_reviews.json.gz
 steam_reviews_parquet_file = processed_data_path() / "steam_reviews_processed.parquet"
 # Script TB
 steam_games_parquet_file = processed_data_path() / "games_info.parquet"
+steam_games_parquet_file_popularity = processed_data_path() / "games_info_popularity.parquet"
+steam_games_parquet_file_prices = processed_data_path() / "games_info_popularity.parquet"
 
 # Script TY
 yt_stats_parquet_file = processed_data_path() / "yt_stats.parquet"
 yt_statsPCA_parquet_file = processed_data_path() / "yt_statsPCA.parquet"
+
+# Scripts P
+popularity = processed_data_path() / "popularidad.parquet"
+prices = processed_data_path() / "precios.parquet"
+reviews =  processed_data_path() / "resenyas.parquet"

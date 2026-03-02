@@ -1,7 +1,7 @@
 from src.utils.dependences import appidlist_file_dependence, gamelist_file_dependence, youtube_scraping_file_dependence
 from src.utils.dependences import steam_api_dependence, youtube_api_dependence, banners_file_dependence
 from src.utils.dependences import steam_reviews_top100_file_dependence, steam_reviews_rest_file_dependence
-from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file
+from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, P_banners_file
 from src.utils.config import steam_reviews_file, banners_file, steam_reviews_top100_file, steam_reviews_rest_file
 
 main_extraccion_info = {
@@ -51,8 +51,8 @@ main_transformacion_info = {
               "dependences" : [gamelist_file_dependence]
         },
         "TI": {"fichero": "TI_info_imagenes_transformacion", 
-              "salida": steam_reviews_file.name, 
-              "ejecutable": "TI_info_imagenes_transformacion", 
+              "salida": P_banners_file.name, 
+              "ejecutable": "info_imagenes_transformacion", 
               "usar": False, 
               "dependences" : [gamelist_file_dependence, banners_file_dependence]
         },

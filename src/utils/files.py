@@ -191,7 +191,7 @@ def file_exists(filepath, minio = {"minio_write": False, "minio_read": False}):
             for file in filepath:
                 ret = ret and (os.path.exists(file) or os.path.exists(os.path.join("data", file)))
             return ret
-        return os.path.exists(filepath) or os.path.exists(os.path.join("data", filepath))
+        return os.path.exists(os.path.join("data/processed", filepath)) or os.path.exists(os.path.join("data/raw", filepath))
     else: 
         return file_exists_minio(filepath)
         
