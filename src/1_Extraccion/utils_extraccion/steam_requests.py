@@ -1,8 +1,6 @@
 import os
 import requests
 from tqdm import tqdm
-from src.utils.config import members
-from src.utils.files import write_to_file, read_file
 from src.utils.date import format_date_string, unix_to_date_string
 from src.utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
 
@@ -29,20 +27,18 @@ def _request_url(session, params_info, url):
         dict | None: Datos decodificados del JSON si la petición es exitosa. 
         Retorna None si ocurre un error de conexión o un estado HTTP erróneo.
     """
+
     try:
         response = session.get(url, params=params_info)
         response.raise_for_status()
         content_type = response.headers.get("content-type", "")
         if("application/json" not in content_type):
             raise SteamAPIException("Request does not return a json")
-
         return response.json()
     except requests.exceptions.HTTPError as e:
         raise SteamAPIException(f"HTTP error: {e}")
-    
     except requests.exceptions.RequestException as e:
         raise SteamAPIException(f"Request error: {e}")
-    
     except ValueError as e:
         raise SteamAPIException(f"Json decodification error: {e}")
 
@@ -198,13 +194,12 @@ def get_appreviewhistogram(appid, session, release_date):
     # Caso en el que no haya ninguna review: los rollups están vacíos
     if data.get("results") is None or data["results"].get("rollups") is None:
         raise ReviewhistogramException("Appreviewhistogram request with no content", appid)
-        
 
     appreviewhistogram["start_date"] = unix_to_date_string(data["results"]["start_date"])
     appreviewhistogram["end_date"] = unix_to_date_string(data["results"]["end_date"])
     appreviewhistogram["rollup_type"] = data["results"]["rollup_type"]
-
     release_day = release_date.split("-")[2]
+
     # Buscamos que barra del histograma hay que coger
     idx = 0
     rollups = data["results"].get("rollups", [])
@@ -216,7 +211,6 @@ def get_appreviewhistogram(appid, session, release_date):
     for i in range(len(rollups)):
         idx = i
         rollup_start_date = unix_to_date_string(rollups[i].get("date"))
-
         if rollup_start_date > release_date:
             idx = max(0, idx-1)
             break
@@ -258,9 +252,6 @@ def get_appreviewhistogram(appid, session, release_date):
 
     return appreviewhistogram
 
-if __name__ == "__main__":
-    pass
-
 def get_resenyas(id, sesion, is_top_100):
     """
     Obtiene y procesa información relativa a las reseñas de un juego de Steam. Extrae
@@ -274,15 +265,17 @@ def get_resenyas(id, sesion, is_top_100):
         resenyas_juego (dict): Contiene un campo con la información general acerca de las 
         reseñas del juego (datos_resumen) y un campo que contiene la lista de reseñas (lista_resenyas). 
         En caso de que el request no se complete, se devuelve un diccionario vacío.
-    """    
+    """
+
     # Obtiene las reseñas de un juego, como parámetros tiene filtro por idioma, aparecen ordenadas las reseñas por utilidad,
     # con un máximo de 100 reseñas por página. Por último se actualiza el cursor para obtener la url de la siguiente página
     url_begin = "https://store.steampowered.com/appreviews/"
     url = url_begin + str(id)
-    game_reviews = {"datos_resumen": {}, "lista_resenyas": []}
     
+    game_reviews = {"datos_resumen": {}, "lista_resenyas": []}
     info = {"json":1, "language":"english", "purchase_type":"all", "filter":"recent", "num_per_page":100,"cursor":"*"}
     data_json = _request_url(sesion, info, url)
+
     if not data_json:
         return {}
     

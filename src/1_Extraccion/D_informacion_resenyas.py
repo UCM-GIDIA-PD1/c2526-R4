@@ -9,7 +9,7 @@ from src.utils.minio_server import upload_to_minio
 from src.utils.exceptions import SteamAPIException
 
 from utils_extraccion.steam_requests import get_resenyas
-from utils_extraccion.sesion import get_pending_games, tratar_existe_fichero, overwrite_confirmation, update_config
+from utils_extraccion.sesion import get_pending_games, ask_overwrite_file, overwrite_confirmation, update_config
 
 
 '''
@@ -45,7 +45,7 @@ def D_informacion_resenyas(minio):
         if file_exists(steam_reviews_file, minio):
             origen = " en MinIO" if minio["minio_read"] else ""
             mensaje = f"El fichero de reseñas ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
-            overwrite_file = tratar_existe_fichero(mensaje)
+            overwrite_file = ask_overwrite_file(mensaje)
             if overwrite_file:
                 # asegurarse de que se quiere eliminar toda la información
                 if overwrite_confirmation():

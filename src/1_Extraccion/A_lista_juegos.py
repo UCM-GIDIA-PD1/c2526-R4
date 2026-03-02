@@ -47,7 +47,6 @@ Introduce elección: """
 
     return int(n_appids), str(last_appid)
 
-
 def A_lista_juegos(minio):
     """
     Obtiene la lista completa de appids de los juegos de Steam
@@ -85,7 +84,3 @@ def A_lista_juegos(minio):
     write_to_file(data, appidlist_file, minio)
     list_info = {"last_appid": data[-1], "size":len(data)}
     update_config("A", list_info)
-    
-
-if __name__ == "__main__":
-    A_lista_juegos()

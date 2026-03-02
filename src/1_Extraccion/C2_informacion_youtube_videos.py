@@ -1,17 +1,4 @@
-import os
-import json
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from tqdm import tqdm
-
-from src.utils.files import erase_file, file_exists, write_to_file
-from src.utils.config import yt_statslist_file
-from src.utils.minio_server import upload_to_minio
-
-from utils_extraccion.sesion import get_pending_games, overwrite_confirmation, tratar_existe_fichero, update_config
-
-
-'''
+"""
 Script que almacena las estadísticas relativas a cada vídeo.
 
 Requisitos:
@@ -22,20 +9,31 @@ Entrada:
 
 Salida:
 - Los datos se almacenan en la carpeta data/ en formato JSONL comprimido.
-'''
+"""
+
+import os
+import json
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from tqdm import tqdm
+
+from src.utils.files import erase_file, file_exists, write_to_file
+from src.utils.config import yt_statslist_file
+from src.utils.minio_server import upload_to_minio
+
+from utils_extraccion.sesion import get_pending_games, overwrite_confirmation, ask_overwrite_file, update_config
 
 def _get_apikey():
-    '''
+    """
     Devuelve la API KEY de Youtube de las variables del sistema
-    '''
+    """
     # Cargamos la API KEY del sistema
-    key = os.environ.get('API_KEY_YT')
+    key = os.environ.get("API_KEY_YT")
     assert key, "La API_KEY no ha sido cargada"
     return key
 
-
 def _process_game(youtube_service, video_id_list):
-    ''' 
+    """
     Dada la build de cliente de la API de Youtube y un diccionario de ids de vídeos, devuelve una lista con el resultado del 
     request de las estadísticas de esos vídeos (Solo se añaden los vídeos categorizados como gaming)
 
@@ -45,7 +43,7 @@ def _process_game(youtube_service, video_id_list):
 
     Returns:
         list: Lista con la información de las estadísticas de los vídeos (viewCount, likeCount, favoriteCount, commentCount)
-    '''
+    """
     # Si el juego no tiene videos, no se procesa
     if not video_id_list:
         return []
@@ -74,11 +72,7 @@ def _process_game(youtube_service, video_id_list):
             )
     return stats_list
 
-
 def C2_informacion_youtube_videos(minio):
-    ''' 
-    
-    '''
     try:
         # Obtener información de la sesión
         start_idx, curr_idx, end_idx = -1,-1,-1
@@ -91,9 +85,9 @@ def C2_informacion_youtube_videos(minio):
         
         # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
         if file_exists(yt_statslist_file, minio):
-            origen = " en MinIO" if minio["minio_read"] else ""
-            mensaje = f"El fichero de información de YouTube ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
-            overwrite_file = tratar_existe_fichero(mensaje)
+            origin = " en MinIO" if minio["minio_read"] else ""
+            mensaje = f"El fichero de información de YouTube ya existe{origin}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
+            overwrite_file = ask_overwrite_file(mensaje)
             if overwrite_file:
                 # asegurarse de que se quiere eliminar toda la información
                 if overwrite_confirmation():
@@ -110,18 +104,18 @@ def C2_informacion_youtube_videos(minio):
                 appid = app.get('id')
                 pbar.set_description(f"Procesando appid {appid}")
 
-                nombre = app.get("name")
+                name = app.get("name")
                 video_id_list = app.get('video_statistics')
 
                 jsonl = {
                     'id' : appid,
-                    'name' : nombre,
+                    'name' : name,
                     'video_statistics' : []
                 }
 
                 # Obtenemos información del juego solo si la lista no está vacía
                 if video_id_list:
-                    pbar.write(f"{nombre}")
+                    pbar.write(f"{name}")
                     jsonl['video_statistics'] = _process_game(youtube, video_id_list)
 
                 curr_idx += 1

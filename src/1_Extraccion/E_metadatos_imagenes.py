@@ -13,7 +13,7 @@ from src.utils.minio_server import upload_to_minio
 from src.utils.files import write_to_file, erase_file, file_exists
 from src.utils.config import banners_file, project_root, data_path
 
-from utils_extraccion.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation, handle_input
+from utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games, overwrite_confirmation, handle_input
 """
 Script que extrae de las imágenes el brillo medio y un vector de embeddings mediante una red neuronal
 preentrenada de la librería pytorch.
@@ -125,7 +125,7 @@ def E_metadatos_imagenes(minio):
     if file_exists(banners_file, minio):
             origen = " en MinIO" if minio["minio_read"] else ""
             mensaje = f"El fichero de lista de appids ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
-            overwrite_file = tratar_existe_fichero(mensaje)
+            overwrite_file = ask_overwrite_file(mensaje)
             if overwrite_file:
                 # asegurarse de que se quiere eliminar toda la información
                 if overwrite_confirmation():
