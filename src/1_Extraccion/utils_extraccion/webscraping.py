@@ -1,3 +1,8 @@
+"""
+Módulo enfocado al WebScraping que tiene como objectivo administrar la sesión de TOR (abrir y
+rotar la IP), scrapeando directamente de YouTube.
+"""
+
 from DrissionPage import ChromiumPage, ChromiumOptions
 from numpy import random as np_random
 import stem.control
@@ -7,12 +12,6 @@ from time import sleep
 from random import choice
 from src.utils.config import config_path
 import platform
-
-
-"""
-Módulo enfocado al WebScraping que tiene como objectivo administrar la sesión de TOR (abrir y
-rotar la IP), scrapeando directamente de YouTube.
-"""
 
 sys_platform = platform.system()
 
@@ -41,7 +40,7 @@ elif sys_platform == 'Darwin': # Mac
     ]
 
 # Resoluciones de pantalla comunes:
-resoluciones_comunes = [
+common_resolutions = [
     (1920, 1080), (1366, 768), (1536, 864), 
     (1440, 900), (1280, 720), (1600, 900)
 ]
@@ -80,17 +79,17 @@ def start_tor():
         None: La función realiza una acción de sistema y no devuelve ningún valor.
     """
     if not _is_tor_running():
-        print("Ejecutando TOR...")
+        print("Initializing TOR...")
 
         # Abrimos TOR (IMPORTANTE: hace falta tener la carpeta de TOR en PATH para que se pueda abrir)
         tor_name = "tor.exe" if platform.system() == "Windows" else "tor"
         Popen([tor_name, '-f', str(TORRC_DIR)], stdout=DEVNULL, stderr=DEVNULL)
         sleep(10)
-        assert _is_tor_running(), "TOR no se ha ejecutado correctamente"
+        assert _is_tor_running(), "couldn't start TOR"
     else:
-        print("TOR ya está siendo ejecutado")
+        print("TOR is running")
 
-def renew_tor_ip(sesion):
+def renew_tor_ip(session):
     """
     Cierra la sesión pasada por parámetro, hace una rotación de IP y posteriormente
     crea otro ChromiumPage ya configurado con la nueva IP.
@@ -101,11 +100,11 @@ def renew_tor_ip(sesion):
     Returns:
         ChromiumPage: Nueva sesión de ChromiumPage con IP nueva.
     """
-    print("Cambiamos de IP")
+    print("Switching de IP")
 
     # Cerramos la sesión antigua
-    if sesion:
-        sesion.quit()
+    if session:
+        session.quit()
 
     # Rotación de IP
     try:
@@ -114,7 +113,7 @@ def renew_tor_ip(sesion):
             controller.signal(stem.Signal.NEWNYM)
             sleep(5)
     except stem.SocketError:
-        print("Error: No se pudo conectar con el puerto de control de Tor (9051).")
+        print("Error: couldn't connect to Tor's control port (9051).")
         return None
     
     # Configuramos la nueva sesion de DrissionPage
@@ -137,13 +136,13 @@ def new_configured_chromium_page():
     co.set_user_agent(np_random.choice(user_agents))
     co.set_argument('--proxy-server=socks5://127.0.0.1:9050') # Puerto que usa TOR
     co.set_argument('--password-store=basic') # Evitar que pida contraseña en Linux
-    ancho_base, alto_base = choice(resoluciones_comunes)
+    ancho_base, alto_base = choice(common_resolutions)
     alto = alto_base + np_random.randint(-20, 0) # Simulamos el tamaño de la barra de tareas de manera aleatoria
     co.set_argument(f'--window-size={ancho_base},{alto}')
 
     return ChromiumPage(co)
 
-def busqueda_youtube(nombre_juego, fecha, sesion):
+def search_youtube(game_name, date, session):
     """
     Scrapea YouTube a partir del nombre del juego, la fecha de salida para buscar
     antes de la misma, y la sesión de DrissionPage actual.
@@ -158,16 +157,16 @@ def busqueda_youtube(nombre_juego, fecha, sesion):
             la búsqueda de los juegos
     """
     # url
-    nombre_formateado = nombre_juego.replace(' ', '+')
-    query = '%22' + nombre_formateado + '%22' + '+before%3A' + fecha
+    nombre_formateado = game_name.replace(' ', '+')
+    query = '%22' + nombre_formateado + '%22' + '+before%3A' + date
     url = "https://www.youtube.com/results?search_query=" + query + "&sp=CAM%253D"
 
     # Navegamos a la url
-    sesion.get(url)
+    session.get(url)
 
     try:
         # Scrapeamos hasta la sección de la columna de vídeos
-        feed_videos = sesion.ele('tag:ytd-two-column-search-results-renderer')
+        feed_videos = session.ele('tag:ytd-two-column-search-results-renderer')
         videos = feed_videos.eles("tag:ytd-video-renderer")
         lista_enlaces = []
 

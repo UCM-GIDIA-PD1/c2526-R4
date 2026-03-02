@@ -1,4 +1,4 @@
-from src.utils.files import read_file, write_to_file, erase_file, file_exists
+from src.utils.files import read_file, write_to_file, file_exists
 from src.utils.config import config_file, appidlist_file, gamelist_file, youtube_scraping_file, steam_reviews_top100_file, steam_reviews_rest_file, get_appid_range
 import os
 
@@ -57,7 +57,7 @@ def handle_input(initial_message, isResponseValid = lambda x: True):
     
     return respuesta
 
-def tratar_existe_fichero(message):
+def ask_overwrite_file(message):
     """
     Menú con opción de añadir contenido al fichero existente o sobreescribirlo.
     
