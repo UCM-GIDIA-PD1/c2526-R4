@@ -2,7 +2,7 @@ import os
 import sys
 import importlib
 
-from src.utils.main_config import main_scripts_info
+from src.utils.main_config import main_transformacion_info, main_extraccion_info
 from src.utils.visuals import show_menu
 from src.utils.dependences import minio_dependence
 
@@ -26,24 +26,30 @@ def ejecutar_scripts(scripts_info, minio_info):
 
 def main():
     minio_info = {"minio_write": False, "minio_read": False}
-    scripts_info = main_scripts_info
+    scripts_info = [main_extraccion_info, main_transformacion_info]
+    page = 0 # 0 --> generico | 1 --> extracción | 2 --> transformacion
 
-    ejecutando = True  
-
+    ejecutando = True
     while ejecutando:
-        show_menu(scripts_info, minio_info)
+        info_actual = scripts_info[page - 1] if page != 0 else {}
+        show_menu(info_actual, page, minio_info)
         opcion = input("\nSelección > ").upper().strip()
         
         if opcion == "EXIT":
             ejecutando = False
-        elif opcion == "RUN":
-            ejecutar_scripts(scripts_info, minio_info)
-        elif opcion == "MINIOS":
-            minio_info["minio_write"] = not minio_info["minio_write"]
-        elif opcion == "MINIOD":
-            minio_info["minio_read"] = not minio_info["minio_read"]
-        elif opcion in scripts_info:
-            scripts_info[opcion]["usar"] = not scripts_info[opcion]["usar"]
+
+        elif opcion in ["0", "1", "2"]:
+            page = int(opcion) 
+
+        elif page != 0:
+            if opcion == "RUN":
+                ejecutar_scripts(info_actual, minio_info)
+            elif opcion == "MINIOS":
+                minio_info["minio_write"] = not minio_info["minio_write"]
+            elif opcion == "MINIOD":
+                minio_info["minio_read"] = not minio_info["minio_read"]
+            elif opcion in info_actual:
+                info_actual[opcion]["usar"] = not info_actual[opcion]["usar"]
 
 if __name__ == "__main__":
     main()
