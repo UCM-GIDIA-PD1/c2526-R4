@@ -1,7 +1,7 @@
 from src.utils.config import appidlist_file
 from src.utils.files import read_file, write_to_file, file_exists
 from utils_extraccion.steam_requests import get_appids
-from utils_extraccion.sesion import handle_input, tratar_existe_fichero, read_config, update_config
+from utils_extraccion.sesion import handle_input, ask_overwrite_file, read_config, update_config
 
 """
 Script que itera sobre la API de Steam y devuelve un JSON comprimido con n juegos y sus APPID.
@@ -20,24 +20,24 @@ Salida:
 - Se almacena una lista de los APPIDs.
 """
     
-def _parametros_de_request():
-    mensaje = """Elige modo de ejecución:\n\n1. Elegir manualmente el los parámetros\n2. Extraer nuevos juegos\n
+def _get_request_params():
+    message = """Elige modo de ejecución:\n\n1. Elegir manualmente el los parámetros\n2. Extraer nuevos juegos\n
 Introduce elección: """
 
-    respuesta = handle_input(mensaje, lambda x: x in {"1", "2"})
+    response = handle_input(message, lambda x: x in {"1", "2"})
     n_appids = 0
     last_appid = 0
     
-    if respuesta == "1": # Elegir manualmente el los parámetros
-        mensaje = "Número de appids a extraer: "
-        n_appids = int(handle_input(mensaje, lambda x: x.isdigit()))
+    if response == "1": # Elegir manualmente el los parámetros
+        message = "Número de appids a extraer: "
+        n_appids = int(handle_input(message, lambda x: x.isdigit()))
         
-        mensaje = "Appid desde el que hay que extraer: "
-        last_appid = handle_input(mensaje, lambda x: x.isdigit())
+        message = "Appid desde el que hay que extraer: "
+        last_appid = handle_input(message, lambda x: x.isdigit())
 
-    elif respuesta == "2": # Extraer nuevos juegos
-        mensaje = "Número de appids nuevos a extraer: "
-        n_appids = int(handle_input(mensaje, lambda x: x.isdigit()))
+    elif response == "2": # Extraer nuevos juegos
+        message = "Número de appids nuevos a extraer: "
+        n_appids = int(handle_input(message, lambda x: x.isdigit()))
         info = read_config("A", {"last_appid" : 0, "size" : 0})
         if info is None:
             appid_list = read_file(appidlist_file)
@@ -64,16 +64,16 @@ def A_lista_juegos(minio):
     # Si existe lista anterior, ¿se quiere sobreescribir o seguir a partir del mismo?
     overwrite_file = False
     if file_exists(appidlist_file, minio):
-        origen = " en MinIO" if minio["minio_read"] else ""
-        mensaje = f"El fichero de lista de appids ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
-        overwrite_file = tratar_existe_fichero(mensaje)
+        origin = " en MinIO" if minio["minio_read"] else ""
+        message = f"El fichero de lista de appids ya existe{origin}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
+        overwrite_file = ask_overwrite_file(message)
         if not overwrite_file:
             old_data = read_file(appidlist_file, minio)
             data.extend(old_data)
             seen = set(data)
 
     # Parámetros de request
-    n_appids, last_appid = _parametros_de_request()
+    n_appids, last_appid = _get_request_params()
 
     new_data = get_appids(n_appids, last_appid)
     for appid in new_data:
