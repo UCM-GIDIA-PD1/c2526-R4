@@ -76,7 +76,7 @@ def price_range(x):
     elif x >= 40:
         return '>40'
 
-def B_games_info_transformacion():
+def B_games_info_transformacion(minio):
     print('Obteniendo archivo')
     games_info = read_file(gamelist_file)
     assert games_info, 'No se ha podido leer el archivo'

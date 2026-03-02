@@ -39,7 +39,7 @@ def _get_name(x):
     else:
         return None
 
-def D1_games_reviews_filter():
+def D1_games_reviews_filter(minio):
     print('Obteniendo archivo')
     data = read_file(gamelist_file)
     assert data, 'No se ha podido leer el archivo'

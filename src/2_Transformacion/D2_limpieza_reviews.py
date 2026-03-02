@@ -51,7 +51,7 @@ def limpieza_final(texto):
     except:
         return ""
 
-def D2_limpieza_reviews():
+def D2_limpieza_reviews(minio):
     print("Ejecutando limpieza reseñas\n")
     raw = read_file(steam_reviews_file)
     df = to_dataframe(raw) # columnas: appid, is_positive, weight, text

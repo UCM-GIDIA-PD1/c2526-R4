@@ -22,7 +22,7 @@ def create_prices_parquet():
     df.dropna()
     df.to_parquet(prices)
 
-def create_popularity_parquet():
+def create_popularity_parquet(minio):
     """
     Crea el parquet del problema de la popularidad 
     """
