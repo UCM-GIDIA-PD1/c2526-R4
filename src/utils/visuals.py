@@ -30,8 +30,8 @@ def draw_dependency_line(label, dependence_obj, minio):
     check = f"[{settings['obtained']}]" if dependence_obj.check(minio) else "[ ]"
     print("║ " + linea_dep.ljust(settings["total_lenght"] - 10) + check.rjust(6) + " ║")
 
-def draw_scripts_section(scripts_info, keys):
-    show_header(" Documentos a ejecutar ")
+def draw_scripts_section(scripts_info, keys, title):
+    show_header(f"{title} - Documentos a ejecutar ")
     for i in range(0, len(keys), 2):
         k1 = keys[i]
         m1 = f"[{settings['marked']}]" if scripts_info[k1]["usar"] else "[ ]"
@@ -100,13 +100,48 @@ def draw_files_section(scripts_info, keys, minio_info):
         
     show_footer()
 
-def show_menu(scripts_info, minio_info):
+def draw_pagination(current_page):
+    nombres = {0: "menú", 1: "extracción", 2: "análisis"}
+    izq = f"<< {current_page - 1} [{nombres[current_page - 1]}]" if current_page > 0 else ""
+    der = f"[{nombres[current_page + 1]}] {current_page + 1} >>" if current_page < 2 else ""
+    print(f"{izq.ljust(48)}{der.rjust(48)}")
+
+def draw_main_menu():
+    draw_ascii_title()
+    show_header(" Selecciona página ")
+
+    col1 = "[1] Extracción".center(settings["centered"] - 2)
+    col2 = "[2] Análisis".center(settings["total_lenght"] - settings["centered"] - 2)
+    
+    print(format_line_two_columns("", ""))
+    print(f"║ {col1}{col2} ║")
+    print(format_line_two_columns("", ""))
+    show_footer()
+
+def draw_ascii_title():
+    ascii_art = r"""
+  _________ __                                                   .___.__        __                
+  /   _____//  |_  ____ _____    _____   _____________   ____   __| _/|__| _____/  |_  ___________ 
+  \_____  \\   __\/ __ \\__  \  /     \  \____ \_  __ \_/ __ \ / __ | |  |/ ___\   __\/  _ \_  __ \
+  /        \|  | \  ___/ / __ \|  Y Y  \ |  |_> >  | \/\  ___// /_/ | |  \  \___|  | (  <_> )  | \/
+  /_______  /|__|  \___  >____  /__|_|  / |   __/|__|    \___  >____ | |__|\___  >__|  \____/|__|   
+          \/           \/     \/      \/  |__|               \/     \/         \/                              
+    """
+    print(ascii_art)
+
+def show_menu(scripts_info, page, minio_info):
     os.system('cls' if os.name == 'nt' else 'clear') 
     keys = sorted(scripts_info.keys())
     
-    draw_scripts_section(scripts_info, keys)
-    draw_files_section(scripts_info, keys, minio_info)
+    if page == 0:
+        draw_main_menu()
+    else:
+        keys = sorted(scripts_info.keys())
+        title = ["Extracción", "Transformación"]
+        draw_scripts_section(scripts_info, keys, title[page-1])
+        draw_files_section(scripts_info, keys, minio_info)
+        draw_pagination(page)
 
-    print("\nPon la letra de un fichero para seleccionarlo/quitarlo.")
-    print("Pon MinioS o MinioD para activar la subida y descarga de ficheros a MinIO.")
-    print("Para ejecutar lo seleccionado RUN y para salir EXIT.")
+        print("\nPon la letra de un fichero para seleccionarlo/quitarlo o un número para cambiar de página.")
+        print("Pon MinioS o MinioD para activar la subida y descarga de ficheros a MinIO.")
+        print("Para ejecutar lo seleccionado RUN y para salir EXIT.")

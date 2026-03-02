@@ -1,10 +1,10 @@
 from src.utils.dependences import appidlist_file_dependence, gamelist_file_dependence, youtube_scraping_file_dependence
-from src.utils.dependences import steam_api_dependence, youtube_api_dependence, minio_dependence, ucm_vpn_dependence
+from src.utils.dependences import steam_api_dependence, youtube_api_dependence, banners_file_dependence
 from src.utils.dependences import steam_reviews_top100_file_dependence, steam_reviews_rest_file_dependence
-from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file
+from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, P_banners_file
 from src.utils.config import steam_reviews_file, banners_file, steam_reviews_top100_file, steam_reviews_rest_file
 
-main_scripts_info = {
+main_extraccion_info = {
         "A": {"fichero": "A_lista_juegos", 
               "salida": appidlist_file.name, 
               "ejecutable": "A_lista_juegos", 
@@ -40,7 +40,10 @@ main_scripts_info = {
               "ejecutable": "E_metadatos_imagenes", 
               "usar": False, 
               "dependences" : [gamelist_file_dependence]
-        },
+        }
+    }
+
+main_transformacion_info = {
         "TB": {"fichero": "TB_games_info_transformacion", 
               "salida": [steam_reviews_top100_file.name, steam_reviews_rest_file.name], 
               "ejecutable": "TB_games_info_transformacion", 
@@ -48,15 +51,27 @@ main_scripts_info = {
               "dependences" : [gamelist_file_dependence]
         },
         "TI": {"fichero": "TI_info_imagenes_transformacion", 
-              "salida": steam_reviews_file.name, 
-              "ejecutable": "TI_info_imagenes_transformacion", 
+              "salida": P_banners_file.name, 
+              "ejecutable": "info_imagenes_transformacion", 
               "usar": False, 
-              "dependences" : []
+              "dependences" : [gamelist_file_dependence, banners_file_dependence]
         },
         "TR": {"fichero": "TR_games_reviews_filter", 
               "salida": steam_reviews_file.name, 
               "ejecutable": "TR_games_reviews_filter", 
               "usar": False, 
               "dependences" : [gamelist_file_dependence]
-        }
+        },
+        "TI": {"fichero": "TR_games_reviews_filter", 
+              "salida": steam_reviews_file.name, 
+              "ejecutable": "TR_games_reviews_filter", 
+              "usar": False, 
+              "dependences" : []
+        },
+        "P": {"fichero": "P_crear_parquets_definitivos", 
+              "salida": steam_reviews_file.name, 
+              "ejecutable": "crear_parquets", 
+              "usar": False, 
+              "dependences" : [gamelist_file_dependence]
+        },
     }

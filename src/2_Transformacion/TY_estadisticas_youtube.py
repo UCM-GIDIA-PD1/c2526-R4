@@ -117,5 +117,3 @@ if __name__ == '__main__':
 
     print('Guardando dataframe reducido con PCA')
     df.to_parquet(yt_statsPCA_parquet_file)
-
-

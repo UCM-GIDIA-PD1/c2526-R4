@@ -1,3 +1,8 @@
+"""
+Dado el archivo banners_file.jsonl.gz aplica reducción de dimensionalidad sobre los vectores
+de 512 dimensiones convirtiéndolos en vectores de 2 o 3 dimensiones para poder visualizarlos.
+"""
+
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
@@ -54,6 +59,10 @@ def reduct_dataframes_from_models(df):
         dim_reduction(df, mod, matrix)
 
 def info_imagenes_transformacion(minio = {"minio_write": False, "minio_read": False}):
+    print("Ejecutano reducción de vectores de imágenes\n")
     df = join_B_and_E()
     reduct_dataframes_from_models(df)
     write_to_file(df.to_dict(), P_banners_file)
+
+if __name__ == "__main__":
+    info_imagenes_transformacion()
