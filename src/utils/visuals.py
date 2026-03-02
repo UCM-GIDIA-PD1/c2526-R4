@@ -52,26 +52,25 @@ def draw_files_section(scripts_info, keys, minio_info):
     else:
         show_header(" Ficheros y dependencias ")
 
-    # Ficheros
-    for i in range(0, len(keys), 2):
-        f1 = scripts_info[keys[i]]["salida"]
-        if not isinstance(f1, list):
-            f1 = [f1]
+    # Agrupamos todos los ficheros
+    all_files = []
+    for k in keys:
+        salida = scripts_info[k]["salida"]
+        if not isinstance(salida, list):
+            salida = [salida]
+        all_files.extend(salida)
 
-        for f1_elem in f1:
-            e1 = f"[{settings['obtained']}]" if file_exists(f1_elem, minio_info) else "[ ]"
-            t1 = f"{e1} {f1_elem}"
-            
-            t2 = ""
+    for i in range(0, len(all_files), 2):
+        f1 = all_files[i]
+        e1 = f"[{settings['obtained']}]" if file_exists(f1, minio_info) else "[ ]"
+        t1 = f"{e1} {f1}"
 
-        if i + 1 < len(keys):
-            f2 = scripts_info[keys[i+1]]["salida"]
-            if not isinstance(f2, list):
-                f2 = [f2]
-                
-            for f2_elem in f2:
-                e2 = f"[{settings['obtained']}]" if file_exists(scripts_info[keys[i+1]]["salida"], minio_info) else "[ ]"
-                t2 = f"{e2} {f2_elem}"
+        t2 = ""
+        if i + 1 < len(all_files):
+            f2 = all_files[i + 1]
+            e2 = f"[{settings['obtained']}]" if file_exists(f2, minio_info) else "[ ]"
+            t2 = f"{e2} {f2}"
+
         print(format_line_two_columns(t1, t2))
     
     show_separator()
