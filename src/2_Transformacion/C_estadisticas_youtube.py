@@ -99,8 +99,7 @@ def _PCA_analysis(df):
         
     return df
 
-if __name__ == '__main__':
-
+def C_estadisticas_youtube():
     print('Obteniendo archivo')
     data = read_file(yt_statslist_file)
     assert data, 'No se ha podido leer el archivo'
@@ -117,3 +116,6 @@ if __name__ == '__main__':
 
     print('Guardando dataframe reducido con PCA')
     df.to_parquet(yt_statsPCA_parquet_file)
+
+if __name__ == '__main__':
+    C_estadisticas_youtube()

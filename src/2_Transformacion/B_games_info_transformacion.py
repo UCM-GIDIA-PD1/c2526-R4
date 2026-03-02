@@ -76,9 +76,7 @@ def price_range(x):
     elif x >= 40:
         return '>40'
 
-
-if __name__ == '__main__':
-
+def B_games_info_transformacion():
     print('Obteniendo archivo')
     games_info = read_file(gamelist_file)
     assert games_info, 'No se ha podido leer el archivo'
@@ -113,3 +111,6 @@ if __name__ == '__main__':
     # Almacenamos en parquet y csv
     df.to_parquet(steam_games_parquet_file)
     # df.to_csv('data/games_info.csv', index=False)
+
+if __name__ == '__main__':
+    B_games_info_transformacion()

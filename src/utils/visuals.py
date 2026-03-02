@@ -57,6 +57,7 @@ def draw_files_section(scripts_info, keys, minio_info):
         f1 = scripts_info[keys[i]]["salida"]
         if not isinstance(f1, list):
             f1 = [f1]
+
         for f1_elem in f1:
             e1 = f"[{settings['obtained']}]" if file_exists(f1_elem, minio_info) else "[ ]"
             t1 = f"{e1} {f1_elem}"
@@ -67,6 +68,7 @@ def draw_files_section(scripts_info, keys, minio_info):
             f2 = scripts_info[keys[i+1]]["salida"]
             if not isinstance(f2, list):
                 f2 = [f2]
+                
             for f2_elem in f2:
                 e2 = f"[{settings['obtained']}]" if file_exists(scripts_info[keys[i+1]]["salida"], minio_info) else "[ ]"
                 t2 = f"{e2} {f2_elem}"

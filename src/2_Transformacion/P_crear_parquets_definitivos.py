@@ -5,7 +5,8 @@ junta los dataframes creando los 3 dataframes finales que utilizaremos: uno para
 
 import pandas as pd
 from src.utils.files import read_file
-from src.utils.config import banners_file_popularity, banners_file_prices, steam_games_parquet_file_popularity, steam_games_parquet_file_prices, prices, popularity, yt_statsPCA_parquet_file
+from src.utils.config import banners_file_popularity, banners_file_prices, steam_games_parquet_file_popularity 
+from src.utils.config import steam_games_parquet_file_prices, prices, popularity, yt_statsPCA_parquet_file
 
 def create_prices_parquet():
     """
