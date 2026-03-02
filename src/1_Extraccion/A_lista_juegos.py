@@ -1,8 +1,3 @@
-from src.utils.config import appidlist_file
-from src.utils.files import read_file, write_to_file, file_exists
-from utils_extraccion.steam_requests import get_appids
-from utils_extraccion.sesion import handle_input, ask_overwrite_file, read_config, update_config
-
 """
 Script que itera sobre la API de Steam y devuelve un JSON comprimido con n juegos y sus APPID.
 
@@ -19,6 +14,11 @@ Entrada:
 Salida:
 - Se almacena una lista de los APPIDs.
 """
+
+from src.utils.config import appidlist_file
+from src.utils.files import read_file, write_to_file, file_exists
+from utils_extraccion.steam_requests import get_appids
+from utils_extraccion.sesion import handle_input, ask_overwrite_file, read_config, update_config
     
 def _get_request_params():
     message = """Elige modo de ejecución:\n\n1. Elegir manualmente el los parámetros\n2. Extraer nuevos juegos\n

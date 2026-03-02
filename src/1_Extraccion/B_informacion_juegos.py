@@ -1,3 +1,16 @@
+"""
+Script que guarda tanto la información de appdetails como de appreviewhistogram.
+
+Requisitos:
+- Módulo `requests` para solicitar acceso a las APIs.
+
+Entrada:
+- Necesita para su ejecución el archivo appids_list.json.gz y su información en el config.json
+
+Salida:
+- Los datos se almacenan en la carpeta data/ en formato JSONL comprimido.
+"""
+
 import requests
 import time
 from numpy.random import choice, uniform
@@ -9,21 +22,10 @@ from src.utils.config import gamelist_file
 from src.utils.minio_server import upload_to_minio
 
 from utils_extraccion.webscraping import user_agents
-from utils_extraccion.sesion import tratar_existe_fichero, update_config, get_pending_games, overwrite_confirmation
+from utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games, overwrite_confirmation
 from utils_extraccion.steam_requests import get_appdetails, get_appreviewhistogram
 
-'''
-Script que guarda tanto la información de appdetails como de appreviewhistogram.
 
-Requisitos:
-- Módulo `requests` para solicitar acceso a las APIs.
-
-Entrada:
-- Necesita para su ejecución el archivo appids_list.json.gz y su información en el config.json
-
-Salida:
-- Los datos se almacenan en la carpeta data/ en formato JSONL comprimido.
-'''
 
 def _download_game_data(appid, session):
     """
@@ -73,7 +75,7 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
         if file_exists(gamelist_file, minio):
             origen = " en MinIO" if minio["minio_read"] else ""
             mensaje = f"El fichero de lista de appids ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
-            overwrite_file = tratar_existe_fichero(mensaje)
+            overwrite_file = ask_overwrite_file(mensaje)
             if overwrite_file:
                 # asegurarse de que se quiere eliminar toda la información
                 if overwrite_confirmation():
