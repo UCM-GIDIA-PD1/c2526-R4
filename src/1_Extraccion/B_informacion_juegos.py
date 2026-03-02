@@ -25,8 +25,6 @@ from utils_extraccion.webscraping import user_agents
 from utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games, overwrite_confirmation
 from utils_extraccion.steam_requests import get_appdetails, get_appreviewhistogram
 
-
-
 def _download_game_data(appid, session):
     """
     Fusiona la descarga completa de información de un juego usando varias funciones.
@@ -73,9 +71,9 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
         
         # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
         if file_exists(gamelist_file, minio):
-            origen = " en MinIO" if minio["minio_read"] else ""
-            mensaje = f"El fichero de lista de appids ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
-            overwrite_file = ask_overwrite_file(mensaje)
+            origin = " en MinIO" if minio["minio_read"] else ""
+            message = f"El fichero de lista de appids ya existe{origin}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
+            overwrite_file = ask_overwrite_file(message)
             if overwrite_file:
                 # asegurarse de que se quiere eliminar toda la información
                 if overwrite_confirmation():
@@ -116,6 +114,3 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
             print("Rango completado")
         update_config("B", gamelist_info)
     
-
-if __name__ == "__main__":
-    B_informacion_juegos()
