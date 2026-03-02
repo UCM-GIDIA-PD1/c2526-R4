@@ -61,5 +61,17 @@ main_transformacion_info = {
               "ejecutable": "TR_games_reviews_filter", 
               "usar": False, 
               "dependences" : [gamelist_file_dependence]
-        }
+        },
+        "TI": {"fichero": "TR_games_reviews_filter", 
+              "salida": steam_reviews_file.name, 
+              "ejecutable": "TR_games_reviews_filter", 
+              "usar": False, 
+              "dependences" : []
+        },
+        "P": {"fichero": "P_crear_parquets_definitivos", 
+              "salida": steam_reviews_file.name, 
+              "ejecutable": "crear_parquets", 
+              "usar": False, 
+              "dependences" : [gamelist_file_dependence]
+        },
     }

@@ -10,7 +10,10 @@ from src.utils.dependences import minio_dependence
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(BASE_DIR, "1_Extraccion"))
 
-def ejecutar_scripts(scripts_info, minio_info):
+def ejecutar_scripts(scripts_info, minio_info, page):
+    if page == 1: sys.path.append(os.path.join(BASE_DIR, "1_Extraccion"))
+    elif page == 2: sys.path.append(os.path.join(BASE_DIR, "2_Transformacion"))
+
     print("\n--- INICIANDO EJECUCIÓN ---")
 
     for clave, info in sorted(scripts_info.items()):
@@ -43,7 +46,7 @@ def main():
 
         elif page != 0:
             if opcion == "RUN":
-                ejecutar_scripts(info_actual, minio_info)
+                ejecutar_scripts(info_actual, minio_info, page)
             elif opcion == "MINIOS":
                 minio_info["minio_write"] = not minio_info["minio_write"]
             elif opcion == "MINIOD":

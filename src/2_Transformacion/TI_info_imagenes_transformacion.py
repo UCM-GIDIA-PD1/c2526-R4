@@ -1,3 +1,8 @@
+"""
+Dado el archivo banners_file.jsonl.gz aplica reducción de dimensionalidad sobre los vectores
+de 512 dimensiones convirtiéndolos en vectores de 2 o 3 dimensiones para poder visualizarlos.
+"""
+
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA

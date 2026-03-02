@@ -112,7 +112,7 @@ steam_reviews_parquet_file = processed_data_path() / "steam_reviews_processed.pa
 # Script TB
 steam_games_parquet_file = processed_data_path() / "games_info.parquet"
 steam_games_parquet_file_popularity = processed_data_path() / "games_info_popularity.parquet"
-steam_games_parquet_file_prices = processed_data_path() / "games_info_popularity.parquet"
+steam_games_parquet_file_prices = processed_data_path() / "games_info_prices.parquet"
 
 # Script TY
 yt_stats_parquet_file = processed_data_path() / "yt_stats.parquet"
