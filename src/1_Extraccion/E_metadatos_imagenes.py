@@ -6,16 +6,15 @@ Requisitos:
 - Fichero games_info.jsonl.gz con la informacion de los juegos
 """
 
-import os
-import torch
+from os import path, environ, makedirs
+from torch import unsqueeze, no_grad, nn
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image, ImageStat
-import requests
-import time
+from requests import Session
+from time import sleep
 from tqdm import tqdm
-import numpy as np
-from numpy.random import choice
+from numpy.random import choice, uniform
 from sentence_transformers import SentenceTransformer
 
 from src.utils.minio_server import upload_to_minio
@@ -45,7 +44,7 @@ def _analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet,
     """
     # Descargamos imagen y la metemos en la ruta    
     nombre_imagen = f"{appid}_header.jpg"
-    ruta_temporal = os.path.join(img_path, nombre_imagen)
+    ruta_temporal = path.join(img_path, nombre_imagen)
     
     if download_images:
         response = sesion.get(url, timeout=10)
@@ -63,9 +62,9 @@ def _analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet,
 
     # Extraer vector de características
     img_preprocesada = trans(img)
-    batch_t = torch.unsqueeze(img_preprocesada, 0)
+    batch_t = unsqueeze(img_preprocesada, 0)
 
-    with torch.no_grad():
+    with no_grad():
         # Inferencia ResNet
         feat_resnet = model_resnet(batch_t)
         vector_resnet = [round(float(x), 4) for x in feat_resnet.flatten().tolist()]
@@ -90,18 +89,18 @@ def _analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet,
     return caracteristicas
     
 def E_metadatos_imagenes(minio):
-    os.environ['TORCH_HOME'] = str(data_path() / "torch_cache")
+    environ['TORCH_HOME'] = str(data_path() / "torch_cache")
 
     # Configuración de modelos
     
     # Resnet, entrenado para reconocer formas
     model_resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-    model_resnet = torch.nn.Sequential(*(list(model_resnet.children())[:-1]))
+    model_resnet = nn.Sequential(*(list(model_resnet.children())[:-1]))
     model_resnet.eval()
 
     # ConvNeXt, optimizado para texturas y detalles finos
     model_convnext = models.convnext_tiny(weights=models.ConvNeXt_Tiny_Weights.DEFAULT)
-    model_convnext.classifier = torch.nn.Identity() # Quitamos la capa de clasificación
+    model_convnext.classifier = nn.Identity() # Quitamos la capa de clasificación
     model_convnext.eval()
 
     # Clip, modelo de OpenAI que reconoce conceptos semánticos, estilos y estética
@@ -144,9 +143,9 @@ def E_metadatos_imagenes(minio):
     # Configuracion de direcciones
     data_dir = project_root() / "data"
     ruta_imagenes = data_dir / "images"
-    os.makedirs(ruta_imagenes, exist_ok=True)
+    makedirs(ruta_imagenes, exist_ok=True)
 
-    sesion = requests.Session()
+    sesion = Session()
     user_agent = choice(user_agents)
     sesion.headers.update({'User-Agent': user_agent})
 
@@ -181,7 +180,7 @@ def E_metadatos_imagenes(minio):
                     curr_idx += 1
                     
                     if download_images: 
-                        time.sleep(np.random.uniform(0.1, 0.2))
+                        sleep(uniform(0.1, 0.2))
 
                 except Exception as e:
                     print(f"Error procesando imagen del juego {appid}: {e}")

@@ -3,8 +3,8 @@ Módulo que se encarga de hacer llamadas a la API de Steam (tanto la oficial com
 no oficial)
 """
 
-import os
-import requests
+from os import environ
+from requests import Session, exceptions
 from tqdm import tqdm
 
 from src.utils.date import format_date_string, unix_to_date_string
@@ -50,9 +50,9 @@ def _request_url(session, params_info, url):
         if("application/json" not in content_type):
             raise SteamAPIException("Request does not return a json")
         return response.json()
-    except requests.exceptions.HTTPError as e:
+    except exceptions.HTTPError as e:
         raise SteamAPIException(f"HTTP error: {e}")
-    except requests.exceptions.RequestException as e:
+    except exceptions.RequestException as e:
         raise SteamAPIException(f"Request error: {e}")
     except ValueError as e:
         raise SteamAPIException(f"Json decodification error: {e}")
@@ -74,7 +74,7 @@ def get_appids(n_appids=1000000, last_appid = 0):
     url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
 
     # Cogemos la API
-    API_KEY = os.environ.get("STEAM_API_KEY")
+    API_KEY = environ.get("STEAM_API_KEY")
     if API_KEY is None:
         raise SteamAPIException("Enviroment variable STEAM_API_KEY not found")
 
@@ -85,7 +85,7 @@ def get_appids(n_appids=1000000, last_appid = 0):
     appid_list = []
 
     # Creamos la sesión
-    session = requests.Session()
+    session = Session()
     
     # Bucle que itera sobre los elementos restantes de la lista de APPID de Steam
     print("Starting extraction...")

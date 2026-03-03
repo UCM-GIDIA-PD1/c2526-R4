@@ -7,7 +7,7 @@ Requisitos:
 - Archivo top_100_games_total_reviews.json.gz
 """
 
-import requests
+from requests import Session
 from tqdm import tqdm
 from numpy.random import choice
 
@@ -60,7 +60,7 @@ def D_informacion_resenyas(minio):
                     return
                 
         # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
-        sesion = requests.Session()
+        sesion = Session()
         user_agent = choice(user_agents)
         sesion.headers.update({'User-Agent': user_agent})
         print("Comenzando extraccion de juegos...\n")

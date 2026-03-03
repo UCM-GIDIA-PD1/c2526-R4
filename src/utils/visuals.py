@@ -2,7 +2,7 @@
 Módulo que se encarga del apartado visual del menú main.py
 """
 
-import os
+from os import system, name
 
 from .files import file_exists
 from .dependences import minio_dependence, ucm_vpn_dependence
@@ -136,7 +136,7 @@ def draw_ascii_title():
     print(ascii_art)
 
 def show_menu(scripts_info, page, minio_info):
-    os.system('cls' if os.name == 'nt' else 'clear') 
+    system('cls' if name == 'nt' else 'clear') 
     keys = sorted(scripts_info.keys())
     
     if page == 0:

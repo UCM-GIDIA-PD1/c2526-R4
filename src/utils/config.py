@@ -2,7 +2,7 @@
 Se encarga de trabajar con los archivos de configuración y tiene variables con las que se trabaja en todo el proyecto
 """
 
-import os
+from os import environ
 from pathlib import Path
 
 def get_appid_range(length):
@@ -18,7 +18,7 @@ def get_appid_range(length):
     Returns:
         Tupla de enteros con los valores de inicio y fin
     """
-    identif = os.environ.get("PD1_ID")
+    identif = environ.get("PD1_ID")
     # procesar todos los appids
     if identif is None:
         return 0, 0, length-1
@@ -34,7 +34,6 @@ def get_appid_range(length):
         end_idx = length - 1
     else:
         end_idx = (int_identif * bloque) - 1
-
 
     return start_idx, start_idx, end_idx
 
