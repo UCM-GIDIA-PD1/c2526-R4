@@ -1,14 +1,9 @@
 """
-Script que guarda tanto la información de appdetails como de appreviewhistogram.
+Script que almacena en data/raw un JSON comprimido de los appdetails y appreviewhistogram
+de los APPID de un JSON comprimido.
 
 Requisitos:
-- Módulo `requests` para solicitar acceso a las APIs.
-
-Entrada:
-- Necesita para su ejecución el archivo appids_list.json.gz y su información en el config.json
-
-Salida:
-- Los datos se almacenan en la carpeta data/ en formato JSONL comprimido.
+- Tener un JSON comprimido de APPIDs de Steam con el formato ["APPID1", "APPID2, ...] de nombre appids_list.json.gz
 """
 
 import requests
@@ -54,7 +49,8 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
     Obtiene la información de los juegos especificados en el fichero appids_list.json.gz
 
     Args:
-        minio (dic): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y desactivar subida y bajada de MinIO
+        minio (dic): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y 
+                desactivar subida y bajada de MinIO
     
     Returns:
         None
@@ -113,4 +109,6 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
         if curr_idx > end_idx:
             print("Rango completado")
         update_config("B", gamelist_info)
-    
+
+if __name__ == "__main__":
+    B_informacion_juegos()

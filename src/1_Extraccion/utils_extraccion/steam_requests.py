@@ -5,6 +5,15 @@ from src.utils.date import format_date_string, unix_to_date_string
 from src.utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
 
 def _parse_supported_languages(raw_html):
+    """
+    Parsea los idiomas del campo supported_languages de la API de Steam.
+
+    Args:
+        raw_html (str): Cadena de texto html con los idiomas soportados de un juego
+    
+    Returns:
+        list: lista de los lenguajes soportados de un juego de steam
+    """
     if not raw_html:
         return []
     
@@ -44,15 +53,15 @@ def _request_url(session, params_info, url):
 
 def get_appids(n_appids=1000000, last_appid = 0):
     """
-    Función que guarda en appid_list.json.gz una lista de appids (str). Ejemplo: ["10", "20", "30"]
+    Función que devuelve una lista de appids (str). Ejemplo: ["10", "20", "30"]
     Requiere una api key de steam guardada en la una variable de entorno llamada 'STEAM_API_KEY'
     
-    params:
+    Args:
         n_appids (int): número de appids que se quiere extraer
         last_appid (string): appid por el que se quiere comenzar a extraer, no se incluye
     
-    returns:
-        appid_list (list): Devuelve la lista de los APPIDs
+    Returns:
+        list: Lista de los APPIDs
     """
 
     # url e info
@@ -105,14 +114,13 @@ def get_appids(n_appids=1000000, last_appid = 0):
 
 def get_appdetails(appid, sesion):
     """
-    Extrae y limpia los detalles técnicos y comerciales de un juego desde la API de Steam.
+    Extrae los detalles técnicos y comerciales relevantes de un juego desde la API de Steam.
 
     Args:
         appid (str): ID de la aplicación (AppID) en Steam.
         sesion (requests.Session): Sesión persistente para realizar la petición HTTP.
-
     Returns:
-        dict: Diccionario con la información procesada (nombre, precio, idiomas, etc.).
+        dict | None: Diccionario con la información procesada (nombre, precio, idiomas, etc.).
         Retorna un diccionario vacío si la petición falla o el ID no es válido.
     """
 
@@ -262,13 +270,15 @@ def get_resenyas(id, sesion, is_top_100):
         sesion (requests.Session): Sesión persistente para las peticiones de HTTP.
 
     Returns:
-        resenyas_juego (dict): Contiene un campo con la información general acerca de las 
-        reseñas del juego (datos_resumen) y un campo que contiene la lista de reseñas (lista_resenyas). 
-        En caso de que el request no se complete, se devuelve un diccionario vacío.
+        dict: Contiene un campo con la información general acerca de las 
+            reseñas del juego (datos_resumen) y un campo que contiene la lista de reseñas (lista_resenyas). 
+            En caso de que el request no se complete, se devuelve un diccionario vacío.
     """
 
-    # Obtiene las reseñas de un juego, como parámetros tiene filtro por idioma, aparecen ordenadas las reseñas por utilidad,
-    # con un máximo de 100 reseñas por página. Por último se actualiza el cursor para obtener la url de la siguiente página
+    # Obtiene las reseñas de un juego, como parámetros tiene filtro por idioma, 
+    # aparecen ordenadas las reseñas por utilidad,
+    # con un máximo de 100 reseñas por página. Por último se actualiza el cursor 
+    # para obtener la url de la siguiente página
     url_begin = "https://store.steampowered.com/appreviews/"
     url = url_begin + str(id)
     
@@ -296,8 +306,10 @@ def get_resenyas(id, sesion, is_top_100):
             review["id_usuario"] = rev["author"].get("steamid")
             review["texto"] = rev["review"].strip()
             review["valoracion"] = rev["voted_up"]
-            # El atributo peso determina la utilidad de la reseña, cuánto mayor es este mayor utilidad tiene la review,
-            # el valor del peso puede ser string o int, esto debe ser tenido en cuenta a la hora de entrenar el modelo
+            # El atributo peso determina la utilidad de la reseña, cuánto mayor 
+            # es este mayor utilidad tiene la review,
+            # el valor del peso puede ser string o int, esto debe ser tenido en 
+            # cuenta a la hora de entrenar el modelo
             review["peso"] = rev["weighted_vote_score"]
             review["early_access"] = rev["written_during_early_access"]
             game_reviews["lista_resenyas"].append(review)

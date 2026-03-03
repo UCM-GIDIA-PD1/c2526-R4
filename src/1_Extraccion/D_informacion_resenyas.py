@@ -1,6 +1,13 @@
+'''
+Script que guarda en data/raw un JSON comprimido de las reviews de los juegos de Steam provenientes de los ficheros
+rest_games_total_reviews.json.gz y top_100_games_total_reviews.json.gz, obtenidos de D1_games_reviews_filter
+
+Requisitos:
+- Archivo rest_games_total_reviews.json.gz
+- Archivo top_100_games_total_reviews.json.gz
+'''
+
 import requests
-from random import uniform
-import time
 from tqdm import tqdm
 
 from src.utils.config import steam_reviews_file
@@ -11,21 +18,17 @@ from src.utils.exceptions import SteamAPIException
 from utils_extraccion.steam_requests import get_resenyas
 from utils_extraccion.sesion import get_pending_games, ask_overwrite_file, overwrite_confirmation, update_config
 
-
-'''
-Script que guarda la información procedente de appreviews
-
-Requisitos:
-Módulo requests para solicitar acceso a las APIs.
-
-Entrada:
-Necesita para su ejecución el archivo steam_apps.json
-
-Salida:
-Los datos se almacenan en la carpeta data/ en formato JSON.
-'''
-
 def _download_game_data(game, curr_idx, sesion):
+    '''
+    Guarda en el campo "reviews" de game las reseñas disponibles del juego
+
+    Args:
+        game (dict): Diccionario con la información de un juego
+        curr_idx (int): Indice del progreso de la extraccion
+        sesion(session.Requests): Sesion de requests
+    Returns:
+        None
+    '''
     # Obtiene la info de un juego
     game["reviews"] = get_resenyas(game["id"], sesion, curr_idx < 100)
 
@@ -41,7 +44,8 @@ def D_informacion_resenyas(minio):
             print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
             return
         
-        # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
+        # Si existe fichero preguntar si sobreescribir o insertar al final, 
+        # esta segunda opción no controla duplicados
         if file_exists(steam_reviews_file, minio):
             origen = " en MinIO" if minio["minio_read"] else ""
             mensaje = f"El fichero de reseñas ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "

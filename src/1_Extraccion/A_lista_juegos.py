@@ -1,18 +1,8 @@
 """
-Script que itera sobre la API de Steam y devuelve un JSON comprimido con n juegos y sus APPID.
+Script que almacena en data/raw un JSON comprimido de los APPID de n juegos.
 
 Requisitos:
-- Tener API de steam.
-
-Información extra:
-- max_results tiene por defecto 10000 juegos, pero se puede ajustar hasta 50000.
-- Usamos el parámetro last_appid para indicar el último juego que se extrajo.
-
-Entrada:
-- Ninguna.
-
-Salida:
-- Se almacena una lista de los APPIDs.
+- Tener la API key de Steam cargada como variable de entorno.
 """
 
 from src.utils.config import appidlist_file
@@ -22,7 +12,7 @@ from utils_extraccion.sesion import handle_input, ask_overwrite_file, read_confi
     
 def _get_request_params():
     message = """Elige modo de ejecución:\n\n1. Elegir manualmente el los parámetros\n2. Extraer nuevos juegos\n
-Introduce elección: """
+            Introduce elección: """
 
     response = handle_input(message, lambda x: x in {"1", "2"})
     n_appids = 0
@@ -52,7 +42,8 @@ def A_lista_juegos(minio):
     Obtiene la lista completa de appids de los juegos de Steam
 
     Args:
-        minio (dic): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y desactivar subida y bajada de MinIO
+        minio (dict): diccionario de la forma {"minio_write": False, "minio_read": False} 
+                para activar y desactivar la subida y bajada de MinIO
     
     Returns:
         None
@@ -84,3 +75,6 @@ def A_lista_juegos(minio):
     write_to_file(data, appidlist_file, minio)
     list_info = {"last_appid": data[-1], "size":len(data)}
     update_config("A", list_info)
+
+if __name__ == "__main__":
+    A_lista_juegos()

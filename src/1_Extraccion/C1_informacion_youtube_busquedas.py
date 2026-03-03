@@ -1,20 +1,13 @@
 """
 Primera parte de la extracción de información de YouTube: búsqueda.
 
-Script que tiene como objetivo conseguir información YouTube scrapeando directamente de 
-Youtube. Además, usa TOR para evitar baneos de IP por conexiones excesivas al buscar, 
+Script que almacena en data/raw información YouTube usando DrissionPage. 
+Además, usa TOR para evitar baneos de IP por conexiones excesivas al buscar, 
 ya que es una petición costosa.
-
-TOR es muy importante, a no ser que queráis baneos de IP de YouTube.
 
 Requisitos:
 - Tener TOR Bundle descargado.
-
-Entrada:
-- Archivo que contiene las características de los juegos
-
-Salida:
-- Los datos se almacenan en la el directorio indicado.
+- Tener un JSON comprimido con el mismo formato que el generado por B_informacion_juegos
 """
 
 from numpy import random
@@ -33,6 +26,16 @@ def _IP_interval_rotation():
     return 60 * random.uniform(5, 6)
 
 def C1_informacion_youtube_busquedas(minio):
+    """
+    Obtiene la información de youtube de los juegos especificados en el fichero games_info.jsonl.gz
+
+    Args:
+        minio (dic): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y 
+                desactivar subida y bajada de MinIO
+    
+    Returns:
+        None
+    """
     try:
         session = None
         
@@ -107,3 +110,6 @@ def C1_informacion_youtube_busquedas(minio):
         update_config("C1", gamelist_info)
         if session:
             session.quit()
+
+if __name__ == "__main__":
+    C1_informacion_youtube_busquedas()

@@ -7,7 +7,7 @@ from src.utils.dependences import yt_statsPCA_parquet_file_dependence
 from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, P_banners_file
 from src.utils.config import steam_reviews_file, banners_file, steam_reviews_top100_file, steam_reviews_rest_file
 from src.utils.config import steam_games_parquet_file, yt_stats_parquet_file, yt_statsPCA_parquet_file
-from src.utils.config import steam_reviews_parquet_file, popularity
+from src.utils.config import steam_reviews_parquet_file, popularity, prices
 
 main_extraccion_info = {
         "A": {"fichero": "A_lista_juegos", 
@@ -80,7 +80,7 @@ main_transformacion_info = {
               "dependences" : [gamelist_file_dependence, banners_file_dependence]
         },
         "P": {"fichero": "P_crear_parquets_definitivos", 
-              "salida": popularity.name, 
+              "salida": [popularity.name, prices.name], 
               "ejecutable": "crear_parquets", 
               "usar": False, 
               "dependences" : [steam_games_parquet_file_popularity_dependence, banners_file_popularity_dependence, 

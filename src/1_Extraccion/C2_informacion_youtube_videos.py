@@ -1,14 +1,10 @@
 """
-Script que almacena las estadísticas relativas a cada vídeo.
+Script que almacena en data/raw el fichero youtube_statistics.jsonl.gz las estadísticas relativas a cada vídeo.
 
 Requisitos:
 - Módulo 'googleapiclient' para usar la API de youtube
-
-Entrada:
-- Necesita para su ejecución el archivo info_steam_youtube.json.gz y su información en el config.json
-
-Salida:
-- Los datos se almacenan en la carpeta data/ en formato JSONL comprimido.
+- Tener la API key de YouTube cargada como variable de entorno
+- Archivo info_steam_youtube.json.gz y su información en el config.json
 """
 
 import os
@@ -73,6 +69,16 @@ def _process_game(youtube_service, video_id_list):
     return stats_list
 
 def C2_informacion_youtube_videos(minio):
+    """
+    Obtiene la información de los juegos especificados en el fichero info_steam_youtube1.jsonl.gz
+
+    Args:
+        minio (dic): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y 
+                desactivar subida y bajada de MinIO
+    
+    Returns:
+        None
+    """
     try:
         # Obtener información de la sesión
         start_idx, curr_idx, end_idx = -1,-1,-1
@@ -83,7 +89,8 @@ def C2_informacion_youtube_videos(minio):
             print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
             return
         
-        # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
+        # Si existe fichero preguntar si sobreescribir o insertar al final, 
+        # esta segunda opción no controla duplicados
         if file_exists(yt_statslist_file, minio):
             origin = " en MinIO" if minio["minio_read"] else ""
             mensaje = f"El fichero de información de YouTube ya existe{origin}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "

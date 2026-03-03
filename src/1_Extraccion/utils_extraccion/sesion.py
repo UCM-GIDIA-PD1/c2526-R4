@@ -1,5 +1,6 @@
 from src.utils.files import read_file, write_to_file, file_exists
-from src.utils.config import config_file, appidlist_file, gamelist_file, youtube_scraping_file, steam_reviews_top100_file, steam_reviews_rest_file, get_appid_range
+from src.utils.config import config_file, appidlist_file, gamelist_file, youtube_scraping_file
+from src.utils.config import steam_reviews_top100_file, steam_reviews_rest_file, get_appid_range
 import os
 
 def read_config(script_id, default_return = None):
@@ -27,6 +28,9 @@ def update_config(script_id, info):
         script_id (str): identificador del script que llama a la función
         info (dict): contiene la información a actualizar en el campo correspondiente de config_info
     
+    Returns:
+        None: La función no devuelve ningún valor.
+    
     """
     # El config siempre se escribe en local
     if file_exists(config_file):
@@ -47,7 +51,7 @@ def handle_input(initial_message, isResponseValid = lambda x: True):
         isResponseValid (function): función que verifica la validez de un input dado.
 
     Returns:
-        boolean: True si el input es correcto, false en caso contrario.
+        bool: True si el input es correcto, False en caso contrario.
     """
     respuesta = input(initial_message).strip()
 
@@ -65,7 +69,7 @@ def ask_overwrite_file(message):
         message (str): mensaje que se muestra en el método handle_input 
         
     Returns:
-        boolean: True si sobreescribir archivo meter appids nuevos, False en caso contrario
+        bool: True si sobreescribir archivo meter appids nuevos, False en caso contrario
     """
 
     respuesta = handle_input(message, lambda x: x in {"1", "2"})
@@ -80,7 +84,7 @@ def _get_session_info(script_id):
         script_id (str): mensaje que se muestra en el método handle_input
         
     Returns:
-        bool: True si se quiere usar la sesión y False en caso contrario.
+        bool: True si se quiere usar la sesión, False en caso contrario.
         int: start_idx.
         int: curr_idx.
         int: end_idx.
@@ -101,6 +105,16 @@ def _get_session_info(script_id):
     return False, -1, -1 ,-1
 
 def _get_script_file(script_id):
+    """
+    Devuelve el fichero sobre el que toma los datos un script
+    
+    Args:
+        script_id (str): identificador del script que llama a la función
+    
+    Returns:
+        Path | list(Path): Path / list(Path) de script/s de salida
+    """
+
     if script_id in ["B"]:
         return appidlist_file
     elif script_id in ["C1","E"]:
@@ -114,17 +128,17 @@ def get_pending_games(script_id, minio = {"minio_write": False, "minio_read": Fa
     """
     Devuelve lista con la información pedida del fichero necesario para
     el script con id: script_id. Además se encarga de la gestión de la
-    información en los ficheros.
+    información en los ficheros y los indices necesarios para la extraccion.
     
     Args:
         script_id (str): identificador del script que llama a la función
     
     Returns:
-        file_list[] (array): array que contiene la información pedida a través
-        de las distintas opciones ofrecidas
-        start_idx (int): posición inicial del rango seleccionado
-        curr_idx (int): posición por la que continuar la extracción en el rango seleccionado
-        end_idx (int): posición final del rango seleccionado
+        list: lista que contiene la información pedida a través
+            de las distintas opciones ofrecidas
+        int: posición inicial del rango seleccionado
+        int: posición por la que continuar la extracción en el rango seleccionado
+        int: posición final del rango seleccionado
     """
     # leer la lista del archivo necesario para el script con id script_id
     file = _get_script_file(script_id)
@@ -156,7 +170,7 @@ def get_pending_games(script_id, minio = {"minio_write": False, "minio_read": Fa
     print(f"Rango de índices disponibles: [0, {list_size-1}]")
 
     message = """Opciones: \n\n1. Elegir rango manualmente\n2. Extraer rango correspondiente al identificador\n
-Introduce elección: """
+            Introduce elección: """
     option = handle_input(message, lambda x: x in {"1", "2"})
 
     if option == "1": # Elegir rango manualmente
@@ -181,6 +195,9 @@ def overwrite_confirmation():
     Sirve para evitar que el usuario borre sin querer (sobrescribir) el fichero de información
     ya existente.
     
+    Args:
+        Ninguno
+
     Returns:
         bool: devuelve True en caso afirmativo (y) y False en caso contrario (n)
     """

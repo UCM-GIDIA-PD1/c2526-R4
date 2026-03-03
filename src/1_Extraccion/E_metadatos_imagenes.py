@@ -1,3 +1,11 @@
+"""
+Script que extrae de las imágenes el brillo medio y un vector de embeddings mediante una red neuronal
+preentrenada de la librería pytorch. Lo guarda en data/raw/info_imagenes.jsonl.gz
+
+Requisitos:
+- Fichero games_info.jsonl.gz con la informacion de los juegos
+"""
+
 import os
 import torch
 import torchvision.models as models
@@ -13,17 +21,8 @@ from src.utils.minio_server import upload_to_minio
 from src.utils.files import write_to_file, erase_file, file_exists
 from src.utils.config import banners_file, project_root, data_path
 
-from utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games, overwrite_confirmation, handle_input
-"""
-Script que extrae de las imágenes el brillo medio y un vector de embeddings mediante una red neuronal
-preentrenada de la librería pytorch.
-
-Requisitos:
-- Módulos 'thorch', 'torchvision' y 'pillow'
-
-Salida:
-- Los datos se almacenan en la el directorio indicado.
-"""
+from utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games
+from utils_extraccion.sesion import overwrite_confirmation, handle_input
 
 def analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet, model_clip, model_convnext):
     """
@@ -39,7 +38,7 @@ def analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet, 
         model_convnext (torch.nn.Module): modelo preentrenado para extracción de embeddings.
 
     Returns:
-        caracteristicas (dict): diccionario con el brillo medio y vector de características de la imagen
+        dict: diccionario con el brillo medio y vector de características de la imagen
     """
     # Descargamos imagen y la metemos en la ruta    
     nombre_imagen = f"{appid}_header.jpg"
@@ -121,7 +120,8 @@ def E_metadatos_imagenes(minio):
             print(f"No hay juegos en el rango [{curr_idx}, {end_idx}]")
             return
     
-    # Si existe fichero preguntar si sobreescribir o insertar al final, esta segunda opción no controla duplicados
+    # Si existe fichero preguntar si sobreescribir o insertar al final, 
+    # esta segunda opción no controla duplicados
     if file_exists(banners_file, minio):
             origen = " en MinIO" if minio["minio_read"] else ""
             mensaje = f"El fichero de lista de appids ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
@@ -159,7 +159,8 @@ def E_metadatos_imagenes(minio):
                     url = None
 
                 try:
-                    caracteristicas = analiza_imagen(ruta_imagenes, url, trans, appid, download_images, model_resnet, model_clip, model_convnext)
+                    caracteristicas = analiza_imagen(ruta_imagenes, url, trans, appid, download_images, 
+                                                     model_resnet, model_clip, model_convnext)
 
                     resultado_juego = {
                         "id": appid,

@@ -93,8 +93,12 @@ def B_games_info_transformacion(minio):
     df["genres"] = df["appdetails"].apply(lambda x: _get_genres(x))
     df['price_overview'] = df['price_overview'].apply(lambda x: x.get('initial')/100)
     df['price_range'] = df['price_overview'].apply(lambda x: price_range(x))
-    df["recomendaciones_positivas"] = df["appreviewhistogram"].apply(lambda x: x.get("rollups").get("recommendations_up") if isinstance(x, dict) & isinstance(x.get("rollups"), dict) else None)
-    df["recomendaciones_negativas"] = df["appreviewhistogram"].apply(lambda x: x.get("rollups").get("recommendations_down") if isinstance(x, dict) & isinstance(x.get("rollups"), dict) else None)
+    df["recomendaciones_positivas"] = df["appreviewhistogram"].apply(
+        lambda x: x.get("rollups").get("recommendations_up") if isinstance(x, dict) & 
+        isinstance(x.get("rollups"), dict) else None)
+    df["recomendaciones_negativas"] = df["appreviewhistogram"].apply(
+        lambda x: x.get("rollups").get("recommendations_down") if isinstance(x, dict) & 
+        isinstance(x.get("rollups"), dict) else None)
     
     df['publishers'] = df['publishers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
     df['developers'] = df['developers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
@@ -104,7 +108,8 @@ def B_games_info_transformacion(minio):
     df.dropna(subset=["recomendaciones_positivas","recomendaciones_negativas"],inplace = True)
     df["recomendaciones_totales"] = df["recomendaciones_positivas"] + df["recomendaciones_negativas"]
 
-    df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', 'required_age'], inplace=True,errors="ignore")
+    df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', 
+                     'required_age'], inplace=True,errors="ignore")
     
 
     print('Almacenando')
