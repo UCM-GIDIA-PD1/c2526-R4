@@ -6,9 +6,8 @@ Requisitos:
 - Tener la API key de YouTube cargada como variable de entorno
 - Archivo info_steam_youtube.json.gz y su información en el config.json
 """
-
-import os
-import json
+from os import environ
+from json import loads
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from tqdm import tqdm
@@ -24,7 +23,7 @@ def _get_apikey():
     Devuelve la API KEY de Youtube de las variables del sistema
     """
     # Cargamos la API KEY del sistema
-    key = os.environ.get("API_KEY_YT")
+    key = environ.get("API_KEY_YT")
     assert key, "La API_KEY no ha sido cargada"
     return key
 
@@ -105,7 +104,8 @@ def C2_informacion_youtube_videos(minio):
                 
         API_KEY = _get_apikey()
         youtube = build('youtube', 'v3', developerKey=API_KEY)
-        print('Comenzando requests a la API de Youtube...\n')
+
+        print('Comenzando peticiones a la API de Youtube...\n')
         with tqdm(pending_games, unit="juegos") as pbar:
             for app in pbar:
                 appid = app.get('id')
@@ -132,7 +132,7 @@ def C2_informacion_youtube_videos(minio):
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     except HttpError as e:
-        error_content = json.loads(e.content.decode("utf-8"))
+        error_content = loads(e.content.decode("utf-8"))
         reason = error_content["error"]["errors"][0]["reason"]
 
         if reason in ("quotaExceeded", "dailyLimitExceeded"):
@@ -148,8 +148,6 @@ def C2_informacion_youtube_videos(minio):
         if curr_idx > end_idx:
             print("Rango completado")
         update_config("C2", gamelist_info)
-
-
 
 if __name__ == "__main__":
     C2_informacion_youtube_videos()

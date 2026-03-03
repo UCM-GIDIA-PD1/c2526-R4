@@ -7,6 +7,7 @@ Requisitos:
 
 from src.utils.config import appidlist_file
 from src.utils.files import read_file, write_to_file, file_exists
+
 from utils_extraccion.steam_requests import get_appids
 from utils_extraccion.sesion import handle_input, ask_overwrite_file, read_config, update_config
     

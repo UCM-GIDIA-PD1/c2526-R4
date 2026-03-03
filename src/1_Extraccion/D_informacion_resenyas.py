@@ -1,25 +1,27 @@
-'''
+"""
 Script que guarda en data/raw un JSON comprimido de las reviews de los juegos de Steam provenientes de los ficheros
 rest_games_total_reviews.json.gz y top_100_games_total_reviews.json.gz, obtenidos de D1_games_reviews_filter
 
 Requisitos:
 - Archivo rest_games_total_reviews.json.gz
 - Archivo top_100_games_total_reviews.json.gz
-'''
+"""
 
-import requests
+from requests import Session
 from tqdm import tqdm
+from numpy.random import choice
 
 from src.utils.config import steam_reviews_file
 from src.utils.files import erase_file, write_to_file, file_exists
 from src.utils.minio_server import upload_to_minio
 from src.utils.exceptions import SteamAPIException
 
+from utils_extraccion.webscraping import user_agents
 from utils_extraccion.steam_requests import get_resenyas
 from utils_extraccion.sesion import get_pending_games, ask_overwrite_file, overwrite_confirmation, update_config
 
 def _download_game_data(game, curr_idx, sesion):
-    '''
+    """
     Guarda en el campo "reviews" de game las reseñas disponibles del juego
 
     Args:
@@ -28,12 +30,11 @@ def _download_game_data(game, curr_idx, sesion):
         sesion(session.Requests): Sesion de requests
     Returns:
         None
-    '''
+    """
     # Obtiene la info de un juego
     game["reviews"] = get_resenyas(game["id"], sesion, curr_idx < 100)
 
 def D_informacion_resenyas(minio):
-    # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
     try:
         # por si da un error en get_pending_games, evitar un UnboundLocalError en el finally
         start_idx, curr_idx, end_idx = -1,-1,-1
@@ -58,9 +59,10 @@ def D_informacion_resenyas(minio):
                     print("Operación cancelada")
                     return
                 
-        # comienzo de extracción
-        sesion = requests.Session()
-        sesion.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        # El objeto de la sesión mejora el rendimiento cuando se hacen muchas requests a un mismo host
+        sesion = Session()
+        user_agent = choice(user_agents)
+        sesion.headers.update({'User-Agent': user_agent})
         print("Comenzando extraccion de juegos...\n")
         with tqdm(pending_games, unit = "games") as pbar:
             for game in pbar:
@@ -85,8 +87,6 @@ def D_informacion_resenyas(minio):
         if curr_idx > end_idx:
             print("Rango completado")
         update_config("D", reviews_file)
-
-
 
 if __name__ == "__main__":
     D_informacion_resenyas()

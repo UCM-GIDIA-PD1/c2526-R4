@@ -1,6 +1,12 @@
-import os
-import requests
+"""
+Módulo que se encarga de hacer llamadas a la API de Steam (tanto la oficial como la API web
+no oficial)
+"""
+
+from os import environ
+from requests import Session, exceptions
 from tqdm import tqdm
+
 from src.utils.date import format_date_string, unix_to_date_string
 from src.utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
 
@@ -44,9 +50,9 @@ def _request_url(session, params_info, url):
         if("application/json" not in content_type):
             raise SteamAPIException("Request does not return a json")
         return response.json()
-    except requests.exceptions.HTTPError as e:
+    except exceptions.HTTPError as e:
         raise SteamAPIException(f"HTTP error: {e}")
-    except requests.exceptions.RequestException as e:
+    except exceptions.RequestException as e:
         raise SteamAPIException(f"Request error: {e}")
     except ValueError as e:
         raise SteamAPIException(f"Json decodification error: {e}")
@@ -68,7 +74,7 @@ def get_appids(n_appids=1000000, last_appid = 0):
     url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
 
     # Cogemos la API
-    API_KEY = os.environ.get("STEAM_API_KEY")
+    API_KEY = environ.get("STEAM_API_KEY")
     if API_KEY is None:
         raise SteamAPIException("Enviroment variable STEAM_API_KEY not found")
 
@@ -79,7 +85,7 @@ def get_appids(n_appids=1000000, last_appid = 0):
     appid_list = []
 
     # Creamos la sesión
-    session = requests.Session()
+    session = Session()
     
     # Bucle que itera sobre los elementos restantes de la lista de APPID de Steam
     print("Starting extraction...")
@@ -275,10 +281,9 @@ def get_resenyas(id, sesion, is_top_100):
             En caso de que el request no se complete, se devuelve un diccionario vacío.
     """
 
-    # Obtiene las reseñas de un juego, como parámetros tiene filtro por idioma, 
-    # aparecen ordenadas las reseñas por utilidad,
-    # con un máximo de 100 reseñas por página. Por último se actualiza el cursor 
-    # para obtener la url de la siguiente página
+    # Obtiene las reseñas de un juego, como parámetros tiene filtro por idioma, aparecen
+    # ordenadas las reseñas por utilidad, con un máximo de 100 reseñas por página. Por 
+    # último se actualiza el cursor para obtener la url de la siguiente página.
     url_begin = "https://store.steampowered.com/appreviews/"
     url = url_begin + str(id)
     
@@ -306,10 +311,9 @@ def get_resenyas(id, sesion, is_top_100):
             review["id_usuario"] = rev["author"].get("steamid")
             review["texto"] = rev["review"].strip()
             review["valoracion"] = rev["voted_up"]
-            # El atributo peso determina la utilidad de la reseña, cuánto mayor 
-            # es este mayor utilidad tiene la review,
-            # el valor del peso puede ser string o int, esto debe ser tenido en 
-            # cuenta a la hora de entrenar el modelo
+            # El atributo peso determina la utilidad de la reseña, cuánto mayor es 
+            # este mayor utilidad tiene la review, el valor del peso puede ser string 
+            # o int, esto debe ser tenido en cuenta a la hora de entrenar el modelo
             review["peso"] = rev["weighted_vote_score"]
             review["early_access"] = rev["written_during_early_access"]
             game_reviews["lista_resenyas"].append(review)

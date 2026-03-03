@@ -1,4 +1,9 @@
-import os
+"""
+Módulo que se encarga del apartado visual del menú main.py
+"""
+
+from os import system, name
+
 from .files import file_exists
 from .dependences import minio_dependence, ucm_vpn_dependence
 
@@ -121,17 +126,17 @@ def draw_main_menu():
 
 def draw_ascii_title():
     ascii_art = r"""
-  _________ __                                                   .___.__        __                
+   _________ __                                                   .___.__        __                
   /   _____//  |_  ____ _____    _____   _____________   ____   __| _/|__| _____/  |_  ___________ 
   \_____  \\   __\/ __ \\__  \  /     \  \____ \_  __ \_/ __ \ / __ | |  |/ ___\   __\/  _ \_  __ \
   /        \|  | \  ___/ / __ \|  Y Y  \ |  |_> >  | \/\  ___// /_/ | |  \  \___|  | (  <_> )  | \/
-  /_______  /|__|  \___  >____  /__|_|  / |   __/|__|    \___  >____ | |__|\___  >__|  \____/|__|   
-          \/           \/     \/      \/  |__|               \/     \/         \/                              
+ /_______  /|__|  \___  >____  /__|_|  / |   __/|__|    \___  >____ | |__|\___  >__|  \____/|__|   
+         \/           \/     \/      \/  |__|               \/     \/         \/                              
     """
     print(ascii_art)
 
 def show_menu(scripts_info, page, minio_info):
-    os.system('cls' if os.name == 'nt' else 'clear') 
+    system('cls' if name == 'nt' else 'clear') 
     keys = sorted(scripts_info.keys())
     
     if page == 0:

@@ -1,10 +1,15 @@
+"""
+Módulo de dependencias para mostrar correctamente el menú principal.
+"""
+
+from .minio_server import file_exists_minio
+from os import environ
+
 from .files import file_exists
 from .config import appidlist_file, gamelist_file, youtube_scraping_file, banners_file
 from .config import steam_reviews_top100_file, steam_reviews_rest_file, yt_statslist_file
 from .config import steam_reviews_file, steam_games_parquet_file_popularity, banners_file_popularity
 from .config import yt_statsPCA_parquet_file
-from .minio_server import file_exists_minio
-import os
 
 class appidlist_file_dependence():
     @staticmethod
@@ -49,7 +54,7 @@ class steam_api_dependence():
     
     @staticmethod
     def check(minio = None):
-        API_KEY = os.environ.get("STEAM_API_KEY")
+        API_KEY = environ.get("STEAM_API_KEY")
         if API_KEY is None:
             return False
         else:
@@ -62,7 +67,7 @@ class youtube_api_dependence():
     
     @staticmethod
     def check(minio = None):
-        API_KEY = os.environ.get("API_KEY_YT")
+        API_KEY = environ.get("API_KEY_YT")
         if API_KEY is None:
             return False
         else:
@@ -75,8 +80,8 @@ class minio_dependence():
     
     @staticmethod
     def check(minio = None):
-        API_KEY1 = os.environ.get("MINIO_ACCESS_KEY")
-        API_KEY2 = os.environ.get("MINIO_SECRET_KEY")
+        API_KEY1 = environ.get("MINIO_ACCESS_KEY")
+        API_KEY2 = environ.get("MINIO_SECRET_KEY")
         if API_KEY1 is None or API_KEY2 is None:
             return False
         else:

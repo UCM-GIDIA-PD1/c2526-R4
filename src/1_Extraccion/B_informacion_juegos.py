@@ -6,8 +6,8 @@ Requisitos:
 - Tener un JSON comprimido de APPIDs de Steam con el formato ["APPID1", "APPID2, ...] de nombre appids_list.json.gz
 """
 
-import requests
-import time
+from requests import Session
+from time import sleep
 from numpy.random import choice, uniform
 from tqdm import tqdm
 
@@ -79,7 +79,7 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
                     return
                 
         # comienzo de extracción
-        sesion = requests.Session()
+        sesion = Session()
         user_agent = choice(user_agents)
         sesion.headers.update({'User-Agent': user_agent})
         print("Comenzando extraccion de juegos...\n")
@@ -95,7 +95,7 @@ def B_informacion_juegos(minio): # PARA TERMINAR SESIÓN: CTRL + C
                 finally:
                     curr_idx += 1
                     wait = uniform(1.7, 2.5)
-                    time.sleep(wait)    
+                    sleep(wait)    
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")
     except Exception as e:

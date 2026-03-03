@@ -1,3 +1,7 @@
+"""
+Módulo que contiene la configuración del archivo main.py.
+"""
+
 from src.utils.dependences import appidlist_file_dependence, gamelist_file_dependence, youtube_scraping_file_dependence
 from src.utils.dependences import steam_api_dependence, youtube_api_dependence, banners_file_dependence
 from src.utils.dependences import steam_reviews_top100_file_dependence, steam_reviews_rest_file_dependence

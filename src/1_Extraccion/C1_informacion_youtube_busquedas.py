@@ -6,7 +6,7 @@ Además, usa TOR para evitar baneos de IP por conexiones excesivas al buscar,
 ya que es una petición costosa.
 
 Requisitos:
-- Tener TOR Bundle descargado.
+- Tener TOR Bundle en Windows o el paquete TOR en Linux/MacOS.
 - Tener un JSON comprimido con el mismo formato que el generado por B_informacion_juegos
 """
 
@@ -82,7 +82,7 @@ def C1_informacion_youtube_busquedas(minio):
                 if name and date:
                     id_list = search_youtube(name, date, session)
                     if id_list == []:
-                        tqdm.write(f'Juego sin vídeos: {name}')
+                        tqdm.write(f'Juego sin vídeos o error al buscarlo: {name}')
                     jsonl = {'id':appid,'name':name,'video_statistics':id_list}
                     write_to_file(jsonl, youtube_scraping_file)
                     session.wait(4, scope=0.4) # Espera aleatoria de entre 2.4 y 5.6 segundos
