@@ -4,14 +4,18 @@ de pandas creando columnas nuevas y eliminando columnas innecesarias.
 '''
 
 import pandas as pd
-from src.utils.config import raw_data_path, processed_data_path
 from src.utils.files import read_file
 from src.utils.config import steam_games_parquet_file, gamelist_file
 
 def _get_name(x):
     '''
-    Función usada para procesar nombres dentro de appdetails,
-    devuelve la string que contiene el campo 'name'
+    Dado un diccionario devuelve el valor del campo name.
+
+    Args:
+        x (dict): Diccionario de appdetails.
+    
+    Returns:
+        str: String del valor del campo 'name' del diccionario.
     '''
     if isinstance(x,dict):
         return x.get("name")
@@ -20,8 +24,14 @@ def _get_name(x):
 
 def _get_genres(x):
     '''
-    Procesa el diccionario de géneros de appdetails de un juego,
-    devuelve una lista de géneros (string)
+    Dado un diccionario itera por el campo 'genres' que contiene a su vez una lista de diccionarios, cada uno con 
+    los campos 'id' y 'description', para obtener una lista de géneros.
+
+    Args:
+        x (dict): Diccionario de appdetails.
+    
+    Returns:
+        list: Lista de strings de géneros de un juego
     '''
     if not isinstance(x, dict):
         return []
@@ -32,8 +42,14 @@ def _get_genres(x):
 
 def _get_categories(x):
     '''
-    Procesa el diccionario de categorías de appdetails de un juego,
-    devuelve una lista de categorías (string)
+    Dado un diccionario itera por el campo 'categories' que contiene a su vez una lista de diccionarios, cada uno con 
+    los campos 'id' y 'description', para obtener una lista de categorías.
+
+    Args:
+        x (dict): Diccionario de appdetails.
+    
+    Returns:
+        list: Lista de strings de categorías de un juego
     '''
     if not isinstance(x,dict):
         return []
@@ -56,8 +72,13 @@ def _is_free(x):
 
 def price_range(x):
     '''
-    Dado un precio lo categoriza en rangos: Gratis, (0,5), [5,10), [10,15),
-    [15,20), [20,30), [40,inf)
+    Dado el precio de un juego devuelve el rango de precio en el que se encuentra.
+
+    Args:
+        x (float): Precio de un juego
+    
+    Returns:
+        str: String que representa el rango de precio.
     '''
     if x == 0:
         return 'Free'
@@ -81,7 +102,7 @@ def B_games_info_transformacion(minio):
     games_info = read_file(gamelist_file)
     assert games_info, 'No se ha podido leer el archivo'
 
-    print('Tranformando a dataframe')
+    print('Transformando a dataframe')
     # Creamos el dataframe base
     df = pd.DataFrame(games_info)
     df = df.join(df["appdetails"].apply(pd.Series))
@@ -93,29 +114,30 @@ def B_games_info_transformacion(minio):
     df["genres"] = df["appdetails"].apply(lambda x: _get_genres(x))
     df['price_overview'] = df['price_overview'].apply(lambda x: x.get('initial')/100)
     df['price_range'] = df['price_overview'].apply(lambda x: price_range(x))
+    df['publishers'] = df['publishers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
+    df['developers'] = df['developers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
+    df['num_languages'] = df['supported_languages'].apply(lambda x: len(x))
+
     df["recomendaciones_positivas"] = df["appreviewhistogram"].apply(
         lambda x: x.get("rollups").get("recommendations_up") if isinstance(x, dict) & 
         isinstance(x.get("rollups"), dict) else None)
+    
     df["recomendaciones_negativas"] = df["appreviewhistogram"].apply(
         lambda x: x.get("rollups").get("recommendations_down") if isinstance(x, dict) & 
         isinstance(x.get("rollups"), dict) else None)
     
-    df['publishers'] = df['publishers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
-    df['developers'] = df['developers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
-    df['num_languages'] = df['supported_languages'].apply(lambda x: len(x))
- 
-    # Dropeamos nulos y columnas sin usar
+
+    # Eliminamos nulos
     df.dropna(subset=["recomendaciones_positivas","recomendaciones_negativas"],inplace = True)
     df["recomendaciones_totales"] = df["recomendaciones_positivas"] + df["recomendaciones_negativas"]
 
+    # Eliminamos columnas sin usar
     df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', 
                      'required_age'], inplace=True,errors="ignore")
     
 
     print('Almacenando')
-    # Almacenamos en parquet y csv
     df.to_parquet(steam_games_parquet_file)
-    # df.to_csv('data/games_info.csv', index=False)
 
 if __name__ == '__main__':
     B_games_info_transformacion()

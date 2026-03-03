@@ -1,37 +1,56 @@
 '''
-Dado youtube_statistics.jsonl.gz procesa el json para crear un dataframe y crear las columnas
-rellenado nulos, guardando ese dataframe base. Acto seguido, se hace un PCA para reducir la
-dimensionalidad del dataset, guardando también ese dataframe.
+Dado youtube_statistics.jsonl.gz procesa el json para crear un dataframe, crear las columnas de estadísticas,
+rellenado nulos.
+
+Además, se realiza una reducción de dimensionalidad basado en ponderaciones de los pesos de cada estadística y cada vídeo,
+que está ordenado según el número de visualizaciones.
 '''
 
 import pandas as pd
 import numpy as np
 from src.utils.config import yt_statslist_file, yt_stats_parquet_file, yt_statsPCA_parquet_file
 from src.utils.files import read_file
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 
 def _flatten_dict(d, prefix):
-    """
-    Aplana un diccionario y añade prefijo de nombre las columnas (prefix_col).
-    """
+    '''
+    Dada una columna de un dataframe (pd.Series), que contiene un diccionario,
+    usa .json_normalize para crear un nuevo dataframe y le altera el nombre a las columnas
+    para que tengan un prefijo.
+
+    Args:
+        d (pd.Serie): Columna de un dataframe que deberá ser transformado a varias columnas, contiene un diccionario.
+    
+    Returns:
+        flat (pd.DataFrame): Dataframe resultante con las columnas formateadas.
+    '''
     if pd.isna(d):
         return pd.Series(dtype=object)
 
+    # Crear el dataframe a partir del json
     flat = pd.json_normalize(d).iloc[0]
+    # Cambiar el nombre de las columnas
     flat.index = [f"{prefix}_{col}" for col in flat.index]
     return flat
 
 def _transform_to_dataframe(data):
+    '''
+    Dada la lista de diccionarios resultante de leer youtube_statistics.jsonl.gz, crea un dataframe 
+    separando los campos del diccionario en columnas y procesando los datos.
+
+    Args:
+        data (list): Lista de diccionarios con la información de los vídeos.
+    
+    Returns:
+        df (pd.DataFrame): Dataframe resultante de la transformación.
+    '''
     # Se crea el dataframe base
     df = pd.DataFrame(data)
     
     # Por cada miembro de la lista se crea una columna, rellenando con nulos las filas que no tienen esos datos
     df = df.join(df["video_statistics"].apply(pd.Series))
-    # Se eliminan las columnas que más nulos tienen y la columna base video_statistics
+    # Se eliminan las columnas que más nulos tienen (nos quedamos solamente con 4 vídeos) y la columna base video_statistics
     df.drop(df.columns[7:],axis=1, inplace=True)
     df.drop('video_statistics', axis=1, inplace=True)
-
 
     # Procesamos los diccionarios para transformarlos en columnas
     video_cols = [0, 1, 2, 3]
@@ -41,65 +60,35 @@ def _transform_to_dataframe(data):
         dfs.append(flattened)
     df_final = pd.concat([df] + dfs, axis=1)
 
-    # Volvemos a eliminar columnas innecesarias y sustituimos los nulos con 0
+    # Eliminamos las columnas ya procesadas y las columnas de ID de vídeos generadas durante el procesamiento.
     df_final.drop([0,1,2,3, 'video_0_id', 'video_1_id', 'video_2_id', 'video_3_id'], axis=1,inplace=True)
+    
+    # Rellenamos nulos
     df_final = df_final.fillna(0)
 
-    cols_to_int = [
-    c for c in df_final.columns
-    if "video_statistics" in c
-    ]
+    # Lista de columnas que vamos a transformar a un tipo numérico
+    cols_transform = [ c for c in df_final.columns if "video_statistics" in c ]
 
     # Para evitar problemas de tipos transformamos todas las columnas de estadísticas a int
-    df_final[cols_to_int] = (
-        df_final[cols_to_int]
+    df_final[cols_transform] = (
+        df_final[cols_transform]
             .apply(pd.to_numeric, errors="coerce") 
             .astype("Int64")                       
     )
 
     return df_final
 
-def _PCA_analysis(df):
-    video_cols = [0, 1, 2, 3]
-
-    for i in video_cols:
-        # Cogemos las columnas de estadísticas relativas al vídeo
-        cols = [
-            c for c in df.columns
-            if c.startswith(f"video_{i}_") and "statistics" in c
-        ]
-        X = df[cols].select_dtypes(include="number").fillna(0)
-
-        # Estandarizamos las métricas
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-        
-        # 5️PCA (2 componentes)
-        pca = PCA(n_components=2, random_state=42)
-        X_pca = pca.fit_transform(X_scaled)
-        
-        # Añadir al dataframe
-        df[f"video_{i}_pca_1"] = X_pca[:, 0]
-        df[f"video_{i}_pca_2"] = X_pca[:, 1]
-
-    # Eliminamos las columnas previas al PCA
-    cols_to_drop = [
-    c for c in df.columns
-    if any(c.startswith(f"video_{i}_") and "statistics" in c for i in [0,1,2,3])
-    ]
-    df.drop(cols_to_drop, axis=1, inplace=True)
-
-
-    rename_map = {}
-    for i in [0, 1, 2, 3]:
-        rename_map[f"video_{i}_pca_1"] = f"video_{i}_popularity_score"
-        rename_map[f"video_{i}_pca_2"] = f"video_{i}_engagement_score"
-
-    df = df.rename(columns=rename_map)
-        
-    return df
-
 def procesar_impacto_youtube(df_original):
+    '''
+    Dado el dataframe ya procesado de las estadísticas, crea nuevas variables para medir el impacto en Youtube.
+
+    Args:
+        df_original (pd.DataFrame): Dataframe procesado con las estadísticas de Youtube. 
+    
+    Returns:
+        df (pd.DataFrame): Dataframe resultante de la transformación.
+    
+    '''
     def calcular_fila(row):
         score_total = 0
         encontrado_alguna_metrica = False
@@ -138,7 +127,7 @@ def C_estadisticas_youtube(minio):
     data = read_file(yt_statslist_file)
     assert data, 'No se ha podido leer el archivo'
     
-    print('Tranformando a dataframe')
+    print('Transformando a dataframe')
     df = _transform_to_dataframe(data)
 
     print('Guardando dataframe base')
