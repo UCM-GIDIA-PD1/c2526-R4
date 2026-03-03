@@ -1,3 +1,7 @@
+"""
+Módulo que se encarga de la conexión con Minio.
+"""
+
 from minio import Minio
 from minio.error import S3Error
 from os import environ

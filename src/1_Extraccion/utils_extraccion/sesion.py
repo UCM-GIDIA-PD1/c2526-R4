@@ -1,7 +1,10 @@
+"""
+Módulo enfocado a la generalización de código de los Scripts de extracción de datos.
+"""
+
 from src.utils.files import read_file, write_to_file, file_exists
 from src.utils.config import config_file, appidlist_file, gamelist_file, youtube_scraping_file
 from src.utils.config import steam_reviews_top100_file, steam_reviews_rest_file, get_appid_range
-import os
 
 def read_config(script_id, default_return = None):
     """
@@ -14,7 +17,7 @@ def read_config(script_id, default_return = None):
     Returns:
         dict: campo asociado a la key script_id en config_info
     """
-    if os.path.exists(config_file):
+    if file_exists(config_file):
         config_info = read_file(config_file)
         return config_info.get(script_id, default_return)
     

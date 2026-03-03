@@ -1,6 +1,12 @@
+"""
+Módulo que se encarga de hacer llamadas a la API de Steam (tanto la oficial como la API web
+no oficial)
+"""
+
 import os
 import requests
 from tqdm import tqdm
+
 from src.utils.date import format_date_string, unix_to_date_string
 from src.utils.exceptions import AppdetailsException, ReviewhistogramException, SteamAPIException
 
@@ -275,10 +281,9 @@ def get_resenyas(id, sesion, is_top_100):
             En caso de que el request no se complete, se devuelve un diccionario vacío.
     """
 
-    # Obtiene las reseñas de un juego, como parámetros tiene filtro por idioma, 
-    # aparecen ordenadas las reseñas por utilidad,
-    # con un máximo de 100 reseñas por página. Por último se actualiza el cursor 
-    # para obtener la url de la siguiente página
+    # Obtiene las reseñas de un juego, como parámetros tiene filtro por idioma, aparecen
+    # ordenadas las reseñas por utilidad, con un máximo de 100 reseñas por página. Por 
+    # último se actualiza el cursor para obtener la url de la siguiente página.
     url_begin = "https://store.steampowered.com/appreviews/"
     url = url_begin + str(id)
     
@@ -306,10 +311,9 @@ def get_resenyas(id, sesion, is_top_100):
             review["id_usuario"] = rev["author"].get("steamid")
             review["texto"] = rev["review"].strip()
             review["valoracion"] = rev["voted_up"]
-            # El atributo peso determina la utilidad de la reseña, cuánto mayor 
-            # es este mayor utilidad tiene la review,
-            # el valor del peso puede ser string o int, esto debe ser tenido en 
-            # cuenta a la hora de entrenar el modelo
+            # El atributo peso determina la utilidad de la reseña, cuánto mayor es 
+            # este mayor utilidad tiene la review, el valor del peso puede ser string 
+            # o int, esto debe ser tenido en cuenta a la hora de entrenar el modelo
             review["peso"] = rev["weighted_vote_score"]
             review["early_access"] = rev["written_during_early_access"]
             game_reviews["lista_resenyas"].append(review)

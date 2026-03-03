@@ -1,10 +1,15 @@
+"""
+Módulo de dependencias para mostrar correctamente el menú principal.
+"""
+
+from .minio_server import file_exists_minio
+import os
+
 from .files import file_exists
 from .config import appidlist_file, gamelist_file, youtube_scraping_file, banners_file
 from .config import steam_reviews_top100_file, steam_reviews_rest_file, yt_statslist_file
 from .config import steam_reviews_file, steam_games_parquet_file_popularity, banners_file_popularity
 from .config import yt_statsPCA_parquet_file
-from .minio_server import file_exists_minio
-import os
 
 class appidlist_file_dependence():
     @staticmethod

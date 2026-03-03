@@ -1,4 +1,9 @@
+"""
+Módulo que se encarga de hacer el transpaso de formatos de fechas.
+"""
+
 from datetime import datetime
+
 def unix_to_date_string(timestamp):
     """
     Convierte un timestamp Unix a formato YYYY-MM-DD

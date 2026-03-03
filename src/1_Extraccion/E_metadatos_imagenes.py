@@ -15,16 +15,18 @@ import requests
 import time
 from tqdm import tqdm
 import numpy as np
+from numpy.random import choice
 from sentence_transformers import SentenceTransformer
 
 from src.utils.minio_server import upload_to_minio
 from src.utils.files import write_to_file, erase_file, file_exists
 from src.utils.config import banners_file, project_root, data_path
 
+from utils_extraccion.webscraping import user_agents
 from utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games
 from utils_extraccion.sesion import overwrite_confirmation, handle_input
 
-def analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet, model_clip, model_convnext):
+def _analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet, model_clip, model_convnext, sesion):
     """
     Analiza las características de una imagen
 
@@ -36,6 +38,7 @@ def analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet, 
         model_resnet (torch.nn.Module): modelo preentrenado para extracción de embeddings.
         model_clip (sentence_transformers.SentenceTransformer): modelo preentrenado para extracción de embeddings.
         model_convnext (torch.nn.Module): modelo preentrenado para extracción de embeddings.
+        sesion (Session): Sesion de requests ya abierta.
 
     Returns:
         dict: diccionario con el brillo medio y vector de características de la imagen
@@ -45,7 +48,7 @@ def analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet, 
     ruta_temporal = os.path.join(img_path, nombre_imagen)
     
     if download_images:
-        response = requests.get(url, timeout=10)
+        response = sesion.get(url, timeout=10)
         response.raise_for_status() # Para lanzar excepción si da error la petición
     
         with open(ruta_temporal, 'wb') as f:
@@ -143,6 +146,10 @@ def E_metadatos_imagenes(minio):
     ruta_imagenes = data_dir / "images"
     os.makedirs(ruta_imagenes, exist_ok=True)
 
+    sesion = requests.Session()
+    user_agent = choice(user_agents)
+    sesion.headers.update({'User-Agent': user_agent})
+
     # Procesamiento de las imágenes
     try:
         with tqdm(pending_games, unit="juegos") as pbar:
@@ -159,8 +166,8 @@ def E_metadatos_imagenes(minio):
                     url = None
 
                 try:
-                    caracteristicas = analiza_imagen(ruta_imagenes, url, trans, appid, download_images, 
-                                                     model_resnet, model_clip, model_convnext)
+                    caracteristicas = _analiza_imagen(ruta_imagenes, url, trans, appid, download_images, 
+                                                     model_resnet, model_clip, model_convnext, sesion)
 
                     resultado_juego = {
                         "id": appid,

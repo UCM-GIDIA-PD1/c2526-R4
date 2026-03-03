@@ -1,8 +1,13 @@
+"""
+Módulo que contiene todas las funciones relativas a la trata de archivos.
+"""
+
 import json
 import gzip
 import pandas as pd
 from os import remove
 import os
+
 from .config import steam_log_file
 from .minio_server import upload_to_minio, download_from_minio, erase_from_minio, file_exists_minio
 
@@ -42,7 +47,6 @@ def _save_txt(data, filepath):
     with open(filepath, "wt", encoding = "utf-8") as f:
         f.write(str(data))
 
-
 # Cargar datos de ficheros existentes
 def _read_json(filepath):
     with open(filepath, "rt", encoding="utf-8") as archivo:
@@ -73,8 +77,7 @@ def _read_txt(filepath):
         data = f.read()
         return data
 
-# Funciones publicas
-
+# Funciones públicas
 def write_to_file(data, filepath, minio = {"minio_write": False, "minio_read": False}):
     """
     Guarda un diccionario en el formato indicado en la ruta especificada.
@@ -194,5 +197,3 @@ def file_exists(filepath, minio = {"minio_write": False, "minio_read": False}):
         return os.path.exists(os.path.join("data/processed", filepath)) or os.path.exists(os.path.join("data/raw", filepath))
     else: 
         return file_exists_minio(filepath)
-        
-

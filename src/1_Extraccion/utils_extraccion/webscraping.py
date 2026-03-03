@@ -10,11 +10,11 @@ from psutil import process_iter
 from subprocess import Popen, DEVNULL
 from time import sleep
 from random import choice
-from src.utils.config import config_path
 import platform
 
-sys_platform = platform.system()
+from src.utils.config import config_path
 
+sys_platform = platform.system()
 assert sys_platform == 'Windows' or sys_platform == 'Linux' or sys_platform == 'Darwin', "Sistema operativo no compatible"
 
 if sys_platform == 'Windows':
@@ -48,13 +48,14 @@ elif sys_platform == 'Darwin': # Mac
         'Chrome/142.0.0.0 Safari/537.36 OPR/115.0.0.0'
     ]
 
-# Resoluciones de pantalla comunes:
+# Resoluciones de pantalla comunes (si tenéis Window Manager es recomendable desactivarlo temporalmente
+# para que las resoluciones surtan efecto):
 common_resolutions = [
     (1920, 1080), (1366, 768), (1536, 864), 
     (1440, 900), (1280, 720), (1600, 900)
 ]
 
-TORRC_DIR = config_path() / "torrc"
+_torrc_file = config_path() / "torrc"
 
 def _is_tor_running():
     """
@@ -92,7 +93,7 @@ def start_tor():
 
         # Abrimos TOR (IMPORTANTE: hace falta tener la carpeta de TOR en PATH para que se pueda abrir)
         tor_name = "tor.exe" if platform.system() == "Windows" else "tor"
-        Popen([tor_name, '-f', str(TORRC_DIR)], stdout=DEVNULL, stderr=DEVNULL)
+        Popen([tor_name, '-f', str(_torrc_file)], stdout=DEVNULL, stderr=DEVNULL)
         sleep(10)
         assert _is_tor_running(), "couldn't start TOR"
     else:
@@ -167,7 +168,7 @@ def search_youtube(game_name, date, session):
     """
     # url
     nombre_formateado = game_name.replace(' ', '+')
-    query = '%22' + nombre_formateado + '%22' + '+before%3A' + date
+    query = '%22' + nombre_formateado + '%22' + '+ before%3A' + date
     url = "https://www.youtube.com/results?search_query=" + query + "&sp=CAM%253D"
 
     # Navegamos a la url

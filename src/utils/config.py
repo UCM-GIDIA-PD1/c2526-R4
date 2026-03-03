@@ -1,10 +1,9 @@
-import os
-from pathlib import Path
-
 """
 Se encarga de trabajar con los archivos de configuración y tiene variables con las que se trabaja en todo el proyecto
 """
 
+import os
+from pathlib import Path
 
 def get_appid_range(length):
     """Lee el inicio y fin de una sesión de scrapping desde un archivo de texto
@@ -74,11 +73,15 @@ def error_log_path():
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+# ------ VARIABLES DEL PROYECTO ------ #
 
-# Variables de proyecto
-#id = "" if os.environ.get("PD1_ID") is None else f"_{os.environ.get('PD1_ID')}"
+# Total de miembros del equipo de extracción para dividirla en bloques
 members = 6
+
+# Config Path
 config_file = config_path() / "config.json"
+
+# ------ SCRIPTS DE EXTRACCIÓN ------ #
 
 # Script A
 appidlist_file = raw_data_path() / "appids_list.json.gz"
@@ -102,6 +105,7 @@ banners_file_popularity = raw_data_path() / "info_imagenes_popularidad.jsonl.gz"
 banners_file_prices = raw_data_path() / "info_imagenes_precios.jsonl.gz"
 
 # ------ SCRIPTS DE TRANSFORMACIÓN ------ #
+
 # Script B
 steam_games_parquet_file = processed_data_path() / "games_info.parquet"
 steam_games_parquet_file_popularity = processed_data_path() / "games_info_popularity.parquet"

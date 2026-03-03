@@ -105,7 +105,8 @@ def C2_informacion_youtube_videos(minio):
                 
         API_KEY = _get_apikey()
         youtube = build('youtube', 'v3', developerKey=API_KEY)
-        print('Comenzando requests a la API de Youtube...\n')
+
+        print('Comenzando peticiones a la API de Youtube...\n')
         with tqdm(pending_games, unit="juegos") as pbar:
             for app in pbar:
                 appid = app.get('id')
@@ -148,8 +149,6 @@ def C2_informacion_youtube_videos(minio):
         if curr_idx > end_idx:
             print("Rango completado")
         update_config("C2", gamelist_info)
-
-
 
 if __name__ == "__main__":
     C2_informacion_youtube_videos()
