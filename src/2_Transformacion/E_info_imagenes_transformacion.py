@@ -8,8 +8,8 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from utils.files import read_file, write_to_file
-from utils.config import banners_file, gamelist_file, P_banners_file
+from src.utils.files import read_file, write_to_file
+from src.utils.config import banners_file, gamelist_file, P_banners_file, popularity
 
 def join_B_and_E():
     dfE = pd.DataFrame(read_file(banners_file))
@@ -23,7 +23,6 @@ def join_B_and_E():
     df_joined = dfE.merge(dfB, on="id")
 
     # Meter precio
-
     df = df.join(df["appdetails"].apply(pd.Series))
     df["initial"] = df["price_overview"].apply(lambda x : x.get("initial"))
     df = df[["id", "initial"]]
@@ -60,9 +59,9 @@ def reduct_dataframes_from_models(df):
 
 def info_imagenes_transformacion(minio = {"minio_write": False, "minio_read": False}):
     print("Ejecutano reducción de vectores de imágenes\n")
-    df = join_B_and_E()
+    df = read_file(popularity)
     reduct_dataframes_from_models(df)
-    write_to_file(df.to_dict(), P_banners_file)
+    df.to_parquet(P_banners_file)
 
 if __name__ == "__main__":
     info_imagenes_transformacion()
