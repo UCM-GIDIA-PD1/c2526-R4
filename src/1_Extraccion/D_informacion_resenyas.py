@@ -47,9 +47,9 @@ def D_informacion_resenyas(minio):
         # Si existe fichero preguntar si sobreescribir o insertar al final, 
         # esta segunda opción no controla duplicados
         if file_exists(steam_reviews_file, minio):
-            origen = " en MinIO" if minio["minio_read"] else ""
-            mensaje = f"El fichero de reseñas ya existe{origen}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
-            overwrite_file = ask_overwrite_file(mensaje)
+            origin = " en MinIO" if minio["minio_read"] else ""
+            message = f"El fichero de reseñas ya existe{origin}:\n\n1. Añadir contenido al fichero existente\n2. Sobreescribir fichero\n\nIntroduce elección: "
+            overwrite_file = ask_overwrite_file(message)
             if overwrite_file:
                 # asegurarse de que se quiere eliminar toda la información
                 if overwrite_confirmation():

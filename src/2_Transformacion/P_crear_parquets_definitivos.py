@@ -34,13 +34,13 @@ def create_popularity_parquet(minio):
     df_C["id"] = df_C["id"].astype(str)
 
     df = pd.merge(df_B, df_E, on = "id")
-    df = pd.merge(df, df_C, on = ["id", "name"])
+    df = pd.merge(df, df_C, on = "id")
 
     df.dropna()
     df.to_parquet(popularity)
 
 def crear_parquets(minio):
-    create_popularity_parquet()
+    create_popularity_parquet(minio)
     create_prices_parquet()
 
 if __name__ == '__main__':
