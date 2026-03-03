@@ -5,11 +5,11 @@ dimensionalidad del dataset, guardando también ese dataframe.
 '''
 
 import pandas as pd
+import numpy as np
 from src.utils.config import yt_statslist_file, yt_stats_parquet_file, yt_statsPCA_parquet_file
 from src.utils.files import read_file
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-
 
 def _flatten_dict(d, prefix):
     """
@@ -99,8 +99,41 @@ def _PCA_analysis(df):
         
     return df
 
-if __name__ == '__main__':
+def procesar_impacto_youtube(df_original):
+    def calcular_fila(row):
+        score_total = 0
+        encontrado_alguna_metrica = False
+        
+        for i in range(4):
+            v = row.get(f'video_{i}_video_statistics.viewCount', 0)
+            l = row.get(f'video_{i}_video_statistics.likeCount', 0)
+            c = row.get(f'video_{i}_video_statistics.commentCount', 0)
+            
+            vals = pd.to_numeric([v, l, c], errors='coerce')
+            v, l, c = np.nan_to_num(vals) 
+            
+            if v > 0 or l > 0 or c > 0:
+                encontrado_alguna_metrica = True
+                sv = (0.5 * np.log10(v + 1)) + \
+                     (0.3 * np.log10(l + 1)) + \
+                     (0.2 * np.log10(c + 1))
+                score_total += sv
+        
+        return score_total if encontrado_alguna_metrica else 0
 
+    df_nuevo = pd.DataFrame()
+    df_nuevo['id'] = df_original['id']
+    
+    df_nuevo['yt_score'] = df_original.apply(calcular_fila, axis=1)
+    
+    # Normalización
+    max_impacto = df_nuevo['yt_score'].max()
+    if max_impacto > 0:
+        df_nuevo['yt_score'] = df_nuevo['yt_score'] / max_impacto
+        
+    return df_nuevo
+
+def C_estadisticas_youtube(minio):
     print('Obteniendo archivo')
     data = read_file(yt_statslist_file)
     assert data, 'No se ha podido leer el archivo'
@@ -108,12 +141,13 @@ if __name__ == '__main__':
     print('Tranformando a dataframe')
     df = _transform_to_dataframe(data)
 
-    # Guardamos dataframe antes del PCA
     print('Guardando dataframe base')
     df.to_parquet(yt_stats_parquet_file)
 
-    print('Analizando PCA')
-    df = _PCA_analysis(df)
+    # Para la métrica de YT
+    df_metrica = procesar_impacto_youtube(df)
+    print('Guardando dataframe con métrica de YouTube')
+    df_metrica.to_parquet(yt_statsPCA_parquet_file)
 
-    print('Guardando dataframe reducido con PCA')
-    df.to_parquet(yt_statsPCA_parquet_file)
+if __name__ == '__main__':
+    C_estadisticas_youtube()

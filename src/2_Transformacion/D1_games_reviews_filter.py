@@ -39,9 +39,7 @@ def _get_name(x):
     else:
         return None
 
-
-if __name__ == "__main__":
-    
+def D1_games_reviews_filter(minio):
     print('Obteniendo archivo')
     data = read_file(gamelist_file)
     assert data, 'No se ha podido leer el archivo'
@@ -72,4 +70,7 @@ if __name__ == "__main__":
     # Almacenar los dataframes en las rutas indicadas
     df_top_100_sorted.to_json(steam_reviews_top100_file, orient= "records", compression= "gzip")
     df_rest_sorted.to_json(steam_reviews_rest_file, orient= "records", compression= "gzip")
+
+if __name__ == "__main__":
+    D1_games_reviews_filter()
     

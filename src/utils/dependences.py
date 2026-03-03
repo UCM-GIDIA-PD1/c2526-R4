@@ -1,6 +1,8 @@
 from .files import file_exists
 from .config import appidlist_file, gamelist_file, youtube_scraping_file, banners_file
-from .config import steam_reviews_top100_file, steam_reviews_rest_file
+from .config import steam_reviews_top100_file, steam_reviews_rest_file, yt_statslist_file
+from .config import steam_reviews_file, steam_games_parquet_file_popularity, banners_file_popularity
+from .config import yt_statsPCA_parquet_file
 from .minio_server import file_exists_minio
 import os
 
@@ -106,3 +108,48 @@ class steam_reviews_rest_file_dependence():
     @staticmethod
     def check(minio):
         return file_exists(steam_reviews_rest_file, minio)
+
+class yt_statslist_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {yt_statslist_file.name}"
+    
+    @staticmethod
+    def check(minio):
+        return file_exists(yt_statslist_file, minio)
+    
+class steam_reviews_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {steam_reviews_file.name}"
+    
+    @staticmethod
+    def check(minio):
+        return file_exists(steam_reviews_file, minio)
+
+class steam_games_parquet_file_popularity_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {steam_games_parquet_file_popularity.name}"
+    
+    @staticmethod
+    def check(minio):
+        return file_exists(steam_games_parquet_file_popularity, minio)
+
+class banners_file_popularity_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {banners_file_popularity.name}"
+    
+    @staticmethod
+    def check(minio):
+        return file_exists(banners_file_popularity, minio)
+    
+class yt_statsPCA_parquet_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {yt_statsPCA_parquet_file.name}"
+    
+    @staticmethod
+    def check(minio):
+        return file_exists(yt_statsPCA_parquet_file, minio)

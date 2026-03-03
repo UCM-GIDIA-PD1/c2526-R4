@@ -1,8 +1,13 @@
 from src.utils.dependences import appidlist_file_dependence, gamelist_file_dependence, youtube_scraping_file_dependence
 from src.utils.dependences import steam_api_dependence, youtube_api_dependence, banners_file_dependence
 from src.utils.dependences import steam_reviews_top100_file_dependence, steam_reviews_rest_file_dependence
+from src.utils.dependences import yt_statslist_file_dependence, steam_reviews_file_dependence
+from src.utils.dependences import steam_games_parquet_file_popularity_dependence, banners_file_popularity_dependence
+from src.utils.dependences import yt_statsPCA_parquet_file_dependence
 from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, P_banners_file
 from src.utils.config import steam_reviews_file, banners_file, steam_reviews_top100_file, steam_reviews_rest_file
+from src.utils.config import steam_games_parquet_file, yt_stats_parquet_file, yt_statsPCA_parquet_file
+from src.utils.config import steam_reviews_parquet_file, popularity
 
 main_extraccion_info = {
         "A": {"fichero": "A_lista_juegos", 
@@ -44,34 +49,41 @@ main_extraccion_info = {
     }
 
 main_transformacion_info = {
-        "TB": {"fichero": "TB_games_info_transformacion", 
-              "salida": [steam_reviews_top100_file.name, steam_reviews_rest_file.name], 
-              "ejecutable": "TB_games_info_transformacion", 
+        "B": {"fichero": "B_games_info_transformacion", 
+              "salida": steam_games_parquet_file.name, 
+              "ejecutable": "B_games_info_transformacion", 
               "usar": False, 
               "dependences" : [gamelist_file_dependence]
         },
-        "TI": {"fichero": "TI_info_imagenes_transformacion", 
+        "C": {"fichero": "C_estadisticas_youtube", 
+              "salida": [yt_stats_parquet_file.name, yt_statsPCA_parquet_file.name], 
+              "ejecutable": "C_estadisticas_youtube", 
+              "usar": False, 
+              "dependences" : [yt_statslist_file_dependence]
+        },
+        "D1": {"fichero": "D1_games_reviews_filter", 
+              "salida": [steam_reviews_top100_file.name, steam_reviews_rest_file.name], 
+              "ejecutable": "D1_games_reviews_filter", 
+              "usar": False, 
+              "dependences" : [gamelist_file_dependence]
+        },
+        "D2": {"fichero": "D2_limpieza_reviews", 
+              "salida": steam_reviews_parquet_file.name, 
+              "ejecutable": "D2_limpieza_reviews", 
+              "usar": False, 
+              "dependences" : [steam_reviews_file_dependence]
+        },
+        "E": {"fichero": "E_info_imagenes_transformacion", 
               "salida": P_banners_file.name, 
               "ejecutable": "info_imagenes_transformacion", 
               "usar": False, 
               "dependences" : [gamelist_file_dependence, banners_file_dependence]
         },
-        "TR": {"fichero": "TR_games_reviews_filter", 
-              "salida": steam_reviews_file.name, 
-              "ejecutable": "TR_games_reviews_filter", 
-              "usar": False, 
-              "dependences" : [gamelist_file_dependence]
-        },
-        "TI": {"fichero": "TR_games_reviews_filter", 
-              "salida": steam_reviews_file.name, 
-              "ejecutable": "TR_games_reviews_filter", 
-              "usar": False, 
-              "dependences" : []
-        },
         "P": {"fichero": "P_crear_parquets_definitivos", 
-              "salida": steam_reviews_file.name, 
+              "salida": popularity.name, 
               "ejecutable": "crear_parquets", 
               "usar": False, 
-              "dependences" : [gamelist_file_dependence]
+              "dependences" : [steam_games_parquet_file_popularity_dependence, banners_file_popularity_dependence, 
+                               yt_statsPCA_parquet_file_dependence]
         },
     }
