@@ -2,10 +2,11 @@
 Módulo que contiene todas las funciones relativas a la trata de archivos.
 """
 
-from json import dump, dumps, load, loads, JSONDecodeError
-from gzip import open, BadGzipFile
-from pandas import DataFrame, read_parquet
-from os import remove, path
+import json
+import gzip
+import pandas as pd
+from os import remove
+import os
 
 from .config import steam_log_file
 from .minio_server import upload_to_minio, download_from_minio, erase_from_minio, file_exists_minio
@@ -17,30 +18,30 @@ def log_appid_errors(appid, reason):
 # Guardar datos a ficheros
 def _save_json(data, filepath):
     with open(filepath, "wt", encoding = "utf-8") as f:
-        dump(data, f, ensure_ascii = False)
+        json.dump(data, f, ensure_ascii = False)
 
 def _save_json_gz(data, filepath):
-    with open(filepath, "wt", encoding = "utf-8") as f:
-        dump(data, f, ensure_ascii = False)
+    with gzip.open(filepath, "wt", encoding = "utf-8") as f:
+        json.dump(data, f, ensure_ascii = False)
 
 def _append_jsonl(data, filepath):
     with open(filepath, "at", encoding="utf-8") as f:
         if isinstance(data, list):
             for item in data:
-                f.write(dumps(item, ensure_ascii=False) + "\n")
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
         else:
-            f.write(dumps(data, ensure_ascii=False) + "\n")
+            f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
 def _append_jsonl_gz(data, filepath):
-    with open(filepath, "at", encoding="utf-8") as f:
+    with gzip.open(filepath, "at", encoding="utf-8") as f:
         if isinstance(data, list):
             for item in data:
-                f.write(dumps(item, ensure_ascii=False) + "\n")
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
         else:
-            f.write(dumps(data, ensure_ascii=False) + "\n")
+            f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
 def _save_parquet(data, filepath):
-    DataFrame(data).to_parquet(filepath)
+    pd.DataFrame(data).to_parquet(filepath)
 
 def _save_txt(data, filepath):
     with open(filepath, "wt", encoding = "utf-8") as f:
@@ -49,26 +50,26 @@ def _save_txt(data, filepath):
 # Cargar datos de ficheros existentes
 def _read_json(filepath):
     with open(filepath, "rt", encoding="utf-8") as archivo:
-        data = load(archivo)
+        data = json.load(archivo)
         return data
     
 def _read_json_gz(filepath):
-    with open(filepath, "rt", encoding="utf-8") as archivo:
-        data = load(archivo)
+    with gzip.open(filepath, "rt", encoding="utf-8") as archivo:
+        data = json.load(archivo)
         return data
 
 def _read_jsonl(filepath):
     with open(filepath, "rt", encoding="utf-8") as f:
-        data = [loads(line) for line in f if line.strip()]
+        data = [json.loads(line) for line in f if line.strip()]
         return data
     
 def _read_jsonl_gz(filepath):
-    with open(filepath, "rt", encoding="utf-8") as f:
-        data = [loads(line) for line in f if line.strip()]
+    with gzip.open(filepath, "rt", encoding="utf-8") as f:
+        data = [json.loads(line) for line in f if line.strip()]
         return data
  
 def _read_parquet(filepath):
-    data = read_parquet(filepath)
+    data = pd.read_parquet(filepath)
     return data
 
 def _read_txt(filepath):
@@ -155,10 +156,10 @@ def read_file(filepath, minio = {"minio_write": False, "minio_read": False}, def
     except FileNotFoundError:
         print(f"Error: File {filepath.name} does not exist.")
         return default_return
-    except JSONDecodeError:
+    except json.JSONDecodeError:
         print("Error: invalid JSON format.")
         return default_return
-    except BadGzipFile:
+    except gzip.BadGzipFile:
         print("Error: invalid gzip.JSON format.")
         return default_return
     except Exception as e:
@@ -191,9 +192,8 @@ def file_exists(filepath, minio = {"minio_write": False, "minio_read": False}):
         if isinstance(filepath, list):
             ret = True
             for file in filepath:
-                ret = ret and (path.exists(file) or path.exists(path.join("data", file)))
+                ret = ret and (os.path.exists(file) or os.path.exists(os.path.join("data", file)))
             return ret
-        return (path.exists(path.join("data/processed", filepath)) or 
-                path.exists(path.join("data/raw", filepath)))
+        return os.path.exists(os.path.join("data/processed", filepath)) or os.path.exists(os.path.join("data/raw", filepath))
     else: 
         return file_exists_minio(filepath)
