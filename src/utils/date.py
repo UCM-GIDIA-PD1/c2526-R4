@@ -39,3 +39,22 @@ def format_date_string(date_str):
 
     except ValueError:
         return None
+    
+def get_year(date_str):
+    """
+    Convierte fechas de Steam a formato 'YYYY-MM-DD'.
+    Soporta múltiples formatos.
+
+    Args:
+        fecha_str (str): Fecha en formato 'DD Mon, YYYY'.
+
+    Returns:
+        str | None: La fecha en formato RFC 3339 ('YYYY-MM-DD')
+        Retorna None si la fecha no se carga correctamente.
+    """
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        return dt.strftime("%Y")
+
+    except ValueError:
+        return None
