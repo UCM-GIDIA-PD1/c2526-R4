@@ -24,6 +24,7 @@ def _get_total_reviews(x):
         return []
     if x.get("rollups"):
         return x.get("rollups").get("total_recommendations")
+    
 def _get_name(x):
     """
     Función que extrae el nombre del juego.

@@ -128,7 +128,6 @@ def trans_popularity(df):
 
     df.drop(columns=["prince_range", "recomendaciones_positivas", "recomendaciones_negativas"], inplace=True,errors="ignore")
 
-
 def B_games_info_transformacion(minio):
     ficheros = [steam_games_parquet_file_popularity, steam_games_parquet_file_prices]
     for f in ficheros:
