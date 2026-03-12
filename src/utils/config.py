@@ -88,8 +88,9 @@ appidlist_file = raw_data_path() / "appids_list.json.gz"
 # Script B
 steam_log_file = error_log_path() / "steam_log_file.jsonl"
 gamelist_file = raw_data_path() / "games_info.jsonl.gz"
-gameslist_popularity_sample = raw_data_path() / "games_info_popularity.jsonl.gz"
-gameslist_price_sample = raw_data_path() / "games_info_prices.jsonl.gz"
+gameslist_popularity_sample = raw_data_path() / "games_info_sample_popularidad.jsonl.gz"
+gameslist_price_sample = raw_data_path() / "games_info_sample_precios.jsonl.gz"
+
 
 # Script C1
 youtube_scraping_file = raw_data_path() / "info_steam_youtube1.jsonl.gz"

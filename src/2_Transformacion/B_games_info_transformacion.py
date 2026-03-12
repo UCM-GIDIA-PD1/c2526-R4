@@ -1,14 +1,21 @@
 '''
-Dado games_info.jsonl.gz procesa el json, lo convierte en un dataframe 
-de pandas creando columnas nuevas y eliminando columnas innecesarias.
+Dado games_info.jsonl.gz procesa el json, lo convierte en un dataframe de pandas creando columnas nuevas y
+eliminando columnas innecesarias.
+
+Archivos necesarios:
+
+    - publisher_dict.json
+    - games_info_sample_precios.jsonl.gz
+    - games_info_sample_popularidad.gz
 '''
 
 import pandas as pd
+
 from pathlib import Path
 from sklearn.preprocessing import MultiLabelBinarizer
 from src.utils.date import get_year
 from src.utils.files import read_file
-from src.utils.config import gamelist_file, steam_games_parquet_file_popularity, steam_games_parquet_file_prices,steam_publishers_count
+from src.utils.config import gameslist_price_sample, gameslist_popularity_sample, steam_games_parquet_file_popularity, steam_games_parquet_file_prices,steam_publishers_count
 
 def _get_name(x):
     '''
@@ -89,8 +96,8 @@ def price_range(x):
         return '>40'
 
 def _number_publishers(x, publishers_dict):
-    assert type(x) == str(), 'No es tipo string'
-    nGames = publishers_dict.get(x)
+    strX = str(x)
+    nGames = publishers_dict.get(strX)
     return nGames if nGames else 0
 
 def trans_general(df):
@@ -110,13 +117,15 @@ def trans_general(df):
     df['total_games_by_publisher'] = df['publishers'].apply(lambda x: _number_publishers(x,publishers_dict))
 
     # Eliminamos columnas sin usar
-    df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', 
+    df.drop(columns=["appdetails", 'header_url', 'capsule_img', 'metacritic', 
                     'required_age', "short_description", "release_date", "supported_languages"], inplace=True,errors="ignore")
     
     
     return df
 
 def trans_prices(df):
+    df_precios = trans_general(df)
+    df_precios.drop(columns=['appreviewhistogram'],inplace=True)
     return trans_general(df)
 
 def trans_popularity(df):
@@ -134,24 +143,29 @@ def trans_popularity(df):
     df.dropna(subset=["recomendaciones_positivas","recomendaciones_negativas"],inplace = True)
     df["recomendaciones_totales"] = df["recomendaciones_positivas"] + df["recomendaciones_negativas"]
 
-    df.drop(columns=["prince_range", "recomendaciones_positivas", "recomendaciones_negativas"], inplace=True,errors="ignore")
+    df.drop(columns=['appreviewhistogram',"prince_range", "recomendaciones_positivas", "recomendaciones_negativas"], inplace=True,errors="ignore")
+
+    return df
 
 def B_games_info_transformacion(minio):
-    ficheros = [steam_games_parquet_file_popularity, steam_games_parquet_file_prices]
-    for f in ficheros:
-        print(f'Obteniendo archivo {f.name}')
-        games_info = read_file(f)
+    data_files = [gameslist_popularity_sample, gameslist_price_sample]
+    parquet_files = [steam_games_parquet_file_popularity, steam_games_parquet_file_prices]
+
+    for data, parquet in zip(data_files,parquet_files):
+        print(f'Obteniendo archivo {data.name}')
+        games_info = read_file(data)
+        assert games_info, f'Error leyendo {data.name}'
 
         print('Transformando a dataframe')
         df = pd.DataFrame(games_info)
 
-        if f == steam_games_parquet_file_popularity:
+        if data == gameslist_popularity_sample:
             df = trans_popularity(df)
         else:
             df = trans_prices(df)
 
         print('Almacenando')
-        df.to_parquet(f)
+        df.to_parquet(parquet)
 
 if __name__ == '__main__':
     B_games_info_transformacion()
