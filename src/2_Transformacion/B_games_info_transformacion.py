@@ -8,7 +8,7 @@ from pathlib import Path
 from sklearn.preprocessing import MultiLabelBinarizer
 from src.utils.date import get_year
 from src.utils.files import read_file
-from src.utils.config import gamelist_file, steam_games_parquet_file_popularity, steam_games_parquet_file_prices
+from src.utils.config import gamelist_file, steam_games_parquet_file_popularity, steam_games_parquet_file_prices,steam_publishers_count
 
 def _get_name(x):
     '''
@@ -87,7 +87,12 @@ def price_range(x):
         return'[30.00,39.99]'
     elif x >= 40:
         return '>40'
-    
+
+def _number_publishers(x, publishers_dict):
+    assert type(x) == str(), 'No es tipo string'
+    nGames = publishers_dict.get(x)
+    return nGames if nGames else 0
+
 def trans_general(df):
     df = df.join(df["appdetails"].apply(pd.Series))
     df["description_len"] = df["short_description"].apply(lambda x : len(x))
@@ -100,6 +105,9 @@ def trans_general(df):
     df['developers'] = df['developers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
     df['num_languages'] = df['supported_languages'].apply(lambda x: len(x))
     df["release_year"] = df ["release_date"].apply(lambda x: get_year(x))
+
+    publishers_dict = dict(read_file(steam_publishers_count))
+    df['total_games_by_publisher'] = df['publishers'].apply(lambda x: _number_publishers(x,publishers_dict))
 
     # Eliminamos columnas sin usar
     df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', 

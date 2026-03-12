@@ -87,16 +87,18 @@ appidlist_file = raw_data_path() / "appids_list.json.gz"
 
 # Script B
 steam_log_file = error_log_path() / "steam_log_file.jsonl"
-gamelist_file = raw_data_path() / f"games_info.jsonl.gz"
+gamelist_file = raw_data_path() / "games_info.jsonl.gz"
+gameslist_popularity_sample = raw_data_path() / "games_info_popularity.jsonl.gz"
+gameslist_price_sample = raw_data_path() / "games_info_prices.jsonl.gz"
 
 # Script C1
-youtube_scraping_file = raw_data_path() / f"info_steam_youtube1.jsonl.gz"
+youtube_scraping_file = raw_data_path() / "info_steam_youtube1.jsonl.gz"
 
 # Script C2
-yt_statslist_file =  raw_data_path() / f"youtube_statistics.jsonl.gz"
+yt_statslist_file =  raw_data_path() / "youtube_statistics.jsonl.gz"
 
 # Script D
-steam_reviews_file = raw_data_path() / f"steam_reviews.jsonl.gz"
+steam_reviews_file = raw_data_path() / "steam_reviews.jsonl.gz"
 
 # Script E
 banners_file = raw_data_path() / "info_imagenes.jsonl.gz"
@@ -109,6 +111,7 @@ banners_file_prices = raw_data_path() / "info_imagenes_precios.jsonl.gz"
 steam_games_parquet_file = processed_data_path() / "games_info.parquet"
 steam_games_parquet_file_popularity = processed_data_path() / "games_info_popularity.parquet"
 steam_games_parquet_file_prices = processed_data_path() / "games_info_prices.parquet"
+steam_publishers_count = raw_data_path() / "publisher_dict.json"
 
 # Script C
 yt_stats_parquet_file = processed_data_path() / "yt_stats.parquet"
