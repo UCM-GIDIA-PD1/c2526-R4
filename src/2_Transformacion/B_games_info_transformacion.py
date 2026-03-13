@@ -9,6 +9,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from src.utils.date import get_year
 from src.utils.files import read_file
 from src.utils.config import gamelist_file, steam_games_parquet_file_popularity, steam_games_parquet_file_prices
+from src.utils.config import raw_game_info_popularity, raw_game_info_prices
 
 def _get_name(x):
     '''
@@ -90,10 +91,11 @@ def price_range(x):
     
 def trans_general(df):
     df = df.join(df["appdetails"].apply(pd.Series))
-    df["description_len"] = df["short_description"].apply(lambda x : len(x))
-    df["name"] = df["appdetails"].apply(lambda x : _get_name(x))
+
     df["categories"] = df["appdetails"].apply(lambda x: _get_categories(x))
     df["genres"] = df["appdetails"].apply(lambda x: _get_genres(x))
+    df["description_len"] = df["short_description"].apply(lambda x : len(x))
+    df["name"] = df["appdetails"].apply(lambda x : _get_name(x))
     df['price_overview'] = df['price_overview'].apply(lambda x: x.get('initial')/100)
     df['price_range'] = df['price_overview'].apply(lambda x: price_range(x))
     df['publishers'] = df['publishers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
@@ -101,19 +103,55 @@ def trans_general(df):
     df['num_languages'] = df['supported_languages'].apply(lambda x: len(x))
     df["release_year"] = df ["release_date"].apply(lambda x: get_year(x))
 
+    df = categories_and_genres(df) # Aplicamos a categorías y géneros one hot encoding
+
     # Eliminamos columnas sin usar
     df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', 
-                    'required_age', "short_description", "release_date", "supported_languages"], inplace=True,errors="ignore")
+                    'required_age', "short_description", "release_date", "supported_languages", "genres", "categories"]
+                    , inplace=True,errors="ignore")
     
     
     return df
+
+def categories_and_genres(df):
+    mlb_genres = MultiLabelBinarizer()
+
+    df_genres = pd.DataFrame(
+        mlb_genres.fit_transform(df['genres']),
+        columns=mlb_genres.classes_,
+        index=df.index
+    )
+
+    df_genres.drop(['Violent', 'Utilities', 'Software Training', 'Sexual Content', 
+            'Photo Editing', 'Nudity', 'Gore', 'Game Development', 'Education',
+            'Design & Illustration', 'Audio Production', 'Animation & Modeling', 'Accounting'], axis=1, inplace=True)
+
+    mlb_categories = MultiLabelBinarizer()
+
+    df_categories = pd.DataFrame(
+        mlb_categories.fit_transform(df['categories']),
+        columns=mlb_categories.classes_,
+        index=df.index
+    )
+
+    columnas_a_eliminar = ['Valve Anti-Cheat enabled', 'VR Supported', 'VR Support', 'Touch Only Option', 'Surround Sound',
+                'Subtitle Options', 'SteamVR Collectibles', 'Steam Turn Notifications', 'Steam Workshop', 'Steam Turn Notifications',
+                'Steam Timeline', 'Remote Play on Tablet', 'Remote Play on Phone', 'Narrated Game Menus', 'MMO', 'LAN PvP', 'LAN Co-op',
+                'Includes Source SDK', 'HDR available', 'Commentary available', 'Color Alternatives', 'Chat Text-to-speech', 'Chat Speech-to-text',
+                'Captions available', 'Adjustable Text Size']
+
+    df_categories.drop(columns=columnas_a_eliminar, inplace=True)
+
+    df_final = pd.concat([df, df_genres], axis=1)
+    df_final = pd.concat([df_final, df_categories], axis=1)
+
+    return df_final
+
 
 def trans_prices(df):
     return trans_general(df)
 
 def trans_popularity(df):
-    df = trans_general(df)
-
     df["recomendaciones_positivas"] = df["appreviewhistogram"].apply(
         lambda x: x.get("rollups").get("recommendations_up") if isinstance(x, dict) & 
         isinstance(x.get("rollups"), dict) else None)
@@ -126,11 +164,12 @@ def trans_popularity(df):
     df.dropna(subset=["recomendaciones_positivas","recomendaciones_negativas"],inplace = True)
     df["recomendaciones_totales"] = df["recomendaciones_positivas"] + df["recomendaciones_negativas"]
 
+    df = trans_general(df)
     df.drop(columns=["prince_range", "recomendaciones_positivas", "recomendaciones_negativas"], inplace=True,errors="ignore")
-
+    return df
 
 def B_games_info_transformacion(minio):
-    ficheros = [steam_games_parquet_file_popularity, steam_games_parquet_file_prices]
+    ficheros = [raw_game_info_popularity, raw_game_info_prices]
     for f in ficheros:
         print(f'Obteniendo archivo {f.name}')
         games_info = read_file(f)
@@ -138,13 +177,13 @@ def B_games_info_transformacion(minio):
         print('Transformando a dataframe')
         df = pd.DataFrame(games_info)
 
-        if f == steam_games_parquet_file_popularity:
+        if f == raw_game_info_popularity:
             df = trans_popularity(df)
+            df.to_parquet(steam_games_parquet_file_popularity)
         else:
             df = trans_prices(df)
-
-        print('Almacenando')
-        df.to_parquet(f)
+            df.to_parquet(steam_games_parquet_file_prices)
+        
 
 if __name__ == '__main__':
     B_games_info_transformacion()
