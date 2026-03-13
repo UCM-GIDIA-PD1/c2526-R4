@@ -14,7 +14,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from src.utils.date import get_year
 from src.utils.files import read_file
 from src.utils.config import steam_games_parquet_file_popularity, steam_games_parquet_file_prices
-from src.utils.config import raw_game_info_popularity, raw_game_info_prices, steam_publishers_count
+from src.utils.config import raw_game_info_popularity, raw_game_info_prices, steam_publishers_count, steam_developers_count
 
 def _get_name(x):
     '''
@@ -116,12 +116,15 @@ def trans_general(df):
     publishers_dict = dict(read_file(steam_publishers_count))
     df['total_games_by_publisher'] = df['publishers'].apply(lambda x: _number_publishers(x,publishers_dict))
 
+    developers_dict = dict(read_file(steam_developers_count))
+    df['total_games_by_developer'] = df['developers'].apply(lambda x: _number_publishers(x,developers_dict))
+
     # FALTA HACER LO MISMO CON LOS DEVS
 
     df = categories_and_genres(df) # Aplicamos a categorías y géneros one hot encoding
 
     # Eliminamos columnas sin usar
-    df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', "publishers", 
+    df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', "publishers", "developers", 
                     'required_age', "short_description", "release_date", "supported_languages", "genres", "categories"]
                     , inplace=True,errors="ignore")
     

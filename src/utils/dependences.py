@@ -9,7 +9,7 @@ from .files import file_exists
 from .config import appidlist_file, gamelist_file, youtube_scraping_file, banners_file
 from .config import steam_reviews_top100_file, steam_reviews_rest_file, yt_statslist_file
 from .config import steam_reviews_file, steam_games_parquet_file_popularity, banners_file_popularity
-from .config import yt_statsPCA_parquet_file
+from .config import yt_stats_parquet_file
 
 class appidlist_file_dependence():
     @staticmethod
@@ -150,11 +150,11 @@ class banners_file_popularity_dependence():
     def check(minio):
         return file_exists(banners_file_popularity, minio)
     
-class yt_statsPCA_parquet_file_dependence():
+class yt_stats_parquet_file_dependence():
     @staticmethod
     def get_info():
-        return f"Fichero {yt_statsPCA_parquet_file.name}"
+        return f"Fichero {yt_stats_parquet_file.name}"
     
     @staticmethod
     def check(minio):
-        return file_exists(yt_statsPCA_parquet_file, minio)
+        return file_exists(yt_stats_parquet_file, minio)

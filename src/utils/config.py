@@ -116,7 +116,6 @@ steam_developers_count = raw_data_path() / "developer_dict.json"
 
 # Script C
 yt_stats_parquet_file = processed_data_path() / "yt_stats.parquet"
-yt_statsPCA_parquet_file = processed_data_path() / "yt_statsPCA.parquet"
 
 # Script D1
 steam_reviews_top100_file = raw_data_path() / "rest_games_total_reviews.json.gz"

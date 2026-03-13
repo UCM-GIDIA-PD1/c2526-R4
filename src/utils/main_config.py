@@ -7,10 +7,10 @@ from src.utils.dependences import steam_api_dependence, youtube_api_dependence, 
 from src.utils.dependences import steam_reviews_top100_file_dependence, steam_reviews_rest_file_dependence
 from src.utils.dependences import yt_statslist_file_dependence, steam_reviews_file_dependence
 from src.utils.dependences import steam_games_parquet_file_popularity_dependence, banners_file_popularity_dependence
-from src.utils.dependences import yt_statsPCA_parquet_file_dependence
+from src.utils.dependences import yt_stats_parquet_file_dependence
 from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, P_banners_file
 from src.utils.config import steam_reviews_file, banners_file, steam_reviews_top100_file, steam_reviews_rest_file
-from src.utils.config import steam_games_parquet_file, yt_stats_parquet_file, yt_statsPCA_parquet_file
+from src.utils.config import steam_games_parquet_file, yt_stats_parquet_file
 from src.utils.config import steam_reviews_parquet_file, popularity, prices
 
 main_extraccion_info = {
@@ -60,7 +60,7 @@ main_transformacion_info = {
               "dependences" : [gamelist_file_dependence]
         },
         "C": {"fichero": "C_estadisticas_youtube", 
-              "salida": [yt_stats_parquet_file.name, yt_statsPCA_parquet_file.name], 
+              "salida": yt_stats_parquet_file.name, 
               "ejecutable": "C_estadisticas_youtube", 
               "usar": False, 
               "dependences" : [yt_statslist_file_dependence]
@@ -88,6 +88,6 @@ main_transformacion_info = {
               "ejecutable": "crear_parquets", 
               "usar": False, 
               "dependences" : [steam_games_parquet_file_popularity_dependence, banners_file_popularity_dependence, 
-                               yt_statsPCA_parquet_file_dependence]
+                               yt_stats_parquet_file_dependence]
         },
     }

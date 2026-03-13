@@ -8,7 +8,7 @@ que está ordenado según el número de visualizaciones.
 
 import pandas as pd
 import numpy as np
-from src.utils.config import yt_statslist_file, yt_stats_parquet_file, yt_statsPCA_parquet_file
+from src.utils.config import yt_statslist_file, yt_stats_parquet_file
 from src.utils.files import read_file
 
 def _flatten_dict(d, prefix):
@@ -109,18 +109,16 @@ def procesar_impacto_youtube(df_original):
                 score_total += sv
         
         return score_total if encontrado_alguna_metrica else 0
+    
+    df_original['yt_score'] = df_original.apply(calcular_fila, axis=1)
+    df_original.drop(columns=["name"],inplace=True,errors="ignore")
 
-    df_nuevo = pd.DataFrame()
-    df_nuevo['id'] = df_original['id']
-    
-    df_nuevo['yt_score'] = df_original.apply(calcular_fila, axis=1)
-    
     # Normalización
-    max_impacto = df_nuevo['yt_score'].max()
+    max_impacto = df_original['yt_score'].max()
     if max_impacto > 0:
-        df_nuevo['yt_score'] = df_nuevo['yt_score'] / max_impacto
+        df_original['yt_score'] = df_original['yt_score'] / max_impacto
         
-    return df_nuevo
+    return df_original
 
 def C_estadisticas_youtube(minio):
     print('Obteniendo archivo')
@@ -130,13 +128,10 @@ def C_estadisticas_youtube(minio):
     print('Transformando a dataframe')
     df = _transform_to_dataframe(data)
 
-    print('Guardando dataframe base')
-    df.to_parquet(yt_stats_parquet_file)
-
     # Para la métrica de YT
     df_metrica = procesar_impacto_youtube(df)
     print('Guardando dataframe con métrica de YouTube')
-    df_metrica.to_parquet(yt_statsPCA_parquet_file)
+    df_metrica.to_parquet(yt_stats_parquet_file)
 
 if __name__ == '__main__':
     C_estadisticas_youtube()
