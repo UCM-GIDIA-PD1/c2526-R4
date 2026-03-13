@@ -27,7 +27,7 @@ def _get_apikey():
     assert key, "La API_KEY no ha sido cargada"
     return key
 
-def _process_game(youtube_service, video_id_list):
+def _request_youtube(youtube_service, video_id_list):
     """
     Dada la build de cliente de la API de Youtube y un diccionario de ids de vídeos, devuelve una lista con el resultado del 
     request de las estadísticas de esos vídeos (Solo se añaden los vídeos categorizados como gaming)
@@ -66,6 +66,35 @@ def _process_game(youtube_service, video_id_list):
                 }
             )
     return stats_list
+
+def _process_game(app, youtube, appid, pbar):
+    '''
+    Dado un juego y su información, realiza la llamada de Youtube y actualiza el pbar.
+
+    Args:
+        - app (dict): Diccionario que contiene la información del juego.
+        - youtube (googleapiclient): Build de la API de Yotube para realizar llamadas.
+        - appid (str): Id de un juego.
+        - pbar (tqdm): Progress bar de tqdm.
+
+    Return:
+        dict: Diccionario a escribir en el archivo que contiene la información de youtube de un juego
+    '''
+    name = app.get("name")
+    video_id_list = app.get('video_statistics')
+
+    jsonl = {
+        'id' : appid,
+        'name' : name,
+        'video_statistics' : []
+    }
+
+    # Obtenemos información del juego solo si la lista no está vacía
+    if video_id_list:
+        pbar.write(f"{name}")
+        jsonl['video_statistics'] = _request_youtube(youtube, video_id_list)
+
+    return jsonl
 
 def C2_informacion_youtube_videos(minio):
     """
@@ -108,26 +137,15 @@ def C2_informacion_youtube_videos(minio):
         print('Comenzando peticiones a la API de Youtube...\n')
         with tqdm(pending_games, unit="juegos") as pbar:
             for app in pbar:
-                appid = app.get('id')
-                pbar.set_description(f"Procesando appid {appid}")
-
-                name = app.get("name")
-                video_id_list = app.get('video_statistics')
-
-                jsonl = {
-                    'id' : appid,
-                    'name' : name,
-                    'video_statistics' : []
-                }
-
-                # Obtenemos información del juego solo si la lista no está vacía
-                if video_id_list:
-                    pbar.write(f"{name}")
-                    jsonl['video_statistics'] = _process_game(youtube, video_id_list)
-
-                curr_idx += 1
-                # Escribimos en el archivo destino
-                write_to_file(jsonl, yt_statslist_file)
+                try:
+                    appid = app.get('id')
+                    pbar.set_description(f"Procesando appid {appid}")
+                    jsonl = _process_game(app,youtube,appid, pbar)
+                finally:
+                    curr_idx += 1
+                    if jsonl:
+                        # Escribimos en el archivo destino
+                        write_to_file(jsonl, yt_statslist_file)
 
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")

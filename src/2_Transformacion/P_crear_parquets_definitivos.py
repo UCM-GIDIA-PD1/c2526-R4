@@ -28,7 +28,7 @@ def create_popularity_parquet(minio):
     """
     df_B = pd.DataFrame(read_file(steam_games_parquet_file_popularity))
     df_E = pd.DataFrame(read_file(banners_file_popularity))
-    df_C = pd.DataFrame(read_file(yt_statsPCA_parquet_file))
+    df_C = pd.DataFrame(read_file(yt_stats_parquet_file))
 
     df_E["id"] = df_E["id"].astype(str)
     df_C["id"] = df_C["id"].astype(str)

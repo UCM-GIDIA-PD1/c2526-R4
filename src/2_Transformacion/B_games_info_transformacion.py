@@ -1,15 +1,20 @@
 '''
-Dado games_info.jsonl.gz procesa el json, lo convierte en un dataframe 
-de pandas creando columnas nuevas y eliminando columnas innecesarias.
+Dado games_info.jsonl.gz procesa el json, lo convierte en un dataframe de pandas creando columnas nuevas y
+eliminando columnas innecesarias.
+
+Archivos necesarios:
+
+    - publisher_dict.json
+    - games_info_sample_precios.jsonl.gz
+    - games_info_sample_popularidad.gz
 '''
 
 import pandas as pd
-from pathlib import Path
 from sklearn.preprocessing import MultiLabelBinarizer
 from src.utils.date import get_year
 from src.utils.files import read_file
-from src.utils.config import gamelist_file, steam_games_parquet_file_popularity, steam_games_parquet_file_prices
-from src.utils.config import raw_game_info_popularity, raw_game_info_prices
+from src.utils.config import steam_games_parquet_file_popularity, steam_games_parquet_file_prices
+from src.utils.config import raw_game_info_popularity, raw_game_info_prices, steam_publishers_count
 
 def _get_name(x):
     '''
@@ -85,10 +90,15 @@ def price_range(x):
     elif x >= 20 and x < 30:
         return '[20.00,29.99]'
     elif x >= 30 and x < 40:
-        return'[30.00,39.99]'
+        return '[30.00,39.99]'
     elif x >= 40:
         return '>40'
-    
+
+def _number_publishers(x, publishers_dict):
+    strX = str(x)
+    nGames = publishers_dict.get(strX)
+    return nGames if nGames else 0
+
 def trans_general(df):
     df = df.join(df["appdetails"].apply(pd.Series))
 
@@ -103,10 +113,15 @@ def trans_general(df):
     df['num_languages'] = df['supported_languages'].apply(lambda x: len(x))
     df["release_year"] = df ["release_date"].apply(lambda x: get_year(x))
 
+    publishers_dict = dict(read_file(steam_publishers_count))
+    df['total_games_by_publisher'] = df['publishers'].apply(lambda x: _number_publishers(x,publishers_dict))
+
+    # FALTA HACER LO MISMO CON LOS DEVS
+
     df = categories_and_genres(df) # Aplicamos a categorías y géneros one hot encoding
 
     # Eliminamos columnas sin usar
-    df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', 
+    df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', "publishers", 
                     'required_age', "short_description", "release_date", "supported_languages", "genres", "categories"]
                     , inplace=True,errors="ignore")
     
@@ -122,9 +137,9 @@ def categories_and_genres(df):
         index=df.index
     )
 
-    df_genres.drop(['Violent', 'Utilities', 'Software Training', 'Sexual Content', 
-            'Photo Editing', 'Nudity', 'Gore', 'Game Development', 'Education',
-            'Design & Illustration', 'Audio Production', 'Animation & Modeling', 'Accounting'], axis=1, inplace=True)
+    threshold_genres = len(df_genres) * 0.05
+    cols_to_keep_genres = df_genres.columns[df_genres.sum() >= threshold_genres]
+    df_genres = df_genres[cols_to_keep_genres]
 
     mlb_categories = MultiLabelBinarizer()
 
@@ -134,13 +149,9 @@ def categories_and_genres(df):
         index=df.index
     )
 
-    columnas_a_eliminar = ['Valve Anti-Cheat enabled', 'VR Supported', 'VR Support', 'Touch Only Option', 'Surround Sound',
-                'Subtitle Options', 'SteamVR Collectibles', 'Steam Turn Notifications', 'Steam Workshop', 'Steam Turn Notifications',
-                'Steam Timeline', 'Remote Play on Tablet', 'Remote Play on Phone', 'Narrated Game Menus', 'MMO', 'LAN PvP', 'LAN Co-op',
-                'Includes Source SDK', 'HDR available', 'Commentary available', 'Color Alternatives', 'Chat Text-to-speech', 'Chat Speech-to-text',
-                'Captions available', 'Adjustable Text Size']
-
-    df_categories.drop(columns=columnas_a_eliminar, inplace=True)
+    threshold_categories = len(df_categories) * 0.05
+    cols_to_keep_categories = df_categories.columns[df_categories.sum() >= threshold_categories]
+    df_categories = df_categories[cols_to_keep_categories]
 
     df_final = pd.concat([df, df_genres], axis=1)
     df_final = pd.concat([df_final, df_categories], axis=1)
