@@ -128,7 +128,6 @@ def trans_general(df):
                     'required_age', "short_description", "release_date", "supported_languages", "genres", "categories"]
                     , inplace=True,errors="ignore")
     
-    
     return df
 
 def categories_and_genres(df):
