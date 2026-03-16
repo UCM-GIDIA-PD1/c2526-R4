@@ -1,3 +1,9 @@
+"""_summary_
+
+Returns:
+    _type_: _description_
+"""
+
 from src.utils.config import steam_reviews_parquet_file, steam_reviews_file
 from src.utils.files import read_file
 import pandas as pd
@@ -7,6 +13,14 @@ from unidecode import unidecode
 from langdetect import detect
 
 def to_dataframe(raw):
+    """
+    Crea el DataFrame procesando la información de las reviews de cada juego.
+
+    Args:
+        raw (list): Lista de diccionarios con la información de cada review de cada juego
+    Returns:
+        pd.DataFrame: DataFrame procesado con la información de cada juego.
+    """
     seen = set()
     appid_list = []
     is_positive = []
@@ -30,18 +44,45 @@ def to_dataframe(raw):
     return df
 
 def detect_language(text):
+    """
+    Usando detect del módulo langdetect, devolvemos el lenguaje en el que está escrito.
+
+    Args:
+        text (str): Texto de una review
+
+    Returns:
+        str: String que describe el lenguaje en el que está escrito, se devuelve 'unknown' si es desconocido.
+    """
     try:
         return detect(text)
     except:
         return "unknown"
     
 def limpieza_inicial(texto):
+    """
+    Eliminamos aspectos del texto que no intenresan (corchetes, enlaces...) 
+
+    Args:
+        texto (str): Texto de una review
+
+    Returns:
+        str: Texto procesado 
+    """
     texto = re.sub(r'http\S+', "", texto) # eliminar links
     texto = re.sub(r"\[.*?\]", "", texto) # texto entre corchetes, era principalmente markdown 
     texto = " ".join(texto.split())
     return texto.strip()
 
 def limpieza_final(texto): 
+    """
+    Normalizamos el texto de una review, quitando carácteres raros, acentos, pasar idiomas a unidecode...
+
+    Args:
+        texto (str): Texto de una review
+
+    Returns:
+        str: Texto procesado 
+    """
     try:
         texto = unicodedata.normalize('NFKC', texto) # normaliza caracteres raros
         texto = unidecode(texto) # quita acentos y trata idiomas

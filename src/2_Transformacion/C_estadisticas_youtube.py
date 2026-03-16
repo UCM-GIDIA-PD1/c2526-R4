@@ -90,6 +90,15 @@ def procesar_impacto_youtube(df_original):
     
     '''
     def calcular_fila(row):
+        """
+        Calcula la ponderación de youtube_score de cada fila (para usar en pd.DataFrame.apply())
+
+        Args:
+            row ( pandas.core.series.Series ): Fila de dataframe
+
+        Returns:
+            pd.DataFrame: Dataframe con la nueva columna yt_score
+        """
         score_total = 0
         encontrado_alguna_metrica = False
         
