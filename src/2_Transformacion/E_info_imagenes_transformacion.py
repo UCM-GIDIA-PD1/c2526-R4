@@ -12,6 +12,12 @@ from src.utils.files import read_file, write_to_file
 from src.utils.config import banners_file, gamelist_file, P_banners_file, popularity
 
 def join_B_and_E():
+    """
+    Unión de DataFrames resultantes de B y E
+
+    Returns:
+        pd.DataFrame: Dataframe resultante de juntar B y E
+    """
     dfE = pd.DataFrame(read_file(banners_file))
     dfB = pd.DataFrame(read_file(gamelist_file))
 
@@ -31,6 +37,16 @@ def join_B_and_E():
     return df_joined
 
 def dim_reduction(df, mod, matrix, dimensions = 2, fast = False):
+    """
+    Se realiza una reducción de dimensionalidad usando PCA y TSNE.
+
+    Args:
+        df (pd.DataFrame): DataFrame a reducir dimensión
+        mod (str): Modelo
+        matrix (list(list)): Matriz a reducir
+        dimensions (int, optional): Número de dimensiones para reducir. Defaults to 2.
+        fast (bool, optional): Booleano para indicar que vaya más rápido. Defaults to False.
+    """
     # PCA
     pca = PCA(n_components=dimensions)
     coords_pca = pca.fit_transform(matrix)
@@ -51,6 +67,12 @@ def dim_reduction(df, mod, matrix, dimensions = 2, fast = False):
         df[f'tsne_{mod}_{i+1}']= coords_tsne[:, i]
 
 def reduct_dataframes_from_models(df):
+    """
+    Dado un dataFrame, realiza la reducción de dimensionalidad de cada modelo (resnet, convnext, clip)
+
+    Args:
+        df (pd.DataFrame): DataFrame para procesar por los distintos modelos
+    """
     modelos = ['v_resnet', 'v_convnext', 'v_clip']
     for mod in modelos:
         print(f"Procesando reducción de dimensionalidad para: {mod}...")

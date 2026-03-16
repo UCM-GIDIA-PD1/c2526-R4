@@ -5,9 +5,27 @@ from src.utils.files import write_to_file
 
 
 def get_filename(filestart):
+    """
+    Obtiene la lista de archivos que unir
+
+    Args:
+        filestart (str): Primer archivo de la lista
+
+    Returns:
+        list: Lista de nombres de archivo
+    """
     return [f"{filestart}_{id}.jsonl.gz" for id in range(1,members+1)]
 
 def files_content(files):
+    """
+    Dada una lista archivos junta el contenido en uno solo.
+
+    Args:
+        files (list): Lista de archivos a procesar
+
+    Returns:
+        list: Lista de datos de archivos.
+    """
     data = []
     for file in files:
         path = raw_data_path() / file

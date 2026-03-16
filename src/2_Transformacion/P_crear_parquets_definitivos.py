@@ -7,10 +7,15 @@ import pandas as pd
 from src.utils.files import read_file
 from src.utils.config import banners_file_popularity, banners_file_prices, steam_games_parquet_file_popularity 
 from src.utils.config import steam_games_parquet_file_prices, prices, popularity, yt_stats_parquet_file
-
+"""
+    Crea el parquet del problema de los precios 
+    """
 def create_prices_parquet():
     """
-    Crea el parquet del problema de los precios 
+    Crea el parquet del problema de los precios, juntando los parquets resultantes de B y E de transformación.
+    
+    Return:
+        None
     """
     df_B = pd.DataFrame(read_file(steam_games_parquet_file_prices))
     df_E = pd.DataFrame(read_file(banners_file_prices))
@@ -24,7 +29,10 @@ def create_prices_parquet():
 
 def create_popularity_parquet(minio):
     """
-    Crea el parquet del problema de la popularidad 
+    Crea el parquet del problema de la popularidad, juntando los parquets de B, C, E de transformación 
+    
+    Return:
+        None
     """
     df_B = pd.DataFrame(read_file(steam_games_parquet_file_popularity))
     df_E = pd.DataFrame(read_file(banners_file_popularity))

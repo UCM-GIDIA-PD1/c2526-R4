@@ -1,14 +1,32 @@
+"""
+Dado el fichero general con todos los datos de juegos de Steam 'games_info.jsonl.gz', extrae los datos de los publishers y los
+developers de cada juego y crea 2 diccionarios para contar cuantas veces aparece cada uno, 'publisher_dict.json', 'developer_dict.json'.
+
+Dependecncias:
+    - games_info.jsonl.gz
+"""
+
 from src.utils.files import read_file, write_to_file
 from src.utils.config import steam_publishers_count, steam_developers_count, gamelist_file
 from collections import Counter
 
-tasks = [
+TASKS = [
     (steam_publishers_count, "publishers"),
     (steam_developers_count, "developers")
 ]
 
-for file_path, key in tasks:
-    raw_jsonl = read_file(gamelist_file)
+def _count_keys(key, raw_jsonl):
+    """
+    Dada una key de la lista de diccionarios de 'games_info.jsonl.gz' crea un contador que cuenta la cantidad de veces que aparece cada
+    valor de la key en la lista de diccionarios.
+
+    Args:
+        key (str): Campo del diccionario
+        raw_jsonl (list): Lista de diccionarios de 'games_info.jsonl.gz' 
+
+    Returns:
+        Counter (dict subclass): Contador de cada valor de key 
+    """
     items_list = list()
     seen = set()
     repetidos = 0
@@ -23,9 +41,18 @@ for file_path, key in tasks:
         if p is None or not p:
             continue
         items_list.extend(p)
+    print(f"Hay {repetidos} juegos repetidos")
 
     counts = Counter(items_list).most_common()
-    print(type(counts))
-    print(len(counts))
-    print(f"Hay {repetidos} juegos repetidos")
-    write_to_file(counts, file_path)
+    return counts
+
+
+if __name__ == '__main__':
+    for file_path, key in TASKS:
+        raw_jsonl = read_file(gamelist_file)
+        counts =  _count_keys(key)
+    
+        print(type(counts))
+        print(len(counts))
+
+        write_to_file(counts, file_path)
