@@ -12,7 +12,8 @@ Archivos necesarios:
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer
 from src.utils.date import get_year
-from src.utils.files import read_file
+from src.utils.files import read_file, erase_file
+from src.utils.minio_server import upload_to_minio
 from src.utils.config import steam_games_parquet_file_popularity, steam_games_parquet_file_prices
 from src.utils.config import raw_game_info_popularity, raw_game_info_prices, steam_publishers_count, steam_developers_count
 
@@ -99,7 +100,7 @@ def _number_publishers(x, publishers_dict):
     nGames = publishers_dict.get(strX)
     return nGames if nGames else 0
 
-def trans_general(df):
+def trans_general(df, minio):
     df = df.join(df["appdetails"].apply(pd.Series))
 
     df["categories"] = df["appdetails"].apply(lambda x: _get_categories(x))
@@ -113,13 +114,11 @@ def trans_general(df):
     df['num_languages'] = df['supported_languages'].apply(lambda x: len(x))
     df["release_year"] = df ["release_date"].apply(lambda x: get_year(x))
 
-    publishers_dict = dict(read_file(steam_publishers_count))
+    publishers_dict = dict(read_file(steam_publishers_count, minio))
     df['total_games_by_publisher'] = df['publishers'].apply(lambda x: _number_publishers(x,publishers_dict))
 
-    developers_dict = dict(read_file(steam_developers_count))
+    developers_dict = dict(read_file(steam_developers_count, minio))
     df['total_games_by_developer'] = df['developers'].apply(lambda x: _number_publishers(x,developers_dict))
-
-    # FALTA HACER LO MISMO CON LOS DEVS
 
     df = categories_and_genres(df) # Aplicamos a categorías y géneros one hot encoding
 
@@ -161,10 +160,10 @@ def categories_and_genres(df):
     return df_final
 
 
-def trans_prices(df):
-    return trans_general(df)
+def trans_prices(df, minio):
+    return trans_general(df, minio)
 
-def trans_popularity(df):
+def trans_popularity(df, minio):
     df["recomendaciones_positivas"] = df["appreviewhistogram"].apply(
         lambda x: x.get("rollups").get("recommendations_up") if isinstance(x, dict) & 
         isinstance(x.get("rollups"), dict) else None)
@@ -177,26 +176,27 @@ def trans_popularity(df):
     df.dropna(subset=["recomendaciones_positivas","recomendaciones_negativas"],inplace = True)
     df["recomendaciones_totales"] = df["recomendaciones_positivas"] + df["recomendaciones_negativas"]
 
-    df = trans_general(df)
+    df = trans_general(df, minio)
     df.drop(columns=["prince_range", "recomendaciones_positivas", "recomendaciones_negativas"], inplace=True,errors="ignore")
     return df
 
 def B_games_info_transformacion(minio):
-    ficheros = [raw_game_info_popularity, raw_game_info_prices]
-    for f in ficheros:
-        print(f'Obteniendo archivo {f.name}')
-        games_info = read_file(f)
+    config = {
+        raw_game_info_popularity: (trans_popularity, steam_games_parquet_file_popularity),
+        raw_game_info_prices: (trans_prices, steam_games_parquet_file_prices)
+    }
 
-        print('Transformando a dataframe')
-        df = pd.DataFrame(games_info)
-
-        if f == raw_game_info_popularity:
-            df = trans_popularity(df)
-            df.to_parquet(steam_games_parquet_file_popularity)
-        else:
-            df = trans_prices(df)
-            df.to_parquet(steam_games_parquet_file_prices)
+    for f_input, (transform_func, f_output) in config.items():
+        print(f'Procesando {f_input.name}...')
         
+        data = read_file(f_input, minio)
+        df = transform_func(pd.DataFrame(data), minio)
+        df.to_parquet(f_output)
 
+        if minio["minio_write"]:
+            if upload_to_minio(f_output):
+                erase_file(f_output)
+
+        
 if __name__ == '__main__':
     B_games_info_transformacion()

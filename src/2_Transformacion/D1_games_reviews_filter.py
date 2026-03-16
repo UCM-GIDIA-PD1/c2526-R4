@@ -7,7 +7,8 @@ de juegos (19900).
 
 import pandas as pd
 from src.utils.config import steam_reviews_top100_file, steam_reviews_rest_file, gamelist_file
-from src.utils.files import read_file
+from src.utils.files import read_file, erase_file
+from src.utils.minio_server import upload_to_minio
 
 def _get_total_reviews(x):
     """
@@ -42,7 +43,7 @@ def _get_name(x):
 
 def D1_games_reviews_filter(minio):
     print('Obteniendo archivo')
-    data = read_file(gamelist_file)
+    data = read_file(gamelist_file, minio)
     assert data, 'No se ha podido leer el archivo'
     
     print('Tranformando a dataframe')
@@ -71,6 +72,12 @@ def D1_games_reviews_filter(minio):
     # Almacenar los dataframes en las rutas indicadas
     df_top_100_sorted.to_json(steam_reviews_top100_file, orient= "records", compression= "gzip")
     df_rest_sorted.to_json(steam_reviews_rest_file, orient= "records", compression= "gzip")
+
+    if minio["minio_write"]:
+        if upload_to_minio(steam_reviews_top100_file):
+            erase_file(steam_reviews_top100_file)
+        if upload_to_minio(steam_reviews_rest_file):
+            erase_file(steam_reviews_rest_file)
 
 if __name__ == "__main__":
     D1_games_reviews_filter()

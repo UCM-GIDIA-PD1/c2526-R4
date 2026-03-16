@@ -4,7 +4,8 @@ que van a dificultar tratar los datos.
 """
 
 from src.utils.config import steam_reviews_parquet_file, steam_reviews_file
-from src.utils.files import read_file
+from src.utils.files import read_file, erase_file
+from src.utils.minio_server import upload_to_minio
 import pandas as pd
 import unicodedata
 import re
@@ -93,7 +94,7 @@ def limpieza_final(texto):
 
 def D2_limpieza_reviews(minio):
     print("Ejecutando limpieza reseñas\n")
-    raw = read_file(steam_reviews_file)
+    raw = read_file(steam_reviews_file, minio)
     df = to_dataframe(raw) # columnas: appid, is_positive, weight, text
 
     print("Primera fase limpieza...")
@@ -107,9 +108,12 @@ def D2_limpieza_reviews(minio):
     df_en["text"] = df_en["text"].apply(limpieza_final) # emojis, unicode, ascii
     df_en["weight"] = df_en["weight"].astype(float)
     df.drop(columns=["language"], inplace=True)
-    print("Guardando fichero")
     df_en.to_parquet(steam_reviews_parquet_file)
-    print("Fin de ejecución")
+
+    if minio["minio_write"]:
+            if upload_to_minio(steam_reviews_parquet_file):
+                erase_file(steam_reviews_parquet_file)
+
 
 if __name__ == "__main__":
     D2_limpieza_reviews()

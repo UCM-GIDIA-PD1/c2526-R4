@@ -7,18 +7,19 @@ from numpy import vstack
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from src.utils.files import read_file, write_to_file
+from src.utils.files import read_file, write_to_file, erase_file
+from src.utils.minio_server import upload_to_minio
 from src.utils.config import banners_file, gamelist_file, P_banners_file, popularity
 
-def join_B_and_E():
+def join_B_and_E(minio):
     """
     Unión de DataFrames resultantes de B y E
 
     Returns:
         pd.DataFrame: Dataframe resultante de juntar B y E
     """
-    dfE = DataFrame(read_file(banners_file))
-    dfB = DataFrame(read_file(gamelist_file))
+    dfE = DataFrame(read_file(banners_file, minio))
+    dfB = DataFrame(read_file(gamelist_file, minio))
 
     # Meter numero de reseñas
     dfB = dfB.join(dfB["appreviewhistogram"].apply(Series))
@@ -80,9 +81,13 @@ def reduct_dataframes_from_models(df):
 
 def info_imagenes_transformacion(minio = {"minio_write": False, "minio_read": False}):
     print("Ejecutano reducción de vectores de imágenes\n")
-    df = read_file(popularity)
+    df = read_file(popularity, minio)
     reduct_dataframes_from_models(df)
     df.to_parquet(P_banners_file)
+    
+    if minio["minio_write"]:
+        if upload_to_minio(P_banners_file):
+            erase_file(P_banners_file)
 
 if __name__ == "__main__":
     info_imagenes_transformacion()

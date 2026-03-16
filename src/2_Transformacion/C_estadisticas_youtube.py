@@ -9,7 +9,8 @@ que está ordenado según el número de visualizaciones.
 import pandas as pd
 import numpy as np
 from src.utils.config import yt_statslist_file, yt_stats_parquet_file
-from src.utils.files import read_file
+from src.utils.files import read_file, erase_file
+from src.utils.minio_server import upload_to_minio
 
 def _flatten_dict(d, prefix):
     '''
@@ -131,7 +132,7 @@ def procesar_impacto_youtube(df_original):
 
 def C_estadisticas_youtube(minio):
     print('Obteniendo archivo')
-    data = read_file(yt_statslist_file)
+    data = read_file(yt_statslist_file, minio)
     assert data, 'No se ha podido leer el archivo'
     
     print('Transformando a dataframe')
@@ -141,6 +142,10 @@ def C_estadisticas_youtube(minio):
     df_metrica = procesar_impacto_youtube(df)
     print('Guardando dataframe con métrica de YouTube')
     df_metrica.to_parquet(yt_stats_parquet_file)
+
+    if minio["minio_write"]:
+            if upload_to_minio(yt_stats_parquet_file):
+                erase_file(yt_stats_parquet_file)
 
 if __name__ == '__main__':
     C_estadisticas_youtube()
