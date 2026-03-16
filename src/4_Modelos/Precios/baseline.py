@@ -25,7 +25,7 @@ def create_price_mode_baseline():
     y_true = test_df[y_column]
     y_pred = [mode] * len(y_true)
   
-    report = classification_report(y_true, y_pred)
+    report = classification_report(y_true, y_pred, zero_division= 0)
 
     wandb.log({
         "report": report
