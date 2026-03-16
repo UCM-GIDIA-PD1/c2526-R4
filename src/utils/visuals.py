@@ -107,7 +107,7 @@ def draw_files_section(scripts_info, keys, minio_info):
     show_footer()
 
 def draw_pagination(current_page):
-    nombres = {0: "menú", 1: "extracción", 2: "análisis"}
+    nombres = {0: "menú", 1: "extracción", 2: "transformacion"}
     izq = f"<< {current_page - 1} [{nombres[current_page - 1]}]" if current_page > 0 else ""
     der = f"[{nombres[current_page + 1]}] {current_page + 1} >>" if current_page < 2 else ""
     print(f"{izq.ljust(48)}{der.rjust(48)}")
@@ -117,7 +117,7 @@ def draw_main_menu():
     show_header(" Selecciona página ")
 
     col1 = "[1] Extracción".center(settings["centered"] - 2)
-    col2 = "[2] Análisis".center(settings["total_lenght"] - settings["centered"] - 2)
+    col2 = "[2] Transformación".center(settings["total_lenght"] - settings["centered"] - 2)
     
     print(format_line_two_columns("", ""))
     print(f"║ {col1}{col2} ║")

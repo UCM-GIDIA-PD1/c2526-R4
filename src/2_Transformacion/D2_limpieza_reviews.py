@@ -1,7 +1,6 @@
-"""_summary_
-
-Returns:
-    _type_: _description_
+"""
+Dado el fichero que contiene la información de los ficheros, limpia todos los aspectos del texto que no son relevantes o
+que van a dificultar tratar los datos.
 """
 
 from src.utils.config import steam_reviews_parquet_file, steam_reviews_file
