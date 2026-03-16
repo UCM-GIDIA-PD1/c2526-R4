@@ -18,26 +18,22 @@
 ## Estructura del proyecto
 
 ```
-SteamPredictor/
-├── config/                                       # Archivos de configuración
-│   └── torrc
-├── src/
-│   ├── 1_Extraccion/                             # Captura de datos
-│   │   ├── Scripts/
-│   │   │   ├── A_lista_juegos.py
-│   │   │   ├── B_informacion_juegos.py
-│   │   │   ├── C1_informacion_youtube_busqueda.py
-│   │   │   ├── C2_informacion_youtube_video.py
-│   │   │   ├── D_informacion_resenyas.py
-│   │   │   ├── E_metadatos_imagenes.py
-│   │   │   └── Z_funciones.py
-│   │   └── main.py                               
-│   └── 2_Analisis/                               # Estudio de distribución de datos
-│       └── Analisis_distribucion_popularidad.py  
+.
+├── c2425-R4.Rproj
+├── config_files/
+│   └── torrc
 ├── .gitignore
+├── log.txt
+├── pyproject.toml
 ├── .python-version
 ├── README.md
-├── pyproject.toml
+├── src/
+│   ├── 1_Extraccion/
+│   ├── 2_Transformacion/
+│   ├── 3_Analisis/
+│   ├── 4_Modelos/
+│   ├── main.py
+│   └── utils/
 └── uv.lock
 ```
 
@@ -94,6 +90,7 @@ setx MINIO_ACCESS_KEY clave_de_acceso
 setx MINIO_SECRET_KEY clave_secreta
 ```
 En Linux hay que crear un archivo .env y añadir:
+
 ```bash
 export STEAM_API_KEY=clave_api
 export API_KEY_YT=clave_api
@@ -110,20 +107,17 @@ En **Windows**:
 Después de descargar TOR, ejecutad el archivo ``tor.exe`` que podéis encontrar dentro de la subcarpeta tor para que se creen los archivos por defecto para el correcto funcionamiento del mismo. Cuando el proceso de TOR llegue al 100%, cerradlo. Posteriormente, abrid las variables de entorno del sistema y clicad para abrir la variable PATH. Hecho eso, añadid la carpeta de tor (la que tiene como hija al archivo tor.exe) como nueva variable de entorno. El script C1 usará como configuración de TOR el archivo `torrc` que podéis encontrar en el repositorio, que sirve para que funcione correctamente la rotación de IP.
 
 En **Linux**:
+
 Algunas distros de linux ejecutan un proceso en segundo plano de TOR al iniciar. Si el script C1 diese error al cambiar de IP, se deben ejecutar los siguientes comandos en consola:
 
-Para detener el proceso actual:
-```bash
-sudo systemctl stop tor
-```
-
-Para matar cualquier posible proceso fantasma:
+Para detener el proceso:
 ```bash
 sudo pkill -f tor
 ```
 
-Recomendado: Para que el OS no ejecute nunca TOR al iniciar:
+Para detener el proceso actual y deshabilitar el servicio permanentemente:
 ```bash
+sudo systemctl stop tor
 sudo systemctl disable tor
 ```
 
@@ -131,6 +125,7 @@ sudo systemctl disable tor
 ```bash
 sudo apt install tor
 ```
+
 - Mediante `pacman` (Arch):
 ```bash
 sudo pacman -S tor

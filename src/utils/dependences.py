@@ -1,5 +1,6 @@
 """
-Módulo de dependencias para mostrar correctamente el menú principal.
+Módulo de dependencias para informar al usuario las dependencias que tiene para la 
+ejecución de ficheros.
 """
 
 from .minio_server import file_exists_minio
@@ -11,42 +12,8 @@ from .config import steam_reviews_top100_file, steam_reviews_rest_file, yt_stats
 from .config import steam_reviews_file, steam_games_parquet_file_popularity, banners_file_popularity
 from .config import yt_stats_parquet_file
 
-class appidlist_file_dependence():
-    @staticmethod
-    def get_info():
-        return f"Fichero {appidlist_file.name} (script A)"
-    
-    @staticmethod
-    def check(minio):
-        return file_exists(appidlist_file, minio)
-    
-class gamelist_file_dependence():
-    @staticmethod
-    def get_info():
-        return f"Fichero {gamelist_file.name} (script B)"
-    
-    @staticmethod
-    def check(minio):
-        return file_exists(gamelist_file, minio)
+# ------------ DEPENDENCIAS DE API ------------
 
-class youtube_scraping_file_dependence():
-    @staticmethod
-    def get_info():
-        return f"Fichero {youtube_scraping_file.name} (script C1)"
-    
-    @staticmethod
-    def check(minio):
-        return file_exists(youtube_scraping_file, minio)
-    
-class banners_file_dependence():
-    @staticmethod
-    def get_info():
-        return f"Fichero {banners_file.name} (script E)"
-    
-    @staticmethod
-    def check(minio):
-        return file_exists(youtube_scraping_file, minio)
-    
 class steam_api_dependence():
     @staticmethod
     def get_info():
@@ -95,6 +62,44 @@ class ucm_vpn_dependence():
     @staticmethod
     def check(minio = None):
         return file_exists_minio("grupo.txt")
+
+# ------------ DEPENDENCIAS DE FICHEROS ------------
+
+class appidlist_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {appidlist_file.name} (script A)"
+    
+    @staticmethod
+    def check(minio):
+        return file_exists(appidlist_file, minio)
+    
+class gamelist_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {gamelist_file.name} (script B)"
+    
+    @staticmethod
+    def check(minio):
+        return file_exists(gamelist_file, minio)
+
+class youtube_scraping_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {youtube_scraping_file.name} (script C1)"
+    
+    @staticmethod
+    def check(minio):
+        return file_exists(youtube_scraping_file, minio)
+    
+class banners_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {banners_file.name} (script E)"
+    
+    @staticmethod
+    def check(minio):
+        return file_exists(youtube_scraping_file, minio)
 
 class steam_reviews_top100_file_dependence():
     @staticmethod

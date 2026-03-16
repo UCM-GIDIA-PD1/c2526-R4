@@ -137,6 +137,7 @@ def C2_informacion_youtube_videos(minio):
         print('Comenzando peticiones a la API de Youtube...\n')
         with tqdm(pending_games, unit="juegos") as pbar:
             for app in pbar:
+                jsonl = None
                 try:
                     appid = app.get('id')
                     pbar.set_description(f"Procesando appid {appid}")

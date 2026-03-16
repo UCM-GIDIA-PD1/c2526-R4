@@ -39,6 +39,11 @@ def get_appid_range(length):
 
 # Paths
 def project_root():
+    """Devuelve un objecto Path con la raíz del proyecto.
+
+    Returns:
+        Path: raíz del proyecto.
+    """
     current = Path(__file__).resolve()
 
     for parent in current.parents:
@@ -48,26 +53,51 @@ def project_root():
     return current
 
 def data_path():
+    """Devuelve un objecto Path con el directorio de la carpeta data.
+
+    Returns:
+        Path: directorio data del proyecto.
+    """
     path = project_root() / "data"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 def raw_data_path():
+    """Devuelve un objecto Path con el directorio raw dentro de data.
+
+    Returns:
+        Path: directorio raw.
+    """
     path = data_path() / "raw"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 def processed_data_path():
+    """Devuelve un objecto Path con el directorio processed.
+
+    Returns:
+        Path: directorio processed.
+    """
     path = data_path() / "processed"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 def config_path():
+    """Devuelve un objecto Path con el directorio de config.
+
+    Returns:
+        Path: directorio config.
+    """
     path = project_root() / "config_files"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 def error_log_path():
+    """Devuelve un objecto Path con el directorio de error_log.
+
+    Returns:
+        Path: directorio del archivo de log de errores.
+    """
     path = data_path() / "error_logs"
     path.mkdir(parents=True, exist_ok=True)
     return path

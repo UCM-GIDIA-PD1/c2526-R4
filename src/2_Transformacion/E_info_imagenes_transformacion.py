@@ -2,9 +2,8 @@
 Dado el archivo banners_file.jsonl.gz aplica reducción de dimensionalidad sobre los vectores
 de 512 dimensiones convirtiéndolos en vectores de 2 o 3 dimensiones para poder visualizarlos.
 """
-
-import pandas as pd
-import numpy as np
+from pandas import DataFrame, Series
+from numpy import vstack
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
@@ -18,18 +17,18 @@ def join_B_and_E():
     Returns:
         pd.DataFrame: Dataframe resultante de juntar B y E
     """
-    dfE = pd.DataFrame(read_file(banners_file))
-    dfB = pd.DataFrame(read_file(gamelist_file))
+    dfE = DataFrame(read_file(banners_file))
+    dfB = DataFrame(read_file(gamelist_file))
 
     # Meter numero de reseñas
-    dfB = dfB.join(dfB["appreviewhistogram"].apply(pd.Series))
+    dfB = dfB.join(dfB["appreviewhistogram"].apply(Series))
     dfB["total_recommendations"] = dfB["rollups"].apply(lambda x: x.get("total_recommendations"))
     dfB = dfB[["id", "total_recommendations"]]
 
     df_joined = dfE.merge(dfB, on="id")
 
     # Meter precio
-    df = df.join(df["appdetails"].apply(pd.Series))
+    df = df.join(df["appdetails"].apply(Series))
     df["initial"] = df["price_overview"].apply(lambda x : x.get("initial"))
     df = df[["id", "initial"]]
 
@@ -76,7 +75,7 @@ def reduct_dataframes_from_models(df):
     modelos = ['v_resnet', 'v_convnext', 'v_clip']
     for mod in modelos:
         print(f"Procesando reducción de dimensionalidad para: {mod}...")
-        matrix = np.vstack(df[mod].values)
+        matrix = vstack(df[mod].values)
         dim_reduction(df, mod, matrix)
 
 def info_imagenes_transformacion(minio = {"minio_write": False, "minio_read": False}):
