@@ -1,0 +1,79 @@
+from numpy import sqrt
+import pandas as pd
+import wandb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from src.utils.config import popularity
+from src.utils.files import read_file
+
+def create_popularity_median_baseline():
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Popularidad", 
+        name="baseline-median",
+        job_type="baseline"
+    )
+
+    df = read_file(popularity)
+    y_column = "recomendaciones_totales"
+
+    train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
+
+    # Calculamos la mediana, que es el valor que va a predecir este baseline
+    mediana_train = train_df[y_column].median()
+
+    y_true = test_df[y_column]
+    y_pred = [mediana_train] * len(test_df)
+
+    mae = mean_absolute_error(y_true, y_pred)
+    rmse = sqrt(mean_squared_error(y_true, y_pred))
+    r2 = r2_score(y_true, y_pred)
+
+    wandb.log({
+        "test_mae": mae,
+        "test_rmse": rmse,
+        "test_r2": r2,
+    })
+
+    print(f"Mediana: {mediana_train}")
+    print(f"MAE: {mae:.2f}")
+    
+    run.finish()
+
+def create_popularity_mean_baseline():
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Popularidad", 
+        name="baseline-mean",
+        job_type="baseline"
+    )
+
+    df = read_file(popularity)
+    y_column = "recomendaciones_totales"
+
+    train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
+
+    # Calculamos la media, que es el valor que va a predecir este baseline
+    mean_train = train_df[y_column].mean()
+
+    y_true = test_df[y_column]
+    y_pred = [mean_train] * len(test_df)
+
+    mae = mean_absolute_error(y_true, y_pred)
+    rmse = sqrt(mean_squared_error(y_true, y_pred))
+    r2 = r2_score(y_true, y_pred)
+
+    wandb.log({
+        "test_mae": mae,
+        "test_rmse": rmse,
+        "test_r2": r2,
+    })
+
+    print(f"Media: {mean_train}")
+    print(f"MAE: {mae:.2f}")
+    
+    run.finish()
+
+if __name__ == "__main__":
+    create_popularity_mean_baseline()
+    create_popularity_median_baseline()

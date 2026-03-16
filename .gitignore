@@ -7,6 +7,7 @@ data
 error_logs
 .Rproj.user
 .env
+wandb
 
 # Extensiones de archivos
 *.csv
