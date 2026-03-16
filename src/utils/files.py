@@ -4,18 +4,14 @@ Módulo que contiene todas las funciones relativas a la trata de archivos.
 
 import json
 import gzip
-import pandas as pd
-from os import remove
-import os
+from pandas import DataFrame, read_parquet
+from os import remove, path
 
 from .config import steam_log_file
 from .minio_server import upload_to_minio, download_from_minio, erase_from_minio, file_exists_minio
 
-def log_appid_errors(appid, reason):
-    data = {appid : reason}
-    write_to_file(data, steam_log_file)
+# ------- GUARDAR DATOS A FICHEROS -------
 
-# Guardar datos a ficheros
 def _save_json(data, filepath):
     with open(filepath, "wt", encoding = "utf-8") as f:
         json.dump(data, f, ensure_ascii = False)
@@ -41,13 +37,14 @@ def _append_jsonl_gz(data, filepath):
             f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
 def _save_parquet(data, filepath):
-    pd.DataFrame(data).to_parquet(filepath)
+    DataFrame(data).to_parquet(filepath)
 
 def _save_txt(data, filepath):
     with open(filepath, "wt", encoding = "utf-8") as f:
         f.write(str(data))
 
-# Cargar datos de ficheros existentes
+# ------- CARGAR DATOS DE FICHEROS -------
+
 def _read_json(filepath):
     with open(filepath, "rt", encoding="utf-8") as archivo:
         data = json.load(archivo)
@@ -69,7 +66,7 @@ def _read_jsonl_gz(filepath):
         return data
  
 def _read_parquet(filepath):
-    data = pd.read_parquet(filepath)
+    data = read_parquet(filepath)
     return data
 
 def _read_txt(filepath):
@@ -77,7 +74,18 @@ def _read_txt(filepath):
         data = f.read()
         return data
 
-# Funciones públicas
+# ------- FUNCIONES PÚBLICAS -------
+
+def log_appid_errors(appid, reason):
+    """Escribe en el log de errores.
+
+    Args:
+        appid (str): identificador único del juego.
+        reason (str): razón por la que ha dado error.
+    """
+    data = {appid : reason}
+    write_to_file(data, steam_log_file)
+
 def write_to_file(data, filepath, minio = {"minio_write": False, "minio_read": False}):
     """
     Guarda un diccionario en el formato indicado en la ruta especificada.
@@ -192,8 +200,8 @@ def file_exists(filepath, minio = {"minio_write": False, "minio_read": False}):
         if isinstance(filepath, list):
             ret = True
             for file in filepath:
-                ret = ret and (os.path.exists(file) or os.path.exists(os.path.join("data", file)))
+                ret = ret and (path.exists(file) or path.exists(path.join("data", file)))
             return ret
-        return os.path.exists(os.path.join("data/processed", filepath)) or os.path.exists(os.path.join("data/raw", filepath))
+        return path.exists(path.join("data/processed", filepath)) or path.exists(path.join("data/raw", filepath))
     else: 
         return file_exists_minio(filepath)

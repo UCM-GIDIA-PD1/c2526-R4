@@ -1,3 +1,7 @@
+"""
+Archivo main.py del proyecto que ejecuta el menú del proyecto.
+"""
+
 import os
 import sys
 import importlib
