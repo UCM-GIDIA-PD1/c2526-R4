@@ -196,6 +196,17 @@ def erase_file(filepath, minio = {"minio_write": False, "minio_read": False}):
         return False
     
 def file_exists(filepath, minio = {"minio_write": False, "minio_read": False}):
+    """
+    Verifica la existencia de uno o varios archivos, ya sea en el sistema 
+    de archivos local o en el servidor de MinIO.
+
+    Args:
+        filepath (Path): Ruta del archivo o lista de rutas a comprobar.
+        minio (dict): Diccionario de configuración para determinar si se consulta en MinIO.
+
+    Returns:
+        bool: True si el/los archivos existen, False en caso contrario.
+    """
     if not minio["minio_read"]:
         if isinstance(filepath, list):
             ret = True
