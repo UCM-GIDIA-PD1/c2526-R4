@@ -1,4 +1,4 @@
-from pathlib import Path
+
 import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import cross_val_score
@@ -6,20 +6,15 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split 
-from plotly import express as px
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-import matplotlib.pyplot as plt
-import seaborn as sns
-from imblearn.over_sampling import SMOTE
 from src.utils.config import prices
 from src.utils.files import read_file
+import wandb
+
 
 
 def _preprocess(df):
     df.drop(columns=['id','name'], inplace=True, errors='ignore')
-    # print(df.dtypes)
-    # df.head(2)
-
     le = LabelEncoder()
     le.fit(df['release_year'])
     encoding = le.transform(df['release_year'])
@@ -49,6 +44,7 @@ def _create_model(X_train, y_train, best_k, X_test, y_test):
     print(conf_matrix)
 
 def _best_k(X_train, y_train):
+    print('Calculating K')
     knn_scores = []
     k_values = range(1,50)
     for k_value in k_values:
@@ -77,7 +73,17 @@ def _model(df):
     _create_model(X_train,y_train, k_value, X_test, y_test)
     
  
-
 if __name__ == '__main__':
+    print('Reading')
     df = read_file(prices)
+    print('Preprocessing')
     _preprocess(df)
+    print('Creating Model')
+    _model(df)
+
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Precios", 
+        name="basic-knn model",
+        job_type="baseline"
+    )
