@@ -8,9 +8,38 @@ from os import environ
 from src.utils.config import project_root
 
 def _minio_client():
+    """
+    Crea e inicializa una instancia del cliente Minio.
+    
+    Utiliza variables de entorno para las credenciales por seguridad, 
+    conectándose al endpoint específico de la facultad (UCM).
+    
+    Returns:
+        Minio: Objeto cliente configurado para interactuar con el servidor.
+    """
     return Minio(endpoint = "minio.fdi.ucm.es",
                 access_key = environ.get("MINIO_ACCESS_KEY"),
                 secret_key = environ.get("MINIO_SECRET_KEY"))
+
+def get_minio_path(filename):
+    """
+    Transforma una ruta de archivo local en una ruta compatible con el 
+    almacenamiento de objetos de MinIO bajo el prefijo del 'grupo4'.
+
+    Args:
+        filename (Path): Objeto Path con la ruta del archivo.
+    
+    Returns:
+        str: La ruta relativa que se usará como 'object_name' en el bucket.
+    """
+    if hasattr(filename, 'name') and len(filename.parts) > 1:
+        name_in_minio = f"{filename.parent.name}/{filename.name}"
+    else:
+        name_in_minio = filename.name if hasattr(filename, 'name') else filename
+
+    minio_path = f"grupo4/{name_in_minio}"
+
+    return minio_path
 
 def upload_to_minio(filepath):
     """
@@ -23,8 +52,8 @@ def upload_to_minio(filepath):
         boolean: True si se ha guardado archivo correctamente, False en caso contrario.
     """
     client = _minio_client()
-    name = filepath.name if hasattr(filepath, 'name') else filepath
-    minio_path = f"grupo4/{name}"
+    minio_path = get_minio_path(filepath)
+    
     try:
         client.fput_object(bucket_name = "pd1", object_name = minio_path, file_path = filepath)
         print("Se ha subido el fichero correctamente")
@@ -48,13 +77,7 @@ def download_from_minio(download_path, filename = None):
         filename = download_path
 
     client = _minio_client()
-    
-    if hasattr(filename, 'name') and len(filename.parts) > 1:
-        name_in_minio = f"{filename.parent.name}/{filename.name}"
-    else:
-        name_in_minio = filename.name if hasattr(filename, 'name') else filename
-
-    minio_path = f"grupo4/{name_in_minio}"
+    minio_path = get_minio_path(filename)
     
     try:
         client.fget_object(bucket_name="pd1", object_name=minio_path, file_path=download_path)
@@ -77,8 +100,8 @@ def file_exists_minio(filename):
         boolean: True si existe, False en caso contrario.
     """
     client = _minio_client()
-    name = filename.name if hasattr(filename, 'name') else filename
-    minio_path = f"grupo4/{name}"
+    minio_path = get_minio_path(filename)
+
     try:
         client.stat_object(bucket_name="pd1", object_name=minio_path)
         return True
@@ -96,8 +119,8 @@ def erase_from_minio(filename):
         boolean: True si se ha borrado el archivo correctamente, False en caso contrario.
     """
     client = _minio_client()
-    name = filename.name if hasattr(filename, 'name') else filename
-    minio_path = f"grupo4/{name}"
+    minio_path = get_minio_path(filename)
+
     try:
         client.remove_object(bucket_name="pd1", object_name=minio_path)
         return True
