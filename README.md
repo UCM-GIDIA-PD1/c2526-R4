@@ -17,7 +17,7 @@
 
 ## Estructura del proyecto
 
-```
+```txt
 .
 ├── c2425-R4.Rproj
 ├── config_files/
@@ -59,10 +59,36 @@ uv run -m src.main
 3. **Obtener los datos**. Para ello, existen dos opciones:
 	1. Descargar los datos directamente desde el servidor de [MinIO](https://minio.fdi.ucm.es/minio-console/login).
 	2. Extraer los datos de forma manual, explicado posteriormente.
+
+### MinIO
+Para utilizar el servidor de MinIO hacen falta dos claves:
+- Clave de acceso del servidor de MinIO
+- Clave secreta del servidor de MinIO
+
+Una vez conseguidas, vamos a incluirlas como variables del sistema para que el código las detecte:
+
+En Windows:
+```shell
+setx STEAM_API_KEY clave_api
+setx API_KEY_YT clave_api
+setx MINIO_ACCESS_KEY clave_de_acceso
+setx MINIO_SECRET_KEY clave_secreta
+```
+
+En Linux o MacOS hay que crear un archivo `.env` y añadir:
+```bash
+export STEAM_API_KEY=clave_api
+export API_KEY_YT=clave_api
+export MINIO_ACCESS_KEY=clave_de_acceso
+export MINIO_SECRET_KEY=clave_secreta
+```
+
+Además para poder conectarse a MinIO hay que descargarse el [mc.exe](https://dl.min.io/client/mc/release/windows-amd64/mc.exe) y meterlo en la raiz del proyecto.
 ### Extracción de datos
 Se debe tener en cuenta que la extracción manual de los datos tarda un tiempo largo, por lo que se recomienda descargar o usar los datos directamente del servidor de *MinIO*.
 
-Si se desea extraer la información en grupo de 6 personas, se debe crear una variable del sistema nueva llamada `PD1_ID`, que tendrá un valor de entre 1 y 6. Si no se crea esta variable se extraerá la información de manera completa. 
+Si se desea extraer la información en grupo de 6 personas, se debe crear una variable del sistema nueva llamada `PD1_ID`, que tendrá un valor de entre 1 y 6. Si no se crea esta variable se extraerá la información de manera completa.
+
 En Windows ejecutamos:
 ```shell
 setx PD1_ID identificador_grupo
@@ -72,42 +98,15 @@ En Linux hay que crear un archivo .env y añadir:
 export PD1_ID=identificador_grupo
 ```
 
-#### Dependencias
+#### Dependencia: API externas
 Para realizar la extracción de la lista de juegos de Steam así como de las estadísticas individuales de los vídeos *scrapeados*, necesitamos antes conseguir acceso a varias APIs, a las que se adjuntan documentación del proceso de obtención:
 - La ``STEAM_API_KEY`` de [Steam](https://steamcommunity.com/dev/apikey).
 - La ``API_KEY_YT`` de [YouTube](https://developers.google.com/youtube/v3/getting-started?hl=es-419).
-
-Además, si queremos guardar los datos en el servidor de la FDI de MinIO necesitaremos:
-- Clave de acceso del servidor de MinIO
-- Clave secreta del servidor de MinIO
-
-Una vez conseguidas, vamos a incluirlas como variables del sistema para que el código las detecte:
-En Windows:
-```shell
-setx STEAM_API_KEY clave_api
-setx API_KEY_YT clave_api
-setx MINIO_ACCESS_KEY clave_de_acceso
-setx MINIO_SECRET_KEY clave_secreta
-```
-En Linux hay que crear un archivo .env y añadir:
-
-```bash
-export STEAM_API_KEY=clave_api
-export API_KEY_YT=clave_api
-export MINIO_ACCESS_KEY=clave_de_acceso
-export MINIO_SECRET_KEY=clave_secreta
-```
-
-Además para poder conectarse a MinIO hay que descargarse el [mc.exe](https://dl.min.io/client/mc/release/windows-amd64/mc.exe) y meterlo en la raiz del proyecto.
-
+#### Dependencia: TOR
 Para Scrapear YouTube necesitamos tener tanto una versión de Google Chrome reciente, como TOR bundle descargado de la [página oficial de TOR](https://www.torproject.org/download/tor/).
-
-En **Windows**:
-
+##### En Windows
 Después de descargar TOR, ejecutad el archivo ``tor.exe`` que podéis encontrar dentro de la subcarpeta tor para que se creen los archivos por defecto para el correcto funcionamiento del mismo. Cuando el proceso de TOR llegue al 100%, cerradlo. Posteriormente, abrid las variables de entorno del sistema y clicad para abrir la variable PATH. Hecho eso, añadid la carpeta de tor (la que tiene como hija al archivo tor.exe) como nueva variable de entorno. El script C1 usará como configuración de TOR el archivo `torrc` que podéis encontrar en el repositorio, que sirve para que funcione correctamente la rotación de IP.
-
-En **Linux**:
-
+##### Linux
 Algunas distros de linux ejecutan un proceso en segundo plano de TOR al iniciar. Si el script C1 diese error al cambiar de IP, se deben ejecutar los siguientes comandos en consola:
 
 Para detener el proceso:
