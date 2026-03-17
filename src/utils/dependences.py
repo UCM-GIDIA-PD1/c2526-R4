@@ -10,7 +10,10 @@ from .files import file_exists
 from .config import appidlist_file, gamelist_file, youtube_scraping_file, banners_file
 from .config import steam_reviews_top100_file, steam_reviews_rest_file, yt_statslist_file
 from .config import steam_reviews_file, steam_games_parquet_file_popularity, banners_file_popularity
-from .config import yt_stats_parquet_file
+from .config import yt_stats_parquet_file, steam_log_file, raw_game_info_popularity, raw_game_info_prices
+from .config import banners_file_prices, steam_games_parquet_file, steam_games_parquet_file_prices
+from .config import steam_publishers_count, steam_developers_count, steam_reviews_parquet_file
+from .config import P_banners_file, popularity, prices, reviews
 
 # ------------ DEPENDENCIAS DE API ------------
 
@@ -163,3 +166,120 @@ class yt_stats_parquet_file_dependence():
     @staticmethod
     def check(minio):
         return file_exists(yt_stats_parquet_file, minio)
+
+class steam_log_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {steam_log_file.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(steam_log_file, minio)
+
+class raw_game_info_popularity_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {raw_game_info_popularity.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(raw_game_info_popularity, minio)
+
+class raw_game_info_prices_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {raw_game_info_prices.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(raw_game_info_prices, minio)
+
+class banners_file_prices_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {banners_file_prices.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(banners_file_prices, minio)
+
+class steam_games_parquet_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {steam_games_parquet_file.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(steam_games_parquet_file, minio)
+
+class steam_games_parquet_file_prices_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {steam_games_parquet_file_prices.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(steam_games_parquet_file_prices, minio)
+
+class steam_publishers_count_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {steam_publishers_count.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(steam_publishers_count, minio)
+
+class steam_developers_count_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {steam_developers_count.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(steam_developers_count, minio)
+
+class steam_reviews_parquet_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {steam_reviews_parquet_file.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(steam_reviews_parquet_file, minio)
+
+class P_banners_file_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {P_banners_file.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(P_banners_file, minio)
+
+class popularity_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {popularity.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(popularity, minio)
+
+class prices_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {prices.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(prices, minio)
+
+class reviews_dependence():
+    @staticmethod
+    def get_info():
+        return f"Fichero {reviews.name}"
+    
+    @staticmethod
+    def check(minio = None):
+        return file_exists(reviews, minio)
