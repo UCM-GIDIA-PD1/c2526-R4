@@ -4,6 +4,7 @@ Se encarga de trabajar con los archivos de configuración y tiene variables con 
 
 from os import environ
 from pathlib import Path
+from dotenv import load_dotenv
 
 def get_appid_range(length):
     """Lee el inicio y fin de una sesión de scrapping desde un archivo de texto
@@ -101,6 +102,16 @@ def error_log_path():
     path = data_path() / "error_logs"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+def load_env_file():
+    """Carga el archivo .env si existe en la raíz del proyecto."""
+    path_env = project_root() / ".env"
+    
+    if path_env.exists():
+        load_dotenv(dotenv_path=path_env)
+        print(f".env cargado con exito")
+    else:
+        print("Advertencia: No se encontró .env, se usarán variables de entorno del sistema.")
 
 # ------ VARIABLES DEL PROYECTO ------ #
 
