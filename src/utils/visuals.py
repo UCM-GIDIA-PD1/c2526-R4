@@ -59,21 +59,27 @@ def draw_files_section(scripts_info, keys, minio_info):
 
     # Agrupamos todos los ficheros
     all_files = []
+    all_paths = []
     for k in keys:
         salida = scripts_info[k]["salida"]
+        path = scripts_info[k]["path"]
         if not isinstance(salida, list):
             salida = [salida]
+            path = [path]
         all_files.extend(salida)
+        all_paths.extend(path)
 
     for i in range(0, len(all_files), 2):
         f1 = all_files[i]
-        e1 = f"[{settings['obtained']}]" if file_exists(f1, minio_info) else "[ ]"
+        p1 = all_paths[i]
+        e1 = f"[{settings['obtained']}]" if file_exists(p1, minio_info) else "[ ]"
         t1 = f"{e1} {f1}"
 
         t2 = ""
         if i + 1 < len(all_files):
             f2 = all_files[i + 1]
-            e2 = f"[{settings['obtained']}]" if file_exists(f2, minio_info) else "[ ]"
+            p2 = all_paths[i + 1]
+            e2 = f"[{settings['obtained']}]" if file_exists(p2, minio_info) else "[ ]"
             t2 = f"{e2} {f2}"
 
         print(format_line_two_columns(t1, t2))
@@ -150,4 +156,4 @@ def show_menu(scripts_info, page, minio_info):
 
         print("\nPon la letra de un fichero para seleccionarlo/quitarlo o un número para cambiar de página.")
         print("Pon MinioS o MinioD para activar la subida y descarga de ficheros a MinIO.")
-        print("Para ejecutar lo seleccionado RUN y para salir EXIT.")
+        print("Para ejecutar lo seleccionado RUN y para salir EXIT o presionar ctrl + C.")

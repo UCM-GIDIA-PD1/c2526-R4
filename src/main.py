@@ -37,26 +37,29 @@ def main():
     page = 0 # 0 --> generico | 1 --> extracción | 2 --> transformacion
 
     ejecutando = True
-    while ejecutando:
-        info_actual = scripts_info[page - 1] if page != 0 else {}
-        show_menu(info_actual, page, minio_info)
-        opcion = input("\nSelección > ").upper().strip()
-        
-        if opcion == "EXIT":
-            ejecutando = False
+    try:
+        while ejecutando:
+            info_actual = scripts_info[page - 1] if page != 0 else {}
+            show_menu(info_actual, page, minio_info)
+            opcion = input("\nSelección > ").upper().strip()
+            
+            if opcion == "EXIT":
+                ejecutando = False
 
-        elif opcion in ["0", "1", "2"]:
-            page = int(opcion) 
+            elif opcion in ["0", "1", "2"]:
+                page = int(opcion) 
 
-        elif page != 0:
-            if opcion == "RUN":
-                ejecutar_scripts(info_actual, minio_info, page)
-            elif opcion == "MINIOS":
-                minio_info["minio_write"] = not minio_info["minio_write"]
-            elif opcion == "MINIOD":
-                minio_info["minio_read"] = not minio_info["minio_read"]
-            elif opcion in info_actual:
-                info_actual[opcion]["usar"] = not info_actual[opcion]["usar"]
+            elif page != 0:
+                if opcion == "RUN":
+                    ejecutar_scripts(info_actual, minio_info, page)
+                elif opcion == "MINIOS":
+                    minio_info["minio_write"] = not minio_info["minio_write"]
+                elif opcion == "MINIOD":
+                    minio_info["minio_read"] = not minio_info["minio_read"]
+                elif opcion in info_actual:
+                    info_actual[opcion]["usar"] = not info_actual[opcion]["usar"]
+    except KeyboardInterrupt:
+        print("\n\nDetenido por el usuario. Guardando antes de salir...")
 
 if __name__ == "__main__":
     main()
