@@ -12,8 +12,7 @@ from utils_extraccion.steam_requests import get_appids
 from utils_extraccion.sesion import handle_input, ask_overwrite_file, read_config, update_config
     
 def _get_request_params():
-    message = """Elige modo de ejecución:\n\n1. Elegir manualmente el los parámetros\n2. Extraer nuevos juegos\n
-            Introduce elección: """
+    message = """Elige modo de ejecución:\n\n1. Elegir manualmente el los parámetros\n2. Extraer nuevos juegos\nIntroduce elección: """
 
     response = handle_input(message, lambda x: x in {"1", "2"})
     n_appids = 0

@@ -172,8 +172,7 @@ def get_pending_games(script_id, minio = {"minio_write": False, "minio_read": Fa
     print(f"Tamaño lista de juegos: {list_size}")
     print(f"Rango de índices disponibles: [0, {list_size-1}]")
 
-    message = """Opciones: \n\n1. Elegir rango manualmente\n2. Extraer rango correspondiente al identificador\n
-            Introduce elección: """
+    message = """Opciones: \n\n1. Elegir rango manualmente\n2. Extraer rango correspondiente al identificador\nIntroduce elección: """
     option = handle_input(message, lambda x: x in {"1", "2"})
 
     if option == "1": # Elegir rango manualmente
