@@ -2,14 +2,16 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score, f1_score
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.naive_bayes import ComplementNB
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 import re
 from src.utils.config import reviews
-
+from tqdm import tqdm
+tqdm.pandas(desc="Limpiando texto")
 
 df = pd.read_parquet(reviews)
+
 stop_words = set(stopwords.words("english"))
 ps = PorterStemmer()
 
@@ -18,7 +20,7 @@ def clean_text(text):
     text = re.sub(r"[^a-z\s]", "", text)
     return " ".join(ps.stem(word) for word in text.split() if word not in stop_words)
 
-df["text"] = df["text"].apply(clean_text)
+df["text"] = df["text"].progress_apply(clean_text)
 
 print("Entrenando modelo")
 X_train, X_test, y_train, y_test = train_test_split(df["text"], df["is_positive"], train_size=0.8, random_state=42)
@@ -27,7 +29,7 @@ vectorizer = CountVectorizer()
 X_train = vectorizer.fit_transform(X_train) 
 X_test = vectorizer.transform(X_test)       
 
-classifier = MultinomialNB()
+classifier = ComplementNB()
 classifier.fit(X_train, y_train)
 
 y_pred = classifier.predict(X_test)
