@@ -35,7 +35,6 @@ def _preprocess(df):
     df.columns = df.columns.astype(str)
     return df
 
-
 def _normalize(X_train, X_test, columns_to_normalize):
     """
     Dado una división de train y test y una lista de columnas, normaliza los valores de esas columnas.
@@ -102,6 +101,7 @@ def _create_model(X_train, y_train, best_k, X_test, y_test, modelName, modelJobt
     run.log({
         'accuracy' : accuracy,
         'precision' : precision,
+        'Recall' : recall,
         'f1-score' : f1,
         'confusion-matrix' : conf_matrix
     })
