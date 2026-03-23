@@ -8,6 +8,14 @@ from nltk.corpus import stopwords
 import re
 from src.utils.config import reviews
 from tqdm import tqdm
+import wandb
+
+run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Reviews", 
+        name="baseline-median",
+        job_type="baseline"
+    )
 tqdm.pandas(desc="Limpiando texto")
 
 df = pd.read_parquet(reviews)
