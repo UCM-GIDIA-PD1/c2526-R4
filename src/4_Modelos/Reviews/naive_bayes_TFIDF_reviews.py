@@ -13,9 +13,10 @@ import wandb
 run = wandb.init(
         entity="pd1-c2526-team4",
         project="Reviews", 
-        name="baseline-median",
-        job_type="baseline"
+        name="reviews-naivebayes",
+        job_type="model"
     )
+
 tqdm.pandas(desc="Limpiando texto")
 
 df = pd.read_parquet(reviews)
@@ -49,8 +50,20 @@ precision = precision_score(y_test, y_pred)
 recall = recall_score(y_test, y_pred)
 f1 = f1_score(y_test, y_pred)
 
+
+
 print("Accuracy:", accuracy)
 print("Balanced accuracy:", balanced_accuracy)
 print("Precision:", precision)
 print("Recall:", recall)
 print("F1-score:", f1)
+
+wandb.log({
+        "Accuracy": accuracy,
+        "Balanced accuracy": balanced_accuracy,
+        "Precision": precision,
+        "Recall": recall,
+        "F1-score": f1
+    })
+
+run.finish()
