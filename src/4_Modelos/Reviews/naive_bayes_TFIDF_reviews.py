@@ -13,7 +13,7 @@ import wandb
 run = wandb.init(
         entity="pd1-c2526-team4",
         project="Reviews", 
-        name="reviews-naivebayes",
+        name="reviews-naivebayes-tfidf",
         job_type="model"
     )
 

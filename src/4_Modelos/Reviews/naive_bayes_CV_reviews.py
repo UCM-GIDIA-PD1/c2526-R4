@@ -8,6 +8,15 @@ from nltk.corpus import stopwords
 import re
 from src.utils.config import reviews
 from tqdm import tqdm
+import wandb
+
+run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Reviews", 
+        name="reviews-naivebayes-cv",
+        job_type="model"
+    )
+
 tqdm.pandas(desc="Limpiando texto")
 
 df = pd.read_parquet(reviews)
@@ -46,3 +55,13 @@ print("Balanced accuracy:", balanced_accuracy)
 print("Precision:", precision)
 print("Recall:", recall)
 print("F1-score:", f1)
+
+wandb.log({
+        "Accuracy": accuracy,
+        "Balanced accuracy": balanced_accuracy,
+        "Precision": precision,
+        "Recall": recall,
+        "F1-score": f1
+    })
+
+run.finish()
