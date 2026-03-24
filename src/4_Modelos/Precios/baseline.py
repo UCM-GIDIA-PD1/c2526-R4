@@ -4,7 +4,7 @@ import wandb
 from src.utils.config import prices
 from src.utils.files import read_file
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score,f1_score # para las métricas de evaluación
 
 def create_price_mode_baseline():
     
@@ -25,13 +25,21 @@ def create_price_mode_baseline():
     y_true = test_df[y_column]
     y_pred = [mode] * len(y_true)
   
-    report = classification_report(y_true, y_pred, zero_division= 0)
+    conf_matrix = confusion_matrix(y_true, y_pred)
 
-    wandb.log({
-        "report": report
+    precision = precision_score(y_true, y_pred, average='weighted')
+    recall = recall_score(y_true, y_pred, average='weighted')
+    f1 = f1_score(y_true, y_pred, average='weighted')
+    accuracy = accuracy_score(y_true, y_pred)
+
+    run.log({
+        'accuracy' : accuracy,
+        'precision' : precision,
+        'Recall' : recall,
+        'f1-score' : f1,
+        'confusion-matrix' : conf_matrix
     })
     
-    print(report)
     
     run.finish()
 
