@@ -89,7 +89,7 @@ best_params = {'max_depth': 3,
 
 final_model = xgb.XGBClassifier(**best_params)
 final_model.fit(X_train, y_train)
-
+y_test
 
 y_pred = final_model.predict(X_test)
 
