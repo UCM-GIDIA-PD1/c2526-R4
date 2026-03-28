@@ -55,17 +55,21 @@ def cluster_embedings(df : pd.DataFrame, emb_col : str) -> np.ndarray:
 
     return clusters
 
-def normalize_train_test(X_train, X_val, X_test):
+def normalize_train_test(X_train, X_val, X_test, columnas_numericas):
     '''
     Dados unos conjuntos de entrenamiento train y test los normaliza usando StandardScaler.
     '''
     scaler = StandardScaler()
-
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_val_scaled = scaler.transform(X_val)
-    X_test_scaled = scaler.transform(X_test)
-
-    return X_train_scaled, X_val_scaled, X_test_scaled
+    
+    X_train = X_train.copy()
+    X_val = X_val.copy()
+    X_test = X_test.copy()
+    
+    X_train[columnas_numericas] = scaler.fit_transform(X_train[columnas_numericas])
+    X_val[columnas_numericas] = scaler.transform(X_val[columnas_numericas])
+    X_test[columnas_numericas] = scaler.transform(X_test[columnas_numericas])
+    
+    return X_train, X_val, X_test
 
 def pca_train_test(X_train, X_val, X_test, n_comp = 0.9):
     '''
@@ -85,7 +89,6 @@ def class_weights(y):
     '''
     sample_weights = compute_sample_weight(class_weight='balanced', y=y)
     return sample_weights
-
 
 def get_metrics(y_test, y_pred, classes=None):
     '''
