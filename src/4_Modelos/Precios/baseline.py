@@ -1,3 +1,10 @@
+"""
+Baseline para predecir la categoría de precio en 
+la que se encuentra un juego.
+Se crea un modelo que utiliza la moda (la clase mayoritaria)
+para realizar las predicciones.
+Las métricas se registran en Weights & Biases (wandb).
+"""
 import pandas as pd
 import wandb
 
