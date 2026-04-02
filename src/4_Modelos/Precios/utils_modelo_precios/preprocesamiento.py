@@ -90,9 +90,10 @@ def class_weights(y):
     sample_weights = compute_sample_weight(class_weight='balanced', y=y)
     return sample_weights
 
-def get_metrics(y_test, y_pred, classes=None):
+def get_metrics(y_test, y_pred, classes=None, confusion_m=True):
     '''
-
+    Dados el output predecido del modelo con los datos de validación y los datos reales de validación se construyen
+    las métricas necesarias para medir el rendimiento del modelo.
     '''
     acc = accuracy_score(y_test, y_pred)
     prec = precision_score(y_test, y_pred, average='weighted')
@@ -107,7 +108,8 @@ def get_metrics(y_test, y_pred, classes=None):
     print(classification_report(y_test, y_pred, target_names=classes))
 
     # 3. Matriz de Confusión Visual
-    cm = confusion_matrix(y_test, y_pred)
-    print(cm)
+    if confusion_m:
+        cm = confusion_matrix(y_test, y_pred)
+        print(cm)
 
     return {'accuracy': acc, 'precision': prec, 'recall': rec, 'f1': f1 }
