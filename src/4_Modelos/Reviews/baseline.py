@@ -1,3 +1,9 @@
+"""
+Baseline para predecir la valoración de un comentario.
+Se crea un modelo que utiliza la moda (la clase mayoritaria)
+para realizar las predicciones.
+Las métricas se registran en Weights & Biases (wandb).
+"""
 import pandas as pd
 import wandb
 

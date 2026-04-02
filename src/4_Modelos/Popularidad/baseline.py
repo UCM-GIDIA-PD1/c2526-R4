@@ -1,3 +1,10 @@
+"""
+Baseline para predecir la popularidad de los juegos.
+Se crean dos modelos, uno que utiliza la media para 
+predecir el número de reviews y otro que utiliza la mediana.
+Las métricas se registran en Weights & Biases (wandb).
+"""
+
 from numpy import sqrt
 import pandas as pd
 import wandb

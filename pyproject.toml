@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4>=4.14.3",
+    "catboost>=1.2.10",
     "dotenv>=0.9.9",
     "drissionpage>=4.1.1.2",
     "google-api-python-client>=2.189.0",
@@ -33,6 +34,7 @@ dependencies = [
     "torch>=2.10.0",
     "torchvision>=0.25.0",
     "tqdm>=4.67.3",
+    "umap-learn>=0.5.11",
     "unidecode>=1.4.0",
     "wandb>=0.25.1",
     "wordcloud>=1.9.6",
