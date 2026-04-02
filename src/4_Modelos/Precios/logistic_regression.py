@@ -76,9 +76,9 @@ run = wandb.init(
 )
 
 best_params = {
-    'C': 0.488808,
-    'solver': 'saga',
-    'l1_ratio': 0.305048
+    'C': 0.564857,
+    'solver': 'lbfgs',
+    'l1_ratio': 0.0
 }
 
 final_model = LogisticRegression(**best_params)
