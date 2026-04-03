@@ -48,7 +48,7 @@ def cluster_embedings(df : pd.DataFrame, emb_col : str) -> np.ndarray:
     '''
     Dado un dataFrame y una columna donde se encuentran los embeddings, devuelve un array resultado del clustering de esos embeddings.
     '''
-    kmeans = KMeans(random_state=42)
+    kmeans = KMeans(random_state=42, n_clusters=8)
 
     embed = df[emb_col].apply(pd.Series)
     clusters = kmeans.fit_predict(embed)

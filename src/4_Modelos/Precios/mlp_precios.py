@@ -5,7 +5,7 @@ de precio se sitúa un juego según sus características.
 
 from src.utils.config import prices
 from src.utils.files import read_file
-from utils_modelo_precios.preprocesamiento import get_metrics
+from utils_modelo_precios.preprocesamiento import get_metrics, cluster_embedings
 
 from sklearn.preprocessing import StandardScaler, PowerTransformer, OrdinalEncoder
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -56,10 +56,11 @@ def _preprocess(df):
 
     # Variables no usadas en el análisis
     df2 = df2.drop(columns=['id', 'name'])
+    df2 = df2.drop(columns=['v_resnet', 'v_convnext'])
 
     return df2, df_y_trans
 
-def _best_params_mlp_no_img(df_X, df_Y):
+def _best_params_mlp(df_X, df_Y):
     param_grid = {
         'hidden_layer_sizes': [(64,32), (100,), (80,60), (64,50), (124,)],
         'activation': ['relu', 'tanh'],
@@ -91,7 +92,32 @@ def _mlp_no_img(X_train, X_test, Y_train, Y_test, best_params):
     best_mlp.fit(X_train, Y_train.values.flatten())
 
     Y_pred = best_mlp.predict(X_test)
-    metricas = get_metrics(Y_test, Y_pred, classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'])
+    metricas = get_metrics(Y_test.values.flatten(), Y_pred, classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'])
+
+    run.log({
+        'accuracy' : metricas['accuracy'],
+        'precision' : metricas['precision'],
+        'recall' : metricas['recall'],
+        'f1-score' : metricas['f1']
+    })
+
+    run.finish()
+
+def _mlp_with_cluster_img(X_train, X_test, Y_train, Y_test, best_params):
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Precios", 
+        name='sklearn-mlp-cluster-img',
+        job_type='mlp'
+    )
+    
+    best_mlp = MLPClassifier(max_iter=10000, random_state=42, activation=best_params['activation'],
+                             hidden_layer_sizes=best_params['hidden_layer_sizes'], alpha=best_params['alpha'],
+                             learning_rate_init=best_params['learning_rate_init'])
+    best_mlp.fit(X_train, Y_train.values.flatten())
+
+    Y_pred = best_mlp.predict(X_test)
+    metricas = get_metrics(Y_test.values.flatten(), Y_pred, classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'])
 
     run.log({
         'accuracy' : metricas['accuracy'],
@@ -103,15 +129,24 @@ def _mlp_no_img(X_train, X_test, Y_train, Y_test, best_params):
     run.finish()
 
 if __name__ == '__main__':
-    print('Reading...')
+    print('Leyendo y preprocesando datos...')
     df = read_file(prices)
-    
-    print('Preprocessing...')
     df_X, df_Y = _preprocess(df)
 
-    print('Searching for best params MLP without images...')
-    df_X_no_img = df_X.drop(columns=['v_resnet', 'v_convnext', 'v_clip'])
-    X_train, X_test, Y_train, Y_test, best_params = _best_params_mlp_no_img(df_X_no_img, df_Y)
+    # MLP sin imágenes
+    print('Buscando mejores parámetros para modelo sin imágenes...')
+    df_X_no_img = df_X.drop(columns=['v_clip'])
+    X_train, X_test, Y_train, Y_test, best_params = _best_params_mlp(df_X_no_img, df_Y)
 
-    print('Creating best model...')
+    print('Creando mejor modelo MLP sin imágenes...')
     _mlp_no_img(X_train, X_test, Y_train, Y_test, best_params)
+    
+    # MLP con imágenes (clusters)
+    print('Buscando mejores parámetros para modelo con imágenes con clusters...')
+    df_X['v_clip_cluster'] = cluster_embedings(df_X, 'v_clip')
+    df_X = df_X.drop(columns=['v_clip'])
+    X_train, X_test, Y_train, Y_test, best_params = _best_params_mlp(df_X, df_Y)
+
+    print('Creando mejor modelo MLP con imágenes...')
+    _mlp_with_cluster_img(X_train, X_test, Y_train, Y_test, best_params)
+    
