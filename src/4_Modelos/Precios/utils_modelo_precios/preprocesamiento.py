@@ -15,7 +15,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 
 
-def prices_dataframe() -> pd.DataFrame:
+def prices_dataframe(minio={"minio_write": False, "minio_read": False}) -> pd.DataFrame:
     '''
     Lee el archivo de precios.parquet y devuelve el dataframe quitando las columnas que no se usarán para el modelo.
 
@@ -26,7 +26,7 @@ def prices_dataframe() -> pd.DataFrame:
         - v_resnet
         - v_convnext
     '''
-    df = read_file(prices)
+    df = read_file(filepath=prices, minio=minio)
     assert df is not None, 'Error archivo precios.parquet no encontrado'
 
     df.drop(columns=['id','name','price_overview','v_resnet','v_convnext'], inplace=True)
