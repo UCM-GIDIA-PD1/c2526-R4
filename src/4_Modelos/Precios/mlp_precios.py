@@ -7,9 +7,11 @@ from src.utils.config import prices
 from src.utils.files import read_file
 from utils_modelo_precios.preprocesamiento import get_metrics
 
-from sklearn.preprocessing import StandardScaler, PowerTransformer, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, PowerTransformer, OrdinalEncoder
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neural_network import MLPClassifier
+
+import wandb
 
 from pandas import DataFrame, concat, Series
 
@@ -21,7 +23,7 @@ def _preprocess(df):
     
     Returns:
         DataFrame: Datos que contienen las variables regresoras.
-        DataFrame: Datos que contienen las variables respuesta.
+        DataFrame: Datos que contienen las variables respuesta.6,
     """
     df = df.drop(columns=['price_overview'])
 
@@ -38,7 +40,7 @@ def _preprocess(df):
     std = StandardScaler()
     X_num_std_trans = std.fit_transform(X_num_std)
 
-    ohe = OneHotEncoder(sparse_output=False)
+    ohe = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
     y_trans = ohe.fit_transform(y)
 
     # Unificar datos transformados
@@ -50,16 +52,16 @@ def _preprocess(df):
     df2 = concat([df1, X_trans], axis=1)
 
     # Variables eliminadas por poca relevancia (el estudio está en el notebook de MLP)
-    df2 = df2.drop(columns=['Family Sharing'], errors='ignore')
+    df2 = df2.drop(columns=['Family Sharing', 'Online Co-op', 'Custom Volume Controls'])
 
     # Variables no usadas en el análisis
-    df2 = df2.drop(columns=['id', 'name'], errors='ignore')
+    df2 = df2.drop(columns=['id', 'name'])
 
     return df2, df_y_trans
 
-def _model_no_img(df):
+def _best_params_mlp_no_img(df_X, df_Y):
     param_grid = {
-        'hidden_layer_sizes': [(64,32), (100,), (80,60), (70,35)],
+        'hidden_layer_sizes': [(64,32), (100,), (80,60), (64,50), (124,)],
         'activation': ['relu', 'tanh'],
         'alpha': [0.0001, 0.01, 0.1],
         'learning_rate_init': [0.001, 0.01]
@@ -68,15 +70,37 @@ def _model_no_img(df):
     X_train, X_test, Y_train, Y_test = train_test_split(df_X, df_Y, test_size=0.3, random_state=42)
 
     grid = GridSearchCV(MLPClassifier(max_iter=5000, random_state=42), param_grid=param_grid, cv=5, n_jobs=-1)
-    grid.fit(X_train, Y_train)
+    grid.fit(X_train, Y_train.values.flatten())
 
-    mlp_mejor_modelo = grid.best_estimator_
     params_mejor_modelo = grid.best_params_
     print(f'Los parámetros del mejor modelo son:\n{params_mejor_modelo}')
 
-    Y_pred = mlp_mejor_modelo.predict(X_test)
-    get_metrics(Y_test, Y_pred, classes=list(Y_test.columns),  confusion_m=False)
+    return X_train, X_test, Y_train, Y_test, params_mejor_modelo
 
+def _mlp_no_img(X_train, X_test, Y_train, Y_test, best_params):
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Precios", 
+        name='sklearn-mlp-no-img',
+        job_type='mlp'
+    )
+    
+    best_mlp = MLPClassifier(max_iter=10000, random_state=42, activation=best_params['activation'],
+                             hidden_layer_sizes=best_params['hidden_layer_sizes'], alpha=best_params['alpha'],
+                             learning_rate_init=best_params['learning_rate_init'])
+    best_mlp.fit(X_train, Y_train.values.flatten())
+
+    Y_pred = best_mlp.predict(X_test)
+    metricas = get_metrics(Y_test, Y_pred, classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'])
+
+    run.log({
+        'accuracy' : metricas['accuracy'],
+        'precision' : metricas['precision'],
+        'recall' : metricas['recall'],
+        'f1-score' : metricas['f1']
+    })
+
+    run.finish()
 
 if __name__ == '__main__':
     print('Reading...')
@@ -85,5 +109,9 @@ if __name__ == '__main__':
     print('Preprocessing...')
     df_X, df_Y = _preprocess(df)
 
-    print('Creating MLP without images...')
-    _model_no_img(df)
+    print('Searching for best params MLP without images...')
+    df_X_no_img = df_X.drop(columns=['v_resnet', 'v_convnext', 'v_clip'])
+    X_train, X_test, Y_train, Y_test, best_params = _best_params_mlp_no_img(df_X_no_img, df_Y)
+
+    print('Creating best model...')
+    _mlp_no_img(X_train, X_test, Y_train, Y_test, best_params)
