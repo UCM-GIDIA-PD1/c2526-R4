@@ -8,6 +8,7 @@ error_logs
 .Rproj.user
 .env
 wandb
+catboost_info
 
 # Extensiones de archivos
 *.csv
