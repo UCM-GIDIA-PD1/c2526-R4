@@ -3,7 +3,7 @@ Módulo de preprocesamiento de dataframe de precios para los modelos de predicci
 '''
 
 from src.utils.files import read_file
-from src.utils.config import prices
+from src.utils.config import prices, reduced_prices
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
@@ -34,6 +34,11 @@ def read_prices(minio={"minio_write": False, "minio_read": False}):
     df.drop(columns=['id','name','price_overview','v_resnet','v_convnext'], inplace=True)
     df['release_year'] = df['release_year'].apply(lambda x : int(x))
 
+    return df
+
+def read_prices_reduced(minio={"minio_write": False, "minio_read": False}):
+    df = read_file(filepath=reduced_prices, minio=minio)
+    assert df is not None, 'Error archivo precios_reducido.parquet no encontrado'
     return df
 
 def train_val_test_split(X, y):
@@ -87,7 +92,6 @@ def umap_embeddings(X_train, X_val, X_test, emb_col, n_components=16):
     X_test  = X_test.drop(columns=[emb_col])
     
     return X_train, X_val, X_test
-
 
 def cluster_embedings(X_train, X_val, X_test, emb_col,  n_clusters=8): 
     """

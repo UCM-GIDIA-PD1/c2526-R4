@@ -172,3 +172,6 @@ P_banners_file = processed_data_path() / "P_info_imagenes.parquet"
 popularity = processed_data_path() / "popularidad.parquet"
 prices = processed_data_path() / "precios.parquet"
 reviews =  processed_data_path() / "resenyas.parquet"
+
+# Reducción en modelo de precios
+reduced_prices = processed_data_path() / "precios_reducido.parquet"

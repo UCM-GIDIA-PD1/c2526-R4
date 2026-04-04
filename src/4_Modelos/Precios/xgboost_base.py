@@ -19,8 +19,7 @@ import wandb
 import pandas as pd
 from catboost import CatBoostClassifier
 
-
-def model_noimg(df, modelName=None):    
+def model_noimg(df, modelName='XGBoost-Base NoImg'):    
     # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
     le = LabelEncoder()
     df['price_range'] = le.fit_transform(df['price_range'])
@@ -93,7 +92,7 @@ def model_noimg(df, modelName=None):
     run.log(metrics_dict)
     run.finish()
 
-def model_img(df, modelName=None):
+def model_img(df, modelName='XGBoost-Base Img PCA 50'):
     emb = df['v_clip'].apply(pd.Series)
     df = pd.concat([df.drop(columns=['v_clip']), emb], axis=1)
     
@@ -175,14 +174,15 @@ def model_img(df, modelName=None):
     run.log(metrics_dict)
     run.finish()
 
-def catModel(df, modelName=None):
+def catModel(df, modelName='XGBoost Clustered'):
     # División Train, Validation, Test
     y = df['price_range']
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
     
     sample_weights = class_weights(y_train)
-
+    X_train, X_val, X_test = cluster_embedings(X_train, X_val, X_test, emb_col='v_clip')
+    
     cat_cols = [
                'Adventure', 'Casual', 'Early Access', 'Indie', 'RPG', 'Simulation',
                    'Strategy', 'Co-op', 'Custom Volume Controls', 'Family Sharing',
@@ -193,11 +193,6 @@ def catModel(df, modelName=None):
                    'Steam Trading Cards', 'clusters'
     ]
 
-    num_cols = [
-            'num_languages', 'release_year',
-            'total_games_by_publisher', 'total_games_by_developer', 'description_len'
-    ]
-
     def objective(trial):
             params = {
                     "iterations": trial.suggest_int("iterations", 300, 800),
@@ -205,23 +200,21 @@ def catModel(df, modelName=None):
                         "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
                         "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 1e-3, 10, log=True),
                         "border_count": trial.suggest_int("border_count", 32, 255),
-                        
                         "loss_function": "MultiClass",
                         "eval_metric": "TotalF1",
                         "random_state": 42,
                         "verbose": 0,
-
-                        "class_weights": class_weights 
+                        "class_weights": sample_weights 
                         }
 
             model = CatBoostClassifier(**params)
             model.fit(
                     X_train,
-                        y_train,
-                        cat_features=cat_cols,
-                        eval_set=(X_val, y_val),
-                        early_stopping_rounds=50,
-                        verbose=False
+                    y_train,
+                    cat_features=cat_cols,
+                    eval_set=(X_val, y_val),
+                    early_stopping_rounds=50,
+                    verbose=False
                     )
             preds = model.predict(X_val)
             score = f1_score(y_val, preds, average='weighted')
@@ -241,10 +234,7 @@ def catModel(df, modelName=None):
     print(f"Mejor F1-Score: {study.best_value}")
     print(f"Mejores parámetros: {study.best_params}")
     best_params = study.best_params
-
-    print(best_params)
-
-
+    
     final_model = CatBoostClassifier(**best_params)
     final_model.fit(
                 X_train,
@@ -255,8 +245,7 @@ def catModel(df, modelName=None):
                     verbose=False
             )
 
-    y_pred = final_model.predict(X_val)
-    
+    y_pred = final_model.predict(X_test)
     metrics_dict = get_metrics(y_test, y_pred)
     
     run.config.update(best_params)
@@ -412,7 +401,6 @@ def model_cluster(df, modelName=None):
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
-
 
 def xgboost_base():
     print('Selecciona qué modelo quieres entrenar:')
