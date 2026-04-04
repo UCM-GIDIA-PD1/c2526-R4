@@ -1,20 +1,20 @@
 """
-Dado precios.parquet crea un modelo de knn para predecir en que rango de precio se sitúa un juego según sus características.
-Realiza lo mismo con un PCA del 0.9 de varianza total.
+Dado precios.parquet crea un modelo de knn para predecir en que rango de precio se sitúa un juego 
+según sus características. Realiza lo mismo con un PCA del 0.9 de varianza total.
 """
 
-import pandas as pd
+from utils_modelo_precios.preprocesamiento import get_metrics, read_prices, train_val_test_split
+
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import cross_val_score
-import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split    
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-from src.utils.config import prices
-from src.utils.files import read_file
 from sklearn.decomposition import PCA
+
 import wandb
+
+import numpy as np
+import pandas as pd
 
 def _preprocess(df):
     """
@@ -33,6 +33,7 @@ def _preprocess(df):
     df.drop(columns=['v_clip'], inplace=True, errors='ignore')
     df = pd.concat([df, df_clip], axis=1)
     df.columns = df.columns.astype(str)
+
     return df
 
 def _normalize(X_train, X_test, columns_to_normalize):
@@ -82,28 +83,18 @@ def _create_model(X_train, y_train, best_k, X_test, y_test, modelName, modelJobt
     )
         
     knn = KNeighborsClassifier(n_neighbors=best_k)
-    knn.fit(X_train,y_train)
+    knn.fit(X_train,y_train.values.flatten())
     y_pred = knn.predict(X_test)
-
-    # Métricas
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred, average='weighted')
-    recall = recall_score(y_test, y_pred, average='weighted')
-    f1 = f1_score(y_test, y_pred, average='weighted')
-    conf_matrix = confusion_matrix(y_test, y_pred)
     
-    print(f'Acurracy: {accuracy}')
-    print(f'Precision: {precision}')
-    print(f'Recall: {recall}')
-    print(f'F1-Score: {f1}')
-    print(f'Confusion-Matrix: {conf_matrix}')
+    metricas = get_metrics(y_test.values.flatten(), y_pred, classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'])
+
+    run.config.update({'n_neighbors': best_k})
 
     run.log({
-        'accuracy' : accuracy,
-        'precision' : precision,
-        'Recall' : recall,
-        'f1-score' : f1,
-        'confusion-matrix' : conf_matrix
+        'accuracy' : metricas['accuracy'],
+        'precision' : metricas['precision'],
+        'recall' : metricas['recall'],
+        'f1-score' : metricas['f1']
     })
 
     run.finish()
@@ -114,13 +105,17 @@ def _complete_model(df):
     """
     df_copy = df.copy()
 
-    y = df_copy['price_range']
+    y = pd.DataFrame(df_copy['price_range'])
     X = df_copy.drop(columns=['price_range'])
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, random_state=42)    
+
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+
+    # Para el KNN no se usan los datos de validación
+    X_train = pd.concat([X_train, X_val], axis=0)
+    y_train = pd.concat([y_train, y_val], axis=0)
 
     columns_to_normalize = ['description_len', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer']
     X_train, X_test = _normalize(X_train, X_test, columns_to_normalize)
-
 
     k_value  = _best_k(X_train, y_train)
     
@@ -133,10 +128,14 @@ def _pca_model(df):
     """
     df_copy = df.copy()
 
-    y = df_copy['price_range']
+    y = pd.DataFrame(df_copy['price_range'])
     X = df_copy.drop(columns=['price_range'])
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, random_state=42)    
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+
+    # Para el KNN no se usan los datos de validación
+    X_train = pd.concat([X_train, X_val], axis=0)
+    y_train = pd.concat([y_train, y_val], axis=0)
 
     columns_to_normalize = X_train.columns
     X_train, X_test = _normalize(X_train, X_test, columns_to_normalize)
@@ -147,11 +146,11 @@ def _pca_model(df):
 
     k_value  = _best_k(X_train_pca, y_train)
 
-    _create_model(X_train_pca,y_train, k_value, X_test_pca, y_test, modelName='pca-knn',modelJobtype='knn' )
+    _create_model(X_train_pca,y_train, k_value, X_test_pca, y_test, modelName='pca-knn', modelJobtype='knn')
 
 if __name__ == '__main__':
     print('Reading')
-    df = read_file(prices)
+    df = read_prices()
     
     print('Preprocessing')
     df = _preprocess(df)

@@ -1,17 +1,15 @@
 """
-Baseline para predecir la categoría de precio en 
-la que se encuentra un juego.
-Se crea un modelo que utiliza la moda (la clase mayoritaria)
-para realizar las predicciones.
+Baseline para predecir la categoría de precio en la que se encuentra un 
+juego. Se crea un modelo que utiliza la moda (la clase mayoritaria) para 
+realizar las predicciones. 
+
 Las métricas se registran en Weights & Biases (wandb).
 """
-import pandas as pd
-import wandb
 
-from src.utils.config import prices
-from src.utils.files import read_file
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score,f1_score # para las métricas de evaluación
+from utils_modelo_precios.preprocesamiento import get_metrics, read_prices, train_val_test_split
+from pandas import DataFrame, concat
+
+import wandb
 
 def create_price_mode_baseline():
     
@@ -22,34 +20,32 @@ def create_price_mode_baseline():
         job_type="baseline"
     )
         
-    df = read_file(prices)
-    y_column = "price_range"
-    
-    train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
-    
-    mode = train_df[y_column].value_counts().idxmax()
-    
-    y_true = test_df[y_column]
-    y_pred = [mode] * len(y_true)
-  
-    conf_matrix = confusion_matrix(y_true, y_pred)
+    df = read_prices()
 
-    precision = precision_score(y_true, y_pred, average='weighted')
-    recall = recall_score(y_true, y_pred, average='weighted')
-    f1 = f1_score(y_true, y_pred, average='weighted')
-    accuracy = accuracy_score(y_true, y_pred)
+    y_all = DataFrame(df['price_range'])
+    X_all = df.drop(columns=['price_range'])
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X_all, y_all)
+
+    # Para la calcular la moda no nos hacen falta datos de validación, por lo que los vamos
+    # a unir a los de entrenamiento para un cálculo más exacto de la moda
+    X_train = concat([X_train, X_val], axis=0)
+    y_train = concat([y_train, y_val], axis=0)
+    
+    mode = y_train["price_range"].value_counts().idxmax()
+    run.config.update({'mode': mode})
+    
+    y_pred = [mode] * len(y_test)
+  
+    metricas = get_metrics(y_test.values.flatten(), y_pred, classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'])
 
     run.log({
-        'accuracy' : accuracy,
-        'precision' : precision,
-        'Recall' : recall,
-        'f1-score' : f1,
-        'confusion-matrix' : conf_matrix
+        'accuracy' : metricas['accuracy'],
+        'precision' : metricas['precision'],
+        'recall' : metricas['recall'],
+        'f1-score' : metricas['f1']
     })
     
-    
     run.finish()
-
 
 
 if __name__ == "__main__":
