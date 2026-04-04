@@ -17,6 +17,7 @@ from sklearn.metrics import f1_score
 import optuna
 import wandb
 import pandas as pd
+from catboost import CatBoostClassifier
 
 def model_noimg(df, modelName=None):    
     # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
@@ -178,6 +179,96 @@ def model_img(df, modelName=None):
     run.log(metrics_dict)
     run.finish()
 
+def catModel(df, modelName=None):
+    # División Train, Validation, Test
+    y = df['price_range']
+    X = df.drop(columns=['price_range'])
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    
+    sample_weights = class_weights(y_train)
+
+    cat_cols = [
+               'Adventure', 'Casual', 'Early Access', 'Indie', 'RPG', 'Simulation',
+                   'Strategy', 'Co-op', 'Custom Volume Controls', 'Family Sharing',
+                   'Full controller support', 'Multi-player', 'Online Co-op', 'Online PvP',
+                   'Partial Controller Support', 'Playable without Timed Input', 'PvP',
+                   'Remote Play Together', 'Shared/Split Screen', 'Single-player',
+                   'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards',
+                   'Steam Trading Cards', 'clusters'
+    ]
+
+    num_cols = [
+            'num_languages', 'release_year',
+            'total_games_by_publisher', 'total_games_by_developer', 'description_len'
+    ]
+
+    def objective(trial):
+            params = {
+                    "iterations": trial.suggest_int("iterations", 300, 800),
+                        "depth": trial.suggest_int("depth", 4, 10),
+                        "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
+                        "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 1e-3, 10, log=True),
+                        "border_count": trial.suggest_int("border_count", 32, 255),
+                        
+                        "loss_function": "MultiClass",
+                        "eval_metric": "TotalF1",
+                        "random_state": 42,
+                        "verbose": 0,
+
+                        "class_weights": class_weights 
+                        }
+
+            model = CatBoostClassifier(**params)
+            model.fit(
+                    X_train,
+                        y_train,
+                        cat_features=cat_cols,
+                        eval_set=(X_val, y_val),
+                        early_stopping_rounds=50,
+                        verbose=False
+                    )
+            preds = model.predict(X_val)
+            score = f1_score(y_val, preds, average='weighted')
+            return score
+
+    study = optuna.create_study(direction="maximize")
+    study.optimize(objective, n_trials=50)
+    
+    if modelName is None:
+        print('Nombre del Modelo: ')
+        input(modelName)
+
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Precios", 
+        name= modelName,
+        job_type='xgboost'
+    )
+        
+    print(f"Mejor F1-Score: {study.best_value}")
+    print(f"Mejores parámetros: {study.best_params}")
+    best_params = study.best_params
+
+    print(best_params)
+
+
+    final_model = CatBoostClassifier(**best_params)
+    final_model.fit(
+                X_train,
+                    y_train,
+                    cat_features=cat_cols,
+                    eval_set=(X_val, y_val),
+                    early_stopping_rounds=50,
+                    verbose=False
+            )
+
+    y_pred = final_model.predict(X_val)
+    
+    metrics_dict = get_metrics(y_test, y_pred)
+        
+    run.log(metrics_dict)
+    run.finish()
+
 def xgboost_base():
     df = prices_dataframe()
 
@@ -192,6 +283,8 @@ def xgboost_base():
     df_clustered['clusters'] = clusters
     df_clustered.drop(columns=['v_clip'], inplace=True)
     model_noimg(df_clustered, modelName='XGBoost Clustered')
+
+    catModel(df_clustered, modelName= 'Cat Clustered') 
 
 if __name__ == '__main__':
     xgboost_base()
