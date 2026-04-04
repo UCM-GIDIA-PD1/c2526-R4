@@ -5,10 +5,12 @@ Módulo de preprocesamiento de dataframe de precios para los modelos de predicci
 from src.utils.files import read_file
 from src.utils.config import prices
 from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split    
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
+from pandas import Series
 
 def read_prices(minio={"minio_write": False, "minio_read": False}):
     """Lee y limpia el dataset de precios desde un archivo Parquet.
@@ -48,6 +50,17 @@ def train_val_test_split(X, y):
     X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42, stratify=y_temp)
 
     return X_train, X_val, X_test, y_train, y_val, y_test
+
+def cluster_embedings(df, emb_col): 
+    '''
+    Dado un dataFrame y una columna donde se encuentran los embeddings, devuelve un array resultado del clustering de esos embeddings.
+    '''
+    kmeans = KMeans(random_state=42, n_clusters=8)
+
+    embed = df[emb_col].apply(Series)
+    clusters = kmeans.fit_predict(embed)
+
+    return clusters
 
 def normalize_train_test(X_train, X_val, X_test, columnas_numericas):
     '''
