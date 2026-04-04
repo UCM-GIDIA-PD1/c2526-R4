@@ -1,8 +1,7 @@
-from .utils_modelo_precios.preprocesamiento import prices_dataframe
-import pandas as pd
+from .utils_modelo_precios.preprocesamiento import read_prices
 
 def reducir_precios():
-    df = prices_dataframe()
+    df = read_prices()
     
     # Multiplayer
     multiplayer_columns = ['Multi-player', 'Online Co-op', 'Online PvP', 'PvP', 'Shared/Split Screen', 'Remote Play Together', 'Co-op']

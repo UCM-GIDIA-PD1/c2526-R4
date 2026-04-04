@@ -10,7 +10,7 @@ Dependencias:
 """
 
 
-from .utils_modelo_precios.preprocesamiento import prices_dataframe, train_val_test_split, class_weights, get_metrics, normalize_train_test, pca_train_test
+from .utils_modelo_precios.preprocesamiento import read_prices, train_val_test_split, class_weights, get_metrics, normalize_train_test, pca_train_test
 from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb
 from sklearn.metrics import f1_score
@@ -172,7 +172,7 @@ def model_img(df):
     run.finish()
 
 def xgboost_base():
-    df = prices_dataframe()
+    df = read_prices()
 
     df_noimg = df.drop(columns=['brillo', 'v_clip'])
     model_noimg(df_noimg)
