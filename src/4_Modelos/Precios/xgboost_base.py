@@ -10,7 +10,7 @@ Dependencias:
 """
 
 
-from .utils_modelo_precios.preprocesamiento import prices_dataframe, train_val_test_split, class_weights, get_metrics, normalize_train_test, pca_train_test
+from .utils_modelo_precios.preprocesamiento import prices_dataframe, train_val_test_split, class_weights, get_metrics, normalize_train_test, pca_train_test, cluster_embedings
 from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb
 from sklearn.metrics import f1_score
@@ -18,7 +18,7 @@ import optuna
 import wandb
 import pandas as pd
 
-def model_noimg(df):    
+def model_noimg(df, modelName=None):    
     # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
     le = LabelEncoder()
     df['price_range'] = le.fit_transform(df['price_range'])
@@ -56,10 +56,14 @@ def model_noimg(df):
         score = f1_score(y_val, preds, average='weighted')        
         return score
 
+    if modelName is None:
+        print('Nombre del Modelo: ')
+        input(modelName)
+
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Precios", 
-        name='XGBoost-Base NoImg',
+        name= modelName,
         job_type='xgboost'
     )
 
@@ -90,7 +94,7 @@ def model_noimg(df):
     run.log(metrics_dict)
     run.finish()
 
-def model_img(df):
+def model_img(df, modelName=None):
     emb = df['v_clip'].apply(pd.Series)
     df = pd.concat([df.drop(columns=['v_clip']), emb], axis=1)
     
@@ -137,10 +141,14 @@ def model_img(df):
         score = f1_score(y_val, preds, average='weighted')        
         return score
 
+    if modelName is None:
+        print('Nombre del Modelo: ')
+        input(modelName)
+
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Precios", 
-        name='XGBoost-Base Img PCA 50',
+        name= modelName,
         job_type='xgboost'
     )
 
@@ -175,10 +183,17 @@ def xgboost_base():
     df = prices_dataframe()
 
     df_noimg = df.drop(columns=['brillo', 'v_clip'])
-    model_noimg(df_noimg)
+    model_noimg(df_noimg, modelName='XGBoost-Base NoImg')
 
     df_img = df.copy()
-    model_img(df_img)
+    model_img(df_img, modelName='XGBoost-Base Img PCA 50')
+    
+    df_clustered = df.copy()
+    clusters = cluster_embedings(df_clustered, 'v_clip')
+    df_clustered['clusters'] = clusters
+    df_clustered.drop(columns=['v_clip'], inplace=True)
+    model_noimg(df_clustered, modelName='XGBoost Clustered')
+
 
 if __name__ == '__main__':
     xgboost_base()
