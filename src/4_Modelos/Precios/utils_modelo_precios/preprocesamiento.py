@@ -11,6 +11,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
 from pandas import Series
+from umap import UMAP
+from numpy import vstack
 
 def read_prices(minio={"minio_write": False, "minio_read": False}):
     """Lee y limpia el dataset de precios desde un archivo Parquet.
@@ -51,16 +53,64 @@ def train_val_test_split(X, y):
 
     return X_train, X_val, X_test, y_train, y_val, y_test
 
-def cluster_embedings(df, emb_col): 
-    '''
+def umap_embeddings(X_train, X_val, X_test, emb_col, n_components=16):
+    """
+    Aplica UMAP a la columna de embeddings para train, validation y test.
+    
+    Args:
+        X_train, X_val, X_test (pd.DataFrame): DataFrames con la columna de embeddings.
+        emb_col (str): Nombre de la columna de embeddings.
+        n_components (int): Número de componentes de UMAP.
+        random_state (int): Semilla para reproducibilidad.
+        
+    Returns:
+        tuple: (X_train_umap, X_val_umap, X_test_umap) con las columnas UMAP agregadas
+               y la columna original de embeddings eliminada.
+    """
+    clip_matrix_train = vstack(X_train[emb_col].values)
+    clip_matrix_val   = vstack(X_val[emb_col].values)
+    clip_matrix_test  = vstack(X_test[emb_col].values)
+    
+    umap = UMAP(n_components=n_components, random_state=42)
+    clip_reduced_train = umap.fit_transform(clip_matrix_train)
+    clip_reduced_val   = umap.transform(clip_matrix_val)
+    clip_reduced_test  = umap.transform(clip_matrix_test)
+    
+    for i in range(n_components):
+        X_train[f'clip_umap_{i}'] = clip_reduced_train[:, i]
+        X_val[f'clip_umap_{i}']   = clip_reduced_val[:, i]
+        X_test[f'clip_umap_{i}']  = clip_reduced_test[:, i]
+    
+    # Eliminar la columna original
+    X_train = X_train.drop(columns=[emb_col])
+    X_val   = X_val.drop(columns=[emb_col])
+    X_test  = X_test.drop(columns=[emb_col])
+    
+    return X_train, X_val, X_test
+
+
+def cluster_embedings(X_train, X_val, X_test, emb_col,  n_clusters=8): 
+    """
     Dado un dataFrame y una columna donde se encuentran los embeddings, devuelve un array resultado del clustering de esos embeddings.
-    '''
-    kmeans = KMeans(random_state=42, n_clusters=8)
+    """
+    clip_matrix_train = vstack(X_train[emb_col].values)
+    clip_matrix_val   = vstack(X_val[emb_col].values)
+    clip_matrix_test  = vstack(X_test[emb_col].values)
+    
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    cluster_train = kmeans.fit_predict(clip_matrix_train)
+    cluster_val   = kmeans.predict(clip_matrix_val)
+    cluster_test  = kmeans.predict(clip_matrix_test)
+    
+    X_train['cluster'] = cluster_train
+    X_val['cluster']   = cluster_val
+    X_test['cluster']  = cluster_test
+    
+    X_train = X_train.drop(columns=[emb_col])
+    X_val   = X_val.drop(columns=[emb_col])
+    X_test  = X_test.drop(columns=[emb_col])
 
-    embed = df[emb_col].apply(Series)
-    clusters = kmeans.fit_predict(embed)
-
-    return clusters
+    return X_train, X_val, X_test
 
 def normalize_train_test(X_train, X_val, X_test, columnas_numericas):
     '''
@@ -127,4 +177,4 @@ def get_metrics(y_test, y_pred, classes=None):
     cm = confusion_matrix(y_test, y_pred)
     print(cm)
 
-    return {'accuracy': acc, 'precision': prec, 'recall': rec, 'f1': f1 }
+    return {'accuracy': acc, 'precision': prec, 'recall': rec, 'f1-score': f1 }
