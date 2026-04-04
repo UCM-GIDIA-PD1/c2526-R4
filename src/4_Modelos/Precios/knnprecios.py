@@ -13,8 +13,20 @@ from imblearn.over_sampling import SMOTE
 
 
 def grid_search_knn_full(X_train, X_val, y_train, y_val):
+    """
+    Optimización de hiperparámetros para K-NN usando los conjuntos de train y validation.
+
+    Args:
+        - X_train (pd.Dataframe):  Conjunto de entranamiento
+        - X_val (pd.Dataframe): Conjunto de entranamiento
+        - y_train (pd.Dataframe): Variable objetivo del conjunto de entrenamiento
+        - y_val (pd.Dataframe): Variable objetivo del conjunto de validacion
+
+    Returns:
+        best_params (dict): Diccionario que contiene los parámetros (n_neighbors, weights, metric) del mejor modelo
+    """
     param_grid = {
-        'n_neighbors': list(range(1, 40, 2)),
+        'n_neighbors': list(range(1, 40, 1)),
         'weights': ['uniform', 'distance'],
         'metric': ['euclidean', 'manhattan']
     }
@@ -42,6 +54,15 @@ def grid_search_knn_full(X_train, X_val, y_train, y_val):
     return best_params
 
 def _complete_model(df, modelName= 'K-NN Complete Clusters'):
+    """
+    Modelo completo de K-NN usando clusters de los embeddings.
+
+    Args:
+        - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+        - modelName (String): Nombre del modelo a subir a wandb
+    Returns:
+        None
+    """
     y = df['price_range']
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
@@ -82,6 +103,16 @@ def _complete_model(df, modelName= 'K-NN Complete Clusters'):
     run.finish()
 
 def _complete_pca_mode(df, modelName= 'K-NN Complete Clusters PCA'):
+    """
+        Modelo completo de K-NN usando clusters de los embeddings y realizando un PCA para reducir dimensionalidad.
+
+        Args:
+            - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+            - modelName (String): Nombre del modelo a subir a wandb
+        Returns:
+            None
+    """
+
     y = df['price_range']
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
@@ -123,6 +154,15 @@ def _complete_pca_mode(df, modelName= 'K-NN Complete Clusters PCA'):
     run.finish()
 
 def _reduced_model(df, modelName= 'K-NN Reduced'):
+    """
+        Modelo completo de K-NN usando el conjunto de datos reducido.
+
+        Args:
+            - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+            - modelName (String): Nombre del modelo a subir a wandb
+        Returns:
+            None
+    """     
     y = df['price_range']
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
@@ -167,6 +207,16 @@ def _reduced_model(df, modelName= 'K-NN Reduced'):
     run.finish()
 
 def _oversampled_reduced(df, modelName= 'K-NN Reduced Oversampled'):
+    """
+    Modelo completo de K-NN usando el conjunto de datos reducido y haciendo oversampling para tratar de paliar el desbalance.
+
+    Args:
+        - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+        - modelName (String): Nombre del modelo a subir a wandb
+    Returns:
+            None
+    """
+
     y = df['price_range']
     X = df.drop(columns=['price_range'])
 

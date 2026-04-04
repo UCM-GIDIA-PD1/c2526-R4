@@ -19,7 +19,17 @@ import wandb
 import pandas as pd
 from catboost import CatBoostClassifier
 
-def model_noimg(df, modelName='XGBoost-Base NoImg'):    
+def model_noimg(df, modelName='XGBoost-Base NoImg'):
+    """
+        Modelo completo de XGBoost sin infromación de las imágenes.
+
+        Args:
+            - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+            - modelName (String): Nombre del modelo a subir a wandb
+        Returns:
+            None
+    """     
+
     # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
     le = LabelEncoder()
     df['price_range'] = le.fit_transform(df['price_range'])
@@ -93,6 +103,16 @@ def model_noimg(df, modelName='XGBoost-Base NoImg'):
     run.finish()
 
 def model_img(df, modelName='XGBoost-Base Img PCA 50'):
+    """
+        Modelo completo de XGBoost con información de las imágenes (los vectores de los embeddings) y un PCA para reducir la dimensionalidad.
+
+        Args:
+            - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+            - modelName (String): Nombre del modelo a subir a wandb
+        Returns:
+            None
+    """     
+
     emb = df['v_clip'].apply(pd.Series)
     df = pd.concat([df.drop(columns=['v_clip']), emb], axis=1)
     
@@ -175,6 +195,16 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
     run.finish()
 
 def catModel(df, modelName='XGBoost Clustered'):
+        """
+        Modelo completo de CatBoosst.
+
+        Args:
+            - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+            - modelName (String): Nombre del modelo a subir a wandb
+        Returns:
+            None
+        """     
+
     # División Train, Validation, Test
     y = df['price_range']
     X = df.drop(columns=['price_range'])
@@ -253,6 +283,16 @@ def catModel(df, modelName='XGBoost Clustered'):
     run.finish()
 
 def model_umap(df, modelName=None):
+    """
+    Modelo completo de XGBoost realizando un UMap sobre los embeddings de imagenes.
+
+        Args:
+            - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+            - modelName (String): Nombre del modelo a subir a wandb
+        Returns:
+            None
+    """     
+
     # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
     le = LabelEncoder()
     df['price_range'] = le.fit_transform(df['price_range'])
@@ -328,6 +368,16 @@ def model_umap(df, modelName=None):
     run.finish()
 
 def model_cluster(df, modelName=None):
+    """
+    Modelo completo de XGBoost usando un clustering en los embeddings de imágenes.
+
+    Args:
+        - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+        - modelName (String): Nombre del modelo a subir a wandb
+    Returns:
+        None
+    """     
+
     # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
     le = LabelEncoder()
     df['price_range'] = le.fit_transform(df['price_range'])

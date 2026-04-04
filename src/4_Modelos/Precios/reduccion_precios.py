@@ -1,3 +1,16 @@
+"""
+Script que procesa el dataset de precios para reducir el número de variables. Se realizan las siguientes transformaciones:
+
+    - Steam features: Se transforman las variables para indicar el número de features que aparecen en un juego, además se almacena el número de que cumplen en
+      'num_steam_features'
+    - Controller Support: Se transforman las variables relacionadas con el soporte a controles 0 si es completo, 1 si es parcial y 2 si no tiene.
+    - Genres: Se agrupan los géneros por combinaciones formateado de la siguiente forma 'Genre1|Genre2|Genre3', se escogen las 50 combinaciones más comunes
+      y se categoriza el resto como 'other'. Además se almacena el número de géneros totales que tiene un juego.
+
+Output:
+    precios_reducido.parquet
+"""
+
 from .utils_modelo_precios.preprocesamiento import read_prices
 
 def reducir_precios():
