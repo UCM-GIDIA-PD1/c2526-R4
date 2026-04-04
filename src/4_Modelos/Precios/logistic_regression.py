@@ -1,111 +1,154 @@
+"""
+Dado precios.parquet crea un modelo de Regresión Logística para predecir 
+en qué rango de precio se sitúa un juego según sus características.
+Utiliza hiperparámetros previamente calculados en el notebook.
+"""
+
 import pandas as pd
+import numpy as np
+import wandb
+
+from src.utils.config import prices
+from src.utils.files import read_file
+from utils_modelo_precios.preprocesamiento import get_metrics
+
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
-from src.utils.files import read_file
-from src.utils.config import prices
-import wandb
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-from sklearn.metrics import precision_score, recall_score, f1_score
-from sklearn.preprocessing import StandardScaler
-import numpy as np
+from sklearn.preprocessing import StandardScaler, PowerTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from umap import UMAP
 
-def _PCA_matrix(col):
-    '''
-    La entrada es una Series de pandas con embeddings de imágenes, 
-    la salida es un array de numpy con el PCA de dichos embeddings
-    '''
-    col_matrix = np.vstack(col.values)
-    pca = PCA(n_components=10, random_state=42)
-    col_pca = pca.fit_transform(col_matrix)
-    return col_pca
+orden_precios = {
+    '[0.01,4.99]': 0,
+    '[5.00,9.99]': 1,
+    '[10.00,14.99]': 2,
+    '[15.00,19.99]': 3,
+    '[20.00,29.99]': 4,
+    '[30.00,39.99]': 5,
+    '>40': 6
+}
+orden_inverso = {v: k for k, v in orden_precios.items()}
 
-
-def transform_df_prices_logistic_regression(df):
+def _preprocess(df):
+    """
+    Función para limpiar y estructurar los datos para la Regresión Logística.
+    No escala ni aplica PCA aquí para evitar el Data Leakage.
+    """
     df_clean = df.copy()
     
-    # Seleccionamos las variables de entrada útiles
     target_col = df_clean['price_range']
-    erase_columns = ['id', 'name', 'price_overview', 'v_resnet', 'v_convnext']
+    y = target_col.map(orden_precios)
+
+    erase_columns = ['id', 'name', 'price_overview', 'v_resnet', 'v_convnext', 'price_range']
     df_clean = df_clean.drop(columns=erase_columns, errors='ignore')
 
-    # Vamos a hacer un PCA de los embeddings
-    # Forzamos a que todos los valores de la columna de los embeddings sean iterables
+    # Expandimos los vectores de la imagen en múltiples columnas numéricas
     zero_vector = np.zeros(512)
     df_clean['v_clip'] = df_clean['v_clip'].apply(
         lambda x: x if isinstance(x, (list, np.ndarray)) else zero_vector
     )
     
-    imgs_pca = _PCA_matrix(df_clean['v_clip'])
-    
-    for i in range(10):
-        df_clean[f'v_clip_pca_{i}'] = imgs_pca[:, i]
-    
-    # Ya la columna de los embeddings originales no es necesaria
-    df_clean = df_clean.drop(columns=['v_clip'])
+    img_df = pd.DataFrame(df_clean['v_clip'].tolist(), index=df_clean.index)
+    img_df.columns = [f'v_clip_{i}' for i in range(img_df.shape[1])]
+    df_clean = pd.concat([df_clean.drop(columns=['v_clip']), img_df], axis=1)
 
     obj_cols = df_clean.select_dtypes(include=['object', 'str']).columns
     for col in obj_cols:
         df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
 
-    # Solo nos quedamos con columnas numéricas y rellenamos nulos
-    df_clean = df_clean.select_dtypes(include=[np.number])
-    df_clean = df_clean.fillna(0)
+    X = df_clean.select_dtypes(include=[np.number]).fillna(0)
 
-    scaler = StandardScaler()
-    df_clean[df_clean.columns] = scaler.fit_transform(df_clean)
-
-    df_clean['price_range'] = target_col
-
-    return df_clean
-
-df = read_file(prices)
-df_transformed = transform_df_prices_logistic_regression(df)
-
-X = df_transformed.drop(columns=['price_range'])
-y = df_transformed['price_range']
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    return X, y
 
 
-run = wandb.init(
-    entity="pd1-c2526-team4",
-    project="Precios", 
-    name='logistic-regression',
-    job_type='logistic-regression'
-)
+def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
+    """
+    Crea el pipeline del modelo, evalúa y sube las métricas a Weights & Biases.
+    """
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Precios", 
+        name='logistic-regression',
+        job_type='logistic-regression'
+    )
+    
+    params = best_params.copy()
+    solver = params.get('solver', 'lbfgs')
+    l1_ratio = params.get('l1_ratio', 0.0)
+    C = params.get('C', 1.0)
+    dim_reduction = params.get('dim_reduction', 'pca')
+    
+    best_model = LogisticRegression(
+        C=C, solver=solver, l1_ratio=l1_ratio, 
+        max_iter=1500, random_state=42, class_weight='balanced'
+    )
 
-best_params = {
-    'C': 0.564857,
-    'solver': 'lbfgs',
-    'l1_ratio': 0.0
-}
+    cols_sesgadas = ['num_languages', 'total_games_by_publisher', 'total_games_by_developer']
+    cols_normales = ['description_len', 'release_year', 'brillo']
+    img_cols = [col for col in X_train.columns if col.startswith("v_clip_")]
+    cols_binarias = [col for col in X_train.columns if col not in cols_sesgadas + cols_normales + img_cols]
+    
+    final_transformers = [
+        ('sesgadas', PowerTransformer(method='yeo-johnson'), cols_sesgadas),
+        ('normales', StandardScaler(), cols_normales),
+        ('binarias', 'passthrough', cols_binarias)
+    ]
+    
+    if dim_reduction == 'pca':
+        final_reducer = PCA(n_components=10, random_state=42)
+    else:
+        final_reducer = UMAP(
+            n_components=10, 
+            n_neighbors=params.get('umap_n_neighbors', 15), 
+            min_dist=params.get('umap_min_dist', 0.1)
+        )
+    
+    final_transformers.append(('img_reducer', final_reducer, img_cols))
+    final_preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
 
-final_model = LogisticRegression(**best_params)
-final_model.fit(X_train, y_train)
+    final_pipeline = Pipeline([
+        ('prep', final_preprocessor),
+        ('clf', best_model)
+    ])
 
-y_pred = final_model.predict(X_test)
+    final_pipeline.fit(X_train, y_train)
+    y_pred = final_pipeline.predict(X_test)
 
-print("Classification Report:")
-cal = classification_report(y_test, y_pred)
-print(cal)
+    y_test_labels = y_test.map(orden_inverso)
+    y_pred_labels = pd.Series(y_pred, index=y_test.index).map(orden_inverso)
 
-print("Confusion Matrix:")
-conf_matrix = confusion_matrix(y_test, y_pred)
-print("Confusion Matrix:")
-print(conf_matrix)
+    metricas = get_metrics(
+        y_test_labels, y_pred_labels, 
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']
+    )
 
-accuracy = accuracy_score(y_test, y_pred)
-precision = precision_score(y_test, y_pred, average='weighted')
-recall = recall_score(y_test, y_pred, average='weighted')
-f1 = f1_score(y_test, y_pred, average='weighted')
+    run.log({
+        'accuracy': metricas['accuracy'],
+        'precision': metricas['precision'],
+        'recall': metricas['recall'],
+        'f1-score': metricas['f1']
+    })
 
-run.log({
-    'accuracy': accuracy,
-    'precision': precision,
-    'recall': recall,
-    'f1-score': f1,
-    'confusion-matrix': conf_matrix.tolist() 
-})
+    run.finish()
 
-run.finish()
+
+if __name__ == '__main__':
+    print('Leyendo datos...')
+    df = read_file(prices)
+    
+    print('Preprocesando los datos...')
+    X, y = _preprocess(df)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+
+    best_params = {
+        'C': 0.041948246911196446,
+        'solver': 'lbfgs',
+        'l1_ratio': 0.0,
+        'dim_reduction': 'pca'
+    }
+
+    print('Creando modelo...')
+    _create_lr_model(X_train, X_test, y_train, y_test, best_params)
