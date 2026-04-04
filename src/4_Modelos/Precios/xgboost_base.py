@@ -154,7 +154,7 @@ def model_img(df, modelName=None):
 
     study = optuna.create_study(direction='maximize')
     study.optimize(objective, n_trials=50)
-    
+
     print(f"Mejor F1-Score: {study.best_value}")
     print(f"Mejores parámetros: {study.best_params}")
     best_params = study.best_params
@@ -165,7 +165,7 @@ def model_img(df, modelName=None):
         num_class=len(le.classes_),
         random_state=42
     )
-    
+
     final_model.fit(
         X_train, y_train, 
         sample_weight=sample_weights,
@@ -175,7 +175,6 @@ def model_img(df, modelName=None):
     y_pred = final_model.predict(X_test)
 
     metrics_dict = get_metrics(y_test, y_pred)
-    
     run.log(metrics_dict)
     run.finish()
 
@@ -193,7 +192,6 @@ def xgboost_base():
     df_clustered['clusters'] = clusters
     df_clustered.drop(columns=['v_clip'], inplace=True)
     model_noimg(df_clustered, modelName='XGBoost Clustered')
-
 
 if __name__ == '__main__':
     xgboost_base()
