@@ -3,12 +3,10 @@ Dado precios.parquet crea diferentes modelos de MLP para predecir en que rango
 de precio se sitúa un juego según sus características.
 """
 
-from src.utils.config import prices
-from src.utils.files import read_file
-from utils_modelo_precios.preprocesamiento import get_metrics, cluster_embedings
+from utils_modelo_precios.preprocesamiento import get_metrics, read_prices, train_val_test_split
 
-from sklearn.preprocessing import StandardScaler, PowerTransformer, OrdinalEncoder
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler, PowerTransformer, OrdinalEncoder, MinMaxScaler, OneHotEncoder
+from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPClassifier
 from sklearn.cluster import KMeans
 from umap import UMAP
@@ -18,7 +16,7 @@ import wandb
 from pandas import DataFrame, concat
 from numpy import vstack
 
-def _preprocess_train(df):
+def _preprocess_train(df_X, df_y):
     """Función para transformar los datos para realiza MLP
 
     Args:
@@ -28,74 +26,78 @@ def _preprocess_train(df):
         DataFrame: Datos que contienen las variables regresoras.
         DataFrame: Datos que contienen las variables respuesta.
     """
-    df = df.reset_index(drop=True)
-    df = df.drop(columns=['price_overview'])
+    df_X = df_X.reset_index(drop=True)
+    df_y = df_y.reset_index(drop=True)
 
     # Separación de DataFrames en diferentes tipos de variables
-    y = DataFrame(df['price_range'])
-    X_num_log = df[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
-    X_num_std = df[['description_len', 'release_year', 'brillo']]
-    X_trans = df.drop(columns=['price_range', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
+    X_num_log = df_X[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
+    X_num_std = df_X[['description_len', 'brillo']]
+    X_num_minmax = df_X[['release_year']] # Fechas
+    X_trans = df_X.drop(columns=['price_range', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
 
     # Transformación de variables
     pt = PowerTransformer(method='yeo-johnson')
     X_num_log_trans = pt.fit_transform(X_num_log)
 
+    mm = MinMaxScaler()
+    X_num_minmax_trans = mm.fit_transform(X_num_minmax)
+
     std = StandardScaler()
     X_num_std_trans = std.fit_transform(X_num_std)
 
     ohe = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
-    y_trans = ohe.fit_transform(y)
+    y_trans = ohe.fit_transform(df_y)
 
     # Unificar datos transformados
     df_num_log_trans = DataFrame(X_num_log_trans, columns = pt.get_feature_names_out())
     df_num_std_trans = DataFrame(X_num_std_trans, columns = std.get_feature_names_out())
+    df_num_minmax_trans = DataFrame(X_num_minmax_trans, columns = mm.get_feature_names_out())
     df_y_trans = DataFrame(y_trans, columns = ohe.get_feature_names_out())
 
     df1 = concat([df_num_log_trans, df_num_std_trans], axis=1)
     df2 = concat([df1, X_trans], axis=1)
+    df3 = concat([df2, df_num_minmax_trans], axis=1)
 
     # Variables eliminadas por poca relevancia (el estudio está en el notebook de MLP)
-    df2 = df2.drop(columns=['Family Sharing', 'Online Co-op', 'Custom Volume Controls'])
+    df3 = df3.drop(columns=['Family Sharing', 'Online Co-op', 'Custom Volume Controls'])
 
-    # Variables no usadas en el análisis
-    df2 = df2.drop(columns=['id', 'name'])
-    df2 = df2.drop(columns=['v_resnet', 'v_convnext'])
+    transformers = {'pt': pt, 'std': std, 'ohe': ohe, 'mm': mm}
 
-    transformers = {'pt': pt, 'std': std, 'ohe': ohe}
+    return df3, df_y_trans, transformers
 
-    return df2, df_y_trans, transformers
+def _preprocess_test(df_X, df_y, transformers):
+    df_X = df_X.reset_index(drop=True)
+    df_y = df_y.reset_index(drop=True)
 
-def _preprocess_test(df, transformers):
-    df = df.reset_index(drop=True)
-    df = df.drop(columns=['price_overview'])
-
-    y = DataFrame(df['price_range'])
-    X_num_log = df[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
-    X_num_std = df[['description_len', 'release_year', 'brillo']]
-    X_trans = df.drop(columns=['price_range', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
+    X_num_log = df_X[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
+    X_num_std = df_X[['description_len', 'brillo']]
+    X_num_minmax = df_X[['release_year']] # Fechas
+    X_trans = df_X.drop(columns=['price_range', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
 
     pt = transformers['pt']
     X_num_log_trans = pt.transform(X_num_log)
+
+    mm = transformers['mm']
+    X_num_minmax_trans = mm.transform(X_num_minmax)
 
     std = transformers['std']
     X_num_std_trans = std.transform(X_num_std)
 
     ohe = transformers['ohe']
-    y_trans = ohe.transform(y)
+    y_trans = ohe.transform(df_y)
 
     df_num_log_trans = DataFrame(X_num_log_trans, columns = pt.get_feature_names_out())
     df_num_std_trans = DataFrame(X_num_std_trans, columns = std.get_feature_names_out())
+    df_num_minmax_trans = DataFrame(X_num_minmax_trans, columns = mm.get_feature_names_out())
     df_y_trans = DataFrame(y_trans, columns = ohe.get_feature_names_out())
 
     df1 = concat([df_num_log_trans, df_num_std_trans], axis=1)
     df2 = concat([df1, X_trans], axis=1)
+    df3 = concat([df2, df_num_minmax_trans], axis=1)
 
-    df2 = df2.drop(columns=['Family Sharing', 'Online Co-op', 'Custom Volume Controls'])
-    df2 = df2.drop(columns=['id', 'name'])
-    df2 = df2.drop(columns=['v_resnet', 'v_convnext'])
+    df3 = df3.drop(columns=['Family Sharing', 'Online Co-op', 'Custom Volume Controls'])
 
-    return df2, df_y_trans
+    return df3, df_y_trans
 
 def _best_params_mlp(X_train, Y_train):
     param_grid = {
@@ -142,12 +144,21 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name):
 if __name__ == '__main__':
     # Preprocesado de datos
     print('Leyendo y preprocesando datos...')
-    df = read_file(prices)
-    df_train, df_test = train_test_split(df, test_size=0.3, random_state=42)
-    X_train, Y_train, transformers = _preprocess_train(df_train)
-    X_test, Y_test = _preprocess_test(df_test, transformers)
+    df = read_prices()
 
+    y_all = DataFrame(df['price_range'])
+    X_all = df.drop(columns=['price_range'])
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X_all, y_all)
 
+    # Para el entrenamiento de los MLP vamos a usar cross validation, por lo que vamos a usar 
+    # la enteridad de los datos de entrenamiento para entrenar y validar el modelo
+    X_train = concat([X_train, X_val], axis=0)
+    y_train = concat([y_train, y_val], axis=0)
+
+    X_train, Y_train, transformers = _preprocess_train(X_train, y_train)
+    X_test, Y_test = _preprocess_test(X_test, y_test, transformers)
+
+    
     # MLP sin imágenes
     print('Buscando mejores parámetros para modelo sin imágenes...')
     X_train_no_img = X_train.drop(columns=['v_clip'])
@@ -167,8 +178,16 @@ if __name__ == '__main__':
     matrix_train = vstack(X_train_clusters['v_clip'].values)
     matrix_test = vstack(X_test_clusters['v_clip'].values)
 
-    X_train_clusters['v_clip_cluster'] = kmeans.fit_predict(matrix_train)
-    X_test_clusters['v_clip_cluster'] = kmeans.predict(matrix_test)
+    clusters_train = kmeans.fit_predict(matrix_train).reshape(-1, 1)
+    clusters_test = kmeans.predict(matrix_test).reshape(-1, 1)
+
+    ohe_clusters = OneHotEncoder(sparse_output=False)
+    clusters_train_ohe = ohe_clusters.fit_transform(clusters_train)
+    clusters_test_ohe = ohe_clusters.transform(clusters_test)
+
+    for i in range(clusters_train_ohe.shape[1]):
+        X_train_clusters[f'v_clip_cluster_{i}'] = clusters_train_ohe[:, i]
+        X_test_clusters[f'v_clip_cluster_{i}'] = clusters_test_ohe[:, i]
 
     X_train_clusters = X_train_clusters.drop(columns=['v_clip'])
     X_test_clusters = X_test_clusters.drop(columns=['v_clip'])
@@ -203,3 +222,4 @@ if __name__ == '__main__':
 
     print('Creando mejor modelo MLP con imágenes con UMAP...')
     _mlp(X_train_umap, X_test_umap, Y_train, Y_test, best_params_umap, 'sklearn-mlp-umap-img')
+    

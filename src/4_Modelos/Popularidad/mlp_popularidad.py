@@ -6,7 +6,7 @@ de precio se sitúa un juego según sus características.
 from src.utils.config import popularity
 from src.utils.files import read_file
 
-from sklearn.preprocessing import StandardScaler, PowerTransformer, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, PowerTransformer, MinMaxScaler, FunctionTransformer
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neural_network import MLPRegressor
 from sklearn.decomposition import PCA
@@ -16,10 +16,8 @@ from math import sqrt
 
 import wandb
 
-import matplotlib.pyplot as plt
-
-from pandas import DataFrame, concat, Series
-from numpy import vstack
+from pandas import DataFrame, concat
+from numpy import vstack, clip, log1p, expm1
 
 def _preprocess_train(df):
     """Función para transformar los datos para realiza MLP
@@ -46,7 +44,7 @@ def _preprocess_train(df):
                   'Single-player', 'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards']]
 
     # Transformación de variables
-    pt1 = PowerTransformer(method='yeo-johnson')
+    pt1 = FunctionTransformer(func=log1p, inverse_func=expm1, validate=True, feature_names_out="one-to-one")
     pt2 = PowerTransformer(method='yeo-johnson')
     y_trans = pt1.fit_transform(y)
     X_num_log_trans = pt2.fit_transform(X_num_log)
@@ -148,7 +146,7 @@ def _preprocess_test(df, transformers):
 
 def _best_params_mlp(X_train, Y_train):
     param_grid = {
-        'hidden_layer_sizes': [(64,32), (100,), (80,60), (64,50), (124,)],
+        'hidden_layer_sizes': [(64,32), (128, 64, 32), (128,64), (124,)],
         'activation': ['relu', 'tanh'],
         'alpha': [0.0001, 0.01, 0.1],
         'learning_rate_init': [0.001, 0.01]
@@ -173,12 +171,17 @@ def _mlp(X_train, X_test, y_train, y_test, best_params, model_name, target_trans
     
     best_mlp = MLPRegressor(max_iter=10000, random_state=42, activation=best_params['activation'],
                              hidden_layer_sizes=best_params['hidden_layer_sizes'], alpha=best_params['alpha'],
-                             learning_rate_init=best_params['learning_rate_init'])
+                             learning_rate_init=best_params['learning_rate_init'], early_stopping=True,
+                             n_iter_no_change=20)
     best_mlp.fit(X_train, y_train.values.flatten())
 
     y_pred = best_mlp.predict(X_test)
 
-    y_pred_real = target_transformer.inverse_transform(y_pred.reshape(-1, 1)).flatten()
+    min_val_train = y_train.values.min()
+    max_val_train = y_train.values.max()
+    y_pred_clipped = clip(y_pred, min_val_train, max_val_train)
+
+    y_pred_real = target_transformer.inverse_transform(y_pred_clipped.reshape(-1, 1)).flatten()
     y_test_real = target_transformer.inverse_transform(y_test).flatten()
 
     mae = mean_absolute_error(y_test_real, y_pred_real)
@@ -186,9 +189,9 @@ def _mlp(X_train, X_test, y_train, y_test, best_params, model_name, target_trans
     r2 = r2_score(y_test_real, y_pred_real)
 
     run.log({
-        'mae' : mae,
-        'rmse' : rmse,
-        'r2' : r2
+        'test_mae' : mae,
+        'test_rmse' : rmse,
+        'test_r2' : r2
     })
 
     run.finish()
@@ -207,24 +210,11 @@ if __name__ == '__main__':
     X_train_base = X_train_base.drop(columns=['clip_umap_4','clip_umap_6','clip_umap_15','clip_umap_7','Single-player'])
     X_test_base = X_test_base.drop(columns=['clip_umap_4','clip_umap_6','clip_umap_15','clip_umap_7','Single-player'])
 
-
+    
     # MLP Regressor con imágenes (umap)
     print('Encontrando el mejor modelo de MLP con imágenes...')
     best_params = _best_params_mlp(X_train_base, y_train)
 
     print('Creando mejor modelo MLP con imágenes...')
     _mlp(X_train_base, X_test_base, y_train, y_test, best_params, 'sklearn-mlp-umap-img', transformers['pt1'])
-
-
-    # MLP Regressor sin imágenes
-    print('Encontrando el mejor modelo de MLP sin imágenes...')
-    X_train_no_img = X_train_base.copy()
-    X_test_no_img = X_test_base.copy()
-
-    X_train_no_img = X_train_no_img.drop(columns=[c for c in X_train_no_img.columns if 'clip' in c])
-    X_test_no_img = X_test_no_img.drop(columns=[c for c in X_train_no_img.columns if 'clip' in c])
-
-    best_params = _best_params_mlp(X_train_no_img, y_train)
-
-    print('Creando mejor modelo MLP sin imágenes...')
-    _mlp(X_train_no_img, X_test_no_img, y_train, y_test, best_params, 'sklearn-mlp-no-img', transformers['pt1'])
+    
