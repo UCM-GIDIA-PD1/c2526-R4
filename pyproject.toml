@@ -9,6 +9,7 @@ dependencies = [
     "catboost>=1.2.10",
     "dotenv>=0.9.9",
     "drissionpage>=4.1.1.2",
+    "fastopic>=1.0.1",
     "google-api-python-client>=2.189.0",
     "imblearn>=0.0",
     "importlib>=1.0.4",

@@ -3,160 +3,302 @@ Dado precios.parquet crea un modelo de knn para predecir en que rango de precio 
 según sus características. Realiza lo mismo con un PCA del 0.9 de varianza total.
 """
 
-from utils_modelo_precios.preprocesamiento import get_metrics, read_prices, train_val_test_split
-
+from .utils_modelo_precios.preprocesamiento import get_metrics, read_prices, train_val_test_split,normalize_train_test, pca_train_test,cluster_embedings, read_prices_reduced
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import cross_val_score
+from sklearn.metrics import f1_score
 from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-
 import wandb
-
-import numpy as np
 import pandas as pd
+from imblearn.over_sampling import SMOTE
 
-def _preprocess(df):
+
+def grid_search_knn_full(X_train, X_val, y_train, y_val):
     """
-    Elimina columnas que no se usan en el modelo y realiza las transformaciones necesarias sobre el dataframe
+    Optimización de hiperparámetros para K-NN usando los conjuntos de train y validation.
+
+    Args:
+        - X_train (pd.Dataframe):  Conjunto de entranamiento
+        - X_val (pd.Dataframe): Conjunto de entranamiento
+        - y_train (pd.Dataframe): Variable objetivo del conjunto de entrenamiento
+        - y_val (pd.Dataframe): Variable objetivo del conjunto de validacion
+
+    Returns:
+        best_params (dict): Diccionario que contiene los parámetros (n_neighbors, weights, metric) del mejor modelo
     """
-    df.drop(columns=['id','name', 'price_overview', 'v_convnext', 'v_resnet'], inplace=True, errors='ignore')
+    param_grid = {
+        'n_neighbors': list(range(1, 40, 1)),
+        'weights': ['uniform', 'distance'],
+        'metric': ['euclidean', 'manhattan']
+    }
+
+    best_params = None
+    best_score = -1
+
+    print('Optimizando')
+    for n in param_grid['n_neighbors']:
+        for w in param_grid['weights']:
+            for m in param_grid['metric']:
+                knn = KNeighborsClassifier(n_neighbors=n, weights=w, metric=m)
+                knn.fit(X_train, y_train)
+                score = f1_score(y_val, knn.predict(X_val), average='weighted')
+
+                if score > best_score:
+                    best_score = score
+                    best_params = {'n_neighbors': n, 'weights': w, 'metric': m}
+                
+                print('Best Params: ', best_params)
+
+    print("Mejor combinación de parámetros:", best_params)
+    print("Mejor score en validación:", best_score)
+
+    return best_params
+
+def objective(trial, X_train, X_val, y_train, y_val):
+    params = {
+        'n_neighbors': trial.suggest_int('n_neighbors', 1, 40),
+        'weights': trial.suggest_categorical('weights', ['uniform', 'distance']),
+        'metric': trial.suggest_categorical('metric', ['euclidean', 'manhattan'])
+    }
+    knn = KNeighborsClassifier(**params)
+    knn.fit(X_train, y_train)
+    preds = knn.predict(X_val)
     
-    # Transformamos categóricas
+    score = f1_score(y_val, preds, average='weighted')
+    
+    return score
+
+def _complete_model(df, modelName= 'K-NN Complete Clusters'):
+    """
+    Modelo completo de K-NN usando clusters de los embeddings.
+
+    Args:
+        - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+        - modelName (String): Nombre del modelo a subir a wandb
+    Returns:
+        None
+    """
+    y = df['price_range']
+    X = df.drop(columns=['price_range'])
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    X_train, X_val, X_test = cluster_embedings(X_train, X_val, X_test, emb_col='v_clip')
+
     le = LabelEncoder()
-    le.fit(df['release_year'])
-    encoding = le.transform(df['release_year'])
-    df['release_year'] = pd.Series(encoding)
+    y_train = le.fit_transform(y_train)
+    y_val   = le.transform(y_val)
+    y_test  = le.transform(y_test)
 
-    # Transformamos vectores de imágenes
-    df_clip = df['v_clip'].apply(pd.Series)
-    df.drop(columns=['v_clip'], inplace=True, errors='ignore')
-    df = pd.concat([df, df_clip], axis=1)
-    df.columns = df.columns.astype(str)
+    columnas_categoricas = ['Action','Adventure', 'Casual', 'Early Access', 'Indie', 'RPG', 'Simulation',
+    'Strategy', 'Co-op', 'Custom Volume Controls', 'Family Sharing',
+    'Full controller support', 'Multi-player', 'Online Co-op', 'Online PvP',
+    'Partial Controller Support', 'Playable without Timed Input', 'PvP',
+    'Remote Play Together', 'Shared/Split Screen', 'Single-player',
+    'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards']
 
-    return df
+    columnas_numericas = X_train.columns.difference(columnas_categoricas).tolist()
+    X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
 
-def _normalize(X_train, X_test, columns_to_normalize):
-    """
-    Dado una división de train y test y una lista de columnas, normaliza los valores de esas columnas.
-    """
-    X_train = X_train.copy()
-    X_test = X_test.copy()
-
-    scaler = StandardScaler()
-    X_train[columns_to_normalize] = scaler.fit_transform(X_train[columns_to_normalize])
-    X_test[columns_to_normalize] = scaler.transform(X_test[columns_to_normalize])
-    
-    return X_train, X_test
-
-def _best_k(X_train, y_train):
-    """
-    Dado el conjunto de entrenamiento calcula el mejor valor de k desde 1 hasta 50.
-    """
-    print('Calculating K')
-    knn_scores = []
-    k_values = range(1,50)
-    for k_value in k_values:
-        print(k_value, end=" ")
-        knn = KNeighborsClassifier(n_neighbors=k_value)
-
-        scores = cross_val_score(knn, X_train, y_train, cv=5)
-        knn_scores.append(scores.mean())
-
-    best_k = k_values[np.argmax(knn_scores)]
-    
-    print("\n")
-    print(knn_scores)
-    print(best_k, knn_scores[best_k])
-
-    return best_k
-
-def _create_model(X_train, y_train, best_k, X_test, y_test, modelName, modelJobtype):
-    """
-    Crea el modelo de k-nn y saca sus métricas de evaluación, subiendo los resultados a Weigths and Baises.
-    """
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Precios", 
-        name=modelName,
-        job_type=modelJobtype
+        name= modelName,
+        job_type='knn'
     )
-        
-    knn = KNeighborsClassifier(n_neighbors=best_k)
-    knn.fit(X_train,y_train.values.flatten())
+
+    best_params = grid_search_knn_full(X_train, X_val, y_train, y_val)
+
+    knn = KNeighborsClassifier(**best_params)
+    knn.fit(X_train, y_train)
     y_pred = knn.predict(X_test)
-    
-    metricas = get_metrics(y_test.values.flatten(), y_pred, classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'])
 
-    run.config.update({'n_neighbors': best_k})
+    metrics_dict = get_metrics(y_test, y_pred)
 
-    run.log({
-        'accuracy' : metricas['accuracy'],
-        'precision' : metricas['precision'],
-        'recall' : metricas['recall'],
-        'f1-score' : metricas['f1']
-    })
-
+    run.config.update(best_params)
+    run.log(metrics_dict)
     run.finish()
 
-def _complete_model(df):
+def _complete_pca_mode(df, modelName= 'K-NN Complete Clusters PCA'):
     """
-    Crea un modelo k-nn con variable objetivo 'price_range', diviendo el dataset en test y train, normalizando y ajustando el hiperparámetro k
-    """
-    df_copy = df.copy()
+        Modelo completo de K-NN usando clusters de los embeddings y realizando un PCA para reducir dimensionalidad.
 
-    y = pd.DataFrame(df_copy['price_range'])
-    X = df_copy.drop(columns=['price_range'])
+        Args:
+            - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+            - modelName (String): Nombre del modelo a subir a wandb
+        Returns:
+            None
+    """
+
+    y = df['price_range']
+    X = df.drop(columns=['price_range'])
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    X_train, X_val, X_test = cluster_embedings(X_train, X_val, X_test, emb_col='v_clip')
+
+    le = LabelEncoder()
+    y_train = le.fit_transform(y_train)
+    y_val   = le.transform(y_val)
+    y_test  = le.transform(y_test)
+
+    columnas_categoricas = ['Action','Adventure', 'Casual', 'Early Access', 'Indie', 'RPG', 'Simulation',
+    'Strategy', 'Co-op', 'Custom Volume Controls', 'Family Sharing',
+    'Full controller support', 'Multi-player', 'Online Co-op', 'Online PvP',
+    'Partial Controller Support', 'Playable without Timed Input', 'PvP',
+    'Remote Play Together', 'Shared/Split Screen', 'Single-player',
+    'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards']
+
+    columnas_numericas = X_train.columns.difference(columnas_categoricas).tolist()
+    X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
+    X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=0.9)
+
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Precios", 
+        name= modelName,
+        job_type='knn'
+    )
+
+    best_params = grid_search_knn_full(X_train, X_val, y_train, y_val)
+
+    knn = KNeighborsClassifier(**best_params)
+    knn.fit(X_train, y_train)
+    y_pred = knn.predict(X_test)
+
+    metrics_dict = get_metrics(y_test, y_pred)
+
+    run.config.update(best_params)
+    run.log(metrics_dict)
+    run.finish()
+
+def _reduced_model(df, modelName= 'K-NN Reduced'):
+    """
+        Modelo completo de K-NN usando el conjunto de datos reducido.
+
+        Args:
+            - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+            - modelName (String): Nombre del modelo a subir a wandb
+        Returns:
+            None
+    """     
+    y = df['price_range']
+    X = df.drop(columns=['price_range'])
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    X_train, X_val, X_test = cluster_embedings(X_train, X_val, X_test, emb_col='v_clip')
+
+    le = LabelEncoder()
+    y_train = le.fit_transform(y_train)
+    y_val   = le.transform(y_val)
+    y_test  = le.transform(y_test)
+
+    all_genres = pd.concat([X_train['genres'], X_val['genres'], X_test['genres']])
+    le = LabelEncoder()
+    le.fit(all_genres)
+    X_train['genres'] = le.transform(X_train['genres'])
+    X_val['genres']   = le.transform(X_val['genres'])
+    X_test['genres']  = le.transform(X_test['genres'])
+
+
+    columnas_categoricas = ['Custom Volume Controls', 'Family Sharing', 'Playable without Timed Input', 'Single-player', 'has_multiplayer']
+    columnas_numericas = X_train.columns.difference(columnas_categoricas).tolist()
+    X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
+    X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=0.9)
+
+
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Precios", 
+        name= modelName,
+        job_type='knn'
+    )
+
+    best_params = grid_search_knn_full(X_train, X_val, y_train, y_val)
+
+    knn = KNeighborsClassifier(**best_params)
+    knn.fit(X_train, y_train)
+    y_pred = knn.predict(X_test)
+
+    metrics_dict = get_metrics(y_test, y_pred)
+
+    run.config.update(best_params)
+    run.log(metrics_dict)
+    run.finish()
+
+def _oversampled_reduced(df, modelName= 'K-NN Reduced Oversampled'):
+    """
+    Modelo completo de K-NN usando el conjunto de datos reducido y haciendo oversampling para tratar de paliar el desbalance.
+
+    Args:
+        - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+        - modelName (String): Nombre del modelo a subir a wandb
+    Returns:
+            None
+    """
+
+    y = df['price_range']
+    X = df.drop(columns=['price_range'])
 
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    X_train, X_val, X_test = cluster_embedings(X_train, X_val, X_test, emb_col='v_clip')
 
-    # Para el KNN no se usan los datos de validación
-    X_train = pd.concat([X_train, X_val], axis=0)
-    y_train = pd.concat([y_train, y_val], axis=0)
+    le = LabelEncoder()
+    y_train = le.fit_transform(y_train)
+    y_val   = le.transform(y_val)
+    y_test  = le.transform(y_test)
 
-    columns_to_normalize = ['description_len', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer']
-    X_train, X_test = _normalize(X_train, X_test, columns_to_normalize)
+    all_genres = pd.concat([X_train['genres'], X_val['genres'], X_test['genres']])
+    le_genres = LabelEncoder()
+    le_genres.fit(all_genres)
+    X_train['genres'] = le_genres.transform(X_train['genres'])
+    X_val['genres']   = le_genres.transform(X_val['genres'])
+    X_test['genres']  = le_genres.transform(X_test['genres'])
 
-    k_value  = _best_k(X_train, y_train)
-    
-    _create_model(X_train,y_train, k_value, X_test, y_test, modelName='complete-knn',modelJobtype='knn' )
+    columnas_categoricas = ['Custom Volume Controls', 'Family Sharing', 'Playable without Timed Input', 'Single-player', 'has_multiplayer']
+    columnas_numericas = X_train.columns.difference(columnas_categoricas).tolist()
 
-def _pca_model(df):
-    """
-    Crea un modelo k-nn con variable objetivo 'price_range' haciendo un PCA para reducir dimensiones, diviendo el dataset en test y train,
-    normalizando y ajustando el hiperparámetro k.
-    """
-    df_copy = df.copy()
+    X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
+    X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=0.9)
 
-    y = pd.DataFrame(df_copy['price_range'])
-    X = df_copy.drop(columns=['price_range'])
+    smote = SMOTE(random_state=42)
+    X_train, y_train = smote.fit_resample(X_train, y_train)
 
-    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Precios",
+        name=modelName,
+        job_type='knn'
+    )
+    best_params = grid_search_knn_full(X_train, X_val, y_train, y_val)
+    knn = KNeighborsClassifier(**best_params)
+    knn.fit(X_train, y_train)
+    y_pred = knn.predict(X_test)
+    metrics_dict = get_metrics(y_test, y_pred)
+    run.config.update(best_params)
+    run.log(metrics_dict)
+    run.finish()
 
-    # Para el KNN no se usan los datos de validación
-    X_train = pd.concat([X_train, X_val], axis=0)
-    y_train = pd.concat([y_train, y_val], axis=0)
-
-    columns_to_normalize = X_train.columns
-    X_train, X_test = _normalize(X_train, X_test, columns_to_normalize)
-
-    pca = PCA(n_components=0.90)  
-    X_train_pca = pca.fit_transform(X_train)
-    X_test_pca = pca.transform(X_test)
-
-    k_value  = _best_k(X_train_pca, y_train)
-
-    _create_model(X_train_pca,y_train, k_value, X_test_pca, y_test, modelName='pca-knn', modelJobtype='knn')
-
-if __name__ == '__main__':
-    print('Reading')
+def knnprecios():
     df = read_prices()
+    df_reduced = read_prices_reduced()
+
+    print('Selecciona qué modelo quieres entrenar:')
+    print('1. K-NN Complete Clusters')
+    print('2. K-NN Complete Clusters PCA')
+    print('3. K-NN Reduced')
+    print('4. K-NN Reduced Oversampled')
+    print('0. Salir')
+    opcion = input('Ingresa el número de la opción: ')
+
+    if opcion == '1':
+        _complete_model(df.copy(), modelName='K-NN Complete Clusters')
+    elif opcion == '2':
+        _complete_pca_mode(df.copy(), modelName='K-NN Complete Clusters PCA')
+    elif opcion == '3':
+        _reduced_model(df_reduced.copy(), modelName='K-NN Reduced')
+    elif opcion == '4':
+        _oversampled_reduced(df_reduced.copy(), modelName='K-NN Reduced Oversampled')
+    elif opcion == '0':
+        return
+    else:
+        print('Opción no válida')
+        return
+
     
-    print('Preprocessing')
-    df = _preprocess(df)
-
-    print('Creating Complete DataFrame Model')
-    _complete_model(df)
-
-    print('Creating PCA DataFrame Model')
-    _pca_model(df)
+if __name__ == '__main__':
+    knnprecios()
