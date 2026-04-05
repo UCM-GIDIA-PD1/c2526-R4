@@ -1,15 +1,5 @@
-""""
-Modelo de XGBoost para la clasificación multiclase de rango de precio de un juego a partir de sus características.
 
-En este script se realizarán los siguientes modelos:
-    - Modelo sin información de las imágenes
-    - Modelo con embeddings de imagenes (Procesado con un PCA)
-
-Dependencias:
-    - precios.parquet
-"""
-
-from .utils_modelo_precios.preprocesamiento import read_prices, train_val_test_split, class_weights, get_metrics
+from .utils_modelo_precios.preprocesamiento import read_prices, train_val_test_split, class_weights, get_metrics, combine_train_val
 from .utils_modelo_precios.preprocesamiento import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings
 from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb
@@ -40,34 +30,9 @@ def model_noimg(df, modelName='XGBoost-Base NoImg'):
     y = df['price_range']
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    X_train, y_train =  combine_train_val(X_train, X_val, y_train, y_val)
 
     sample_weights = class_weights(y_train)
-
-    def objective(trial):
-        param = {
-            'verbosity': 0,
-            'objective': 'multi:softprob',
-            'num_class': len(set(y_train)),
-            'n_estimators': trial.suggest_int('n_estimators', 100, 1000),
-            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-            'max_depth': trial.suggest_int('max_depth', 3, 10),
-            'subsample': trial.suggest_float('subsample', 0.5, 1.0),
-            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1.0),
-            'gamma': trial.suggest_float('gamma', 1e-8, 1.0, log=True),
-            'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
-            'random_state': 42,
-            'device': 'cuda' if False else 'cpu',
-        }
-        model = xgb.XGBClassifier(**param)
-        model.fit(
-            X_train, y_train,
-            sample_weight=sample_weights,
-            eval_set=[(X_val, y_val)],
-            verbose=False
-        )
-        preds = model.predict(X_val)
-        score = f1_score(y_val, preds, average='weighted')        
-        return score
 
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -75,13 +40,15 @@ def model_noimg(df, modelName='XGBoost-Base NoImg'):
         name= modelName,
         job_type='xgboost'
     )
-
-    study = optuna.create_study(direction='maximize')
-    study.optimize(objective, n_trials=50)
-    
-    print(f"Mejor F1-Score: {study.best_value}")
-    print(f"Mejores parámetros: {study.best_params}")
-    best_params = study.best_params
+    best_params = {
+        'colsample_bytree':0.5548684904189958,
+        'gamma':0.05885948641707637,
+        'learning_rate':0.04579492491369452,
+        'max_depth':10,
+        'min_child_weight':1,
+        'n_estimators':380,
+        'subsample':0.9608130856104324
+    }
 
     final_model = xgb.XGBClassifier(
         **best_params,
@@ -136,47 +103,18 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
 
     X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
     X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=50)
+    X_train, y_train =  combine_train_val(X_train, X_val, y_train, y_val)
     sample_weights = class_weights(y_train)
 
-    def objective(trial):
-        param = {
-            'verbosity': 0,
-            'objective': 'multi:softprob',
-            'num_class': len(set(y_train)),
-            'n_estimators': trial.suggest_int('n_estimators', 100, 1000),
-            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-            'max_depth': trial.suggest_int('max_depth', 3, 10),
-            'subsample': trial.suggest_float('subsample', 0.5, 1.0),
-            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1.0),
-            'gamma': trial.suggest_float('gamma', 1e-8, 1.0, log=True),
-            'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
-            'random_state': 42,
-            'device': 'cuda' if False else 'cpu',
-        }
-        model = xgb.XGBClassifier(**param)
-        model.fit(
-            X_train, y_train,
-            sample_weight=sample_weights,
-            eval_set=[(X_val, y_val)],
-            verbose=False
-        )
-        preds = model.predict(X_val)
-        score = f1_score(y_val, preds, average='weighted')        
-        return score
-
-    run = wandb.init(
-        entity="pd1-c2526-team4",
-        project="Precios", 
-        name= modelName,
-        job_type='xgboost'
-    )
-
-    study = optuna.create_study(direction='maximize')
-    study.optimize(objective, n_trials=50)
-
-    print(f"Mejor F1-Score: {study.best_value}")
-    print(f"Mejores parámetros: {study.best_params}")
-    best_params = study.best_params
+    best_params = {
+        'colsample_bytree':0.9673925243965164,
+        'gamma':0.304701258781668,
+        'learning_rate':0.06640101870529921,
+        'max_depth':8,
+        'min_child_weight':4,
+        'n_estimators':188,
+        'subsample':0.8114823523287747,
+    }
 
     final_model = xgb.XGBClassifier(
         **best_params,
@@ -215,9 +153,9 @@ def catModel(df, modelName='XGBoost Clustered'):
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
     
-    train_weights = class_weights(y_train)
     X_train, X_val, X_test = cluster_embedings(X_train, X_val, X_test, emb_col='v_clip')
-    
+    X_train, y_train =  combine_train_val(X_train, X_val, y_train, y_val)
+
     cat_cols = [
                'Adventure', 'Casual', 'Early Access', 'Indie', 'RPG', 'Simulation',
                    'Strategy', 'Co-op', 'Custom Volume Controls', 'Family Sharing',
@@ -227,37 +165,7 @@ def catModel(df, modelName='XGBoost Clustered'):
                    'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards',
                    'Steam Trading Cards', 'cluster'
     ]
-
-    def objective(trial):
-            params = {
-                "iterations": trial.suggest_int("iterations", 300, 800),
-                "depth": trial.suggest_int("depth", 4, 10),
-                "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
-                "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 1e-3, 10, log=True),
-                "border_count": trial.suggest_int("border_count", 32, 255),
-                "loss_function": "MultiClass",
-                "eval_metric": "TotalF1",
-                "random_state": 42,
-                "verbose": 0
-            }
-
-            model = CatBoostClassifier(**params)
-            model.fit(
-                X_train,
-                y_train,
-                sample_weight=train_weights,
-                cat_features=cat_cols,
-                eval_set=(X_val, y_val),
-                early_stopping_rounds=50,
-                verbose=False
-            )
-            preds = model.predict(X_val)
-            return f1_score(y_val, preds, average='weighted')
-
-    study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=50)
     
-
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Precios", 
@@ -265,9 +173,7 @@ def catModel(df, modelName='XGBoost Clustered'):
         job_type='xgboost'
     )
         
-    print(f"Mejor F1-Score: {study.best_value}")
-    print(f"Mejores parámetros: {study.best_params}")
-    best_params = study.best_params
+    best_params = {'iterations': 431, 'depth': 10, 'learning_rate': 0.049814771667902324, 'l2_leaf_reg': 0.1422433602427104, 'border_count': 60}
     
     final_model = CatBoostClassifier(**best_params)
     final_model.fit(
@@ -297,44 +203,14 @@ def model_umap(df, modelName=None):
             None
     """     
 
-    # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
     le = LabelEncoder()
     df['price_range'] = le.fit_transform(df['price_range'])
-
-    # División Train, Validation, Test
     y = df['price_range']
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
-
     sample_weights = class_weights(y_train)
-    
     X_train, X_val, X_test = umap_embeddings(X_train, X_val, X_test, emb_col='v_clip')
-
-    def objective(trial):
-        param = {
-            'verbosity': 0,
-            'objective': 'multi:softprob',
-            'num_class': len(set(y_train)),
-            'n_estimators': trial.suggest_int('n_estimators', 100, 1000),
-            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-            'max_depth': trial.suggest_int('max_depth', 3, 10),
-            'subsample': trial.suggest_float('subsample', 0.5, 1.0),
-            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1.0),
-            'gamma': trial.suggest_float('gamma', 1e-8, 1.0, log=True),
-            'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
-            'random_state': 42,
-            'device': 'cuda' if False else 'cpu',
-        }
-        model = xgb.XGBClassifier(**param)
-        model.fit(
-            X_train, y_train,
-            sample_weight=sample_weights,
-            eval_set=[(X_val, y_val)],
-            verbose=False
-        )
-        preds = model.predict(X_val)
-        score = f1_score(y_val, preds, average='weighted')        
-        return score
+    X_train, y_train =  combine_train_val(X_train, X_val, y_train, y_val)
 
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -343,12 +219,15 @@ def model_umap(df, modelName=None):
         job_type='xgboost'
     )
 
-    study = optuna.create_study(direction='maximize')
-    study.optimize(objective, n_trials=50)
-    
-    print(f"Mejor F1-Score: {study.best_value}")
-    print(f"Mejores parámetros: {study.best_params}")
-    best_params = study.best_params
+    best_params = {
+        'colsample_bytree':0.6671264654920448,
+        'gamma':0.022859752952621184,
+        'learning_rate':0.01912097362524424,
+        'max_depth':10,
+        'min_child_weight':1,
+        'n_estimators':686,
+        'subsample':0.6255483615395034
+    }
 
     final_model = xgb.XGBClassifier(
         **best_params,
@@ -381,8 +260,6 @@ def model_cluster(df, modelName=None):
     Returns:
         None
     """     
-
-    # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
     le = LabelEncoder()
     df['price_range'] = le.fit_transform(df['price_range'])
 
@@ -390,36 +267,10 @@ def model_cluster(df, modelName=None):
     y = df['price_range']
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
-
     sample_weights = class_weights(y_train)
-    
     X_train, X_val, X_test = cluster_embedings(X_train, X_val, X_test, emb_col='v_clip')
 
-    def objective(trial):
-        param = {
-            'verbosity': 0,
-            'objective': 'multi:softprob',
-            'num_class': len(set(y_train)),
-            'n_estimators': trial.suggest_int('n_estimators', 100, 1000),
-            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-            'max_depth': trial.suggest_int('max_depth', 3, 10),
-            'subsample': trial.suggest_float('subsample', 0.5, 1.0),
-            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1.0),
-            'gamma': trial.suggest_float('gamma', 1e-8, 1.0, log=True),
-            'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
-            'random_state': 42,
-            'device': 'cuda' if False else 'cpu',
-        }
-        model = xgb.XGBClassifier(**param)
-        model.fit(
-            X_train, y_train,
-            sample_weight=sample_weights,
-            eval_set=[(X_val, y_val)],
-            verbose=False
-        )
-        preds = model.predict(X_val)
-        score = f1_score(y_val, preds, average='weighted')        
-        return score
+    X_train, y_train =  combine_train_val(X_train, X_val, y_train, y_val)
 
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -427,13 +278,16 @@ def model_cluster(df, modelName=None):
         name= modelName,
         job_type='xgboost'
     )
-
-    study = optuna.create_study(direction='maximize')
-    study.optimize(objective, n_trials=50)
     
-    print(f"Mejor F1-Score: {study.best_value}")
-    print(f"Mejores parámetros: {study.best_params}")
-    best_params = study.best_params
+    best_params = {
+        'colsample_bytree':0.5327779689329123,
+        'gamma':0.00005474029242191838,
+        'learning_rate':0.0272617630976022,
+        'max_depth':8,
+        'min_child_weight':2,
+        'n_estimators':859,
+        'subsample':0.9405826954214862,
+    }
 
     final_model = xgb.XGBClassifier(
         **best_params,
@@ -449,44 +303,10 @@ def model_cluster(df, modelName=None):
     )
 
     y_pred = final_model.predict(X_test)
-
     metrics_dict = get_metrics(y_test, y_pred)
-    
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
-
-def grid_search(X_train, y_train, sample_weights= None):
-    model = xgb.XGBClassifier(
-        verbosity=0,
-        objective='multi:softprob',
-        num_class=len(set(y_train)),
-        random_state=42,
-        device='cpu'
-    )
-
-    param_grid = {
-        'n_estimators': [100, 500, 1000],
-        'learning_rate': [0.01, 0.1, 0.3],
-        'max_depth': [3, 6, 10],
-        'subsample': [0.5, 0.8, 1.0],
-        'colsample_bytree': [0.5, 0.8, 1.0],
-        'gamma': [1e-8, 0.1, 1.0],
-        'min_child_weight': [1, 5, 10]
-    }
-
-    grid_search = GridSearchCV(
-        estimator=model,
-        param_grid=param_grid,
-        cv=3,
-        n_jobs=-1, 
-        verbose=1,
-        scoring='f1_weighted',
-    )
-
-    grid_search.fit(X_train, y_train, sample_weight=sample_weights)
-
-    return grid_search
 
 def xgboost_base():
     print('Selecciona qué modelo quieres entrenar:')
