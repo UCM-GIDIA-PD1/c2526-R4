@@ -53,6 +53,20 @@ def grid_search_knn_full(X_train, X_val, y_train, y_val):
 
     return best_params
 
+def objective(trial, X_train, X_val, y_train, y_val):
+    params = {
+        'n_neighbors': trial.suggest_int('n_neighbors', 1, 40),
+        'weights': trial.suggest_categorical('weights', ['uniform', 'distance']),
+        'metric': trial.suggest_categorical('metric', ['euclidean', 'manhattan'])
+    }
+    knn = KNeighborsClassifier(**params)
+    knn.fit(X_train, y_train)
+    preds = knn.predict(X_val)
+    
+    score = f1_score(y_val, preds, average='weighted')
+    
+    return score
+
 def _complete_model(df, modelName= 'K-NN Complete Clusters'):
     """
     Modelo completo de K-NN usando clusters de los embeddings.
