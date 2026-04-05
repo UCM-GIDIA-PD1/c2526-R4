@@ -18,6 +18,8 @@ import optuna
 import wandb
 import pandas as pd
 from catboost import CatBoostClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import f1_score
 
 def model_noimg(df, modelName='XGBoost-Base NoImg'):
     """
@@ -454,6 +456,38 @@ def model_cluster(df, modelName=None):
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
+
+def grid_search(X_train, y_train, sample_weights= None):
+    model = xgb.XGBClassifier(
+        verbosity=0,
+        objective='multi:softprob',
+        num_class=len(set(y_train)),
+        random_state=42,
+        device='cpu'
+    )
+
+    param_grid = {
+        'n_estimators': [100, 500, 1000],
+        'learning_rate': [0.01, 0.1, 0.3],
+        'max_depth': [3, 6, 10],
+        'subsample': [0.5, 0.8, 1.0],
+        'colsample_bytree': [0.5, 0.8, 1.0],
+        'gamma': [1e-8, 0.1, 1.0],
+        'min_child_weight': [1, 5, 10]
+    }
+
+    grid_search = GridSearchCV(
+        estimator=model,
+        param_grid=param_grid,
+        cv=3,
+        n_jobs=-1, 
+        verbose=1,
+        scoring='f1_weighted',
+    )
+
+    grid_search.fit(X_train, y_train, sample_weight=sample_weights)
+
+    return grid_search
 
 def xgboost_base():
     print('Selecciona qué modelo quieres entrenar:')
