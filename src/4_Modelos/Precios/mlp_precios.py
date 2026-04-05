@@ -9,7 +9,9 @@ from sklearn.preprocessing import StandardScaler, PowerTransformer, OrdinalEncod
 from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPClassifier
 from sklearn.cluster import KMeans
+from sklearn.model_selection import cross_val_score
 from umap import UMAP
+import optuna
 
 import wandb
 
@@ -33,7 +35,7 @@ def _preprocess_train(df_X, df_y):
     X_num_log = df_X[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
-    X_trans = df_X.drop(columns=['price_range', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
+    X_trans = df_X.drop(columns=['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
 
     # Transformación de variables
     pt = PowerTransformer(method='yeo-johnson')
@@ -72,7 +74,7 @@ def _preprocess_test(df_X, df_y, transformers):
     X_num_log = df_X[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
-    X_trans = df_X.drop(columns=['price_range', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
+    X_trans = df_X.drop(columns=['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
 
     pt = transformers['pt']
     X_num_log_trans = pt.transform(X_num_log)
@@ -98,7 +100,7 @@ def _preprocess_test(df_X, df_y, transformers):
     df3 = df3.drop(columns=['Family Sharing', 'Online Co-op', 'Custom Volume Controls'])
 
     return df3, df_y_trans
-
+"""
 def _best_params_mlp(X_train, Y_train):
     param_grid = {
         'hidden_layer_sizes': [(64,32), (100,), (80,60), (64,50), (124,)],
@@ -111,6 +113,28 @@ def _best_params_mlp(X_train, Y_train):
     grid.fit(X_train, Y_train.values.flatten())
 
     params_mejor_modelo = grid.best_params_
+    print(f'Los parámetros del mejor modelo son:\n{params_mejor_modelo}')
+
+    return params_mejor_modelo
+"""
+def _best_params_mlp(X_train, Y_train):
+    def objective(trial):
+        params = {
+            'hidden_layer_sizes': trial.suggest_categorical('hidden_layer_sizes', [(64,32), (100,), (80,60), (64,50), (124,)]),
+            'activation': trial.suggest_categorical('activation', ['relu', 'tanh']),
+            'alpha': trial.suggest_categorical('alpha', [0.0001, 0.01, 0.1]),
+            'learning_rate_init': trial.suggest_categorical('learning_rate_init', [0.001, 0.01])
+        }
+
+        model = MLPClassifier(max_iter=5000, random_state=42, **params)
+        
+        score = cross_val_score(model, X_train, Y_train.values.flatten(), cv=5, n_jobs=-1)
+        return score.mean()
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=30)
+
+    params_mejor_modelo = study.best_params
     print(f'Los parámetros del mejor modelo son:\n{params_mejor_modelo}')
 
     return params_mejor_modelo
@@ -136,7 +160,7 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name):
         'accuracy' : metricas['accuracy'],
         'precision' : metricas['precision'],
         'recall' : metricas['recall'],
-        'f1-score' : metricas['f1']
+        'f1-score' : metricas['f1-score']
     })
 
     run.finish()
@@ -158,7 +182,6 @@ if __name__ == '__main__':
     X_train, Y_train, transformers = _preprocess_train(X_train, y_train)
     X_test, Y_test = _preprocess_test(X_test, y_test, transformers)
 
-    
     # MLP sin imágenes
     print('Buscando mejores parámetros para modelo sin imágenes...')
     X_train_no_img = X_train.drop(columns=['v_clip'])
@@ -196,7 +219,6 @@ if __name__ == '__main__':
 
     print('Creando mejor modelo MLP con imágenes con clusters...')
     _mlp(X_train_clusters, X_test_clusters, Y_train, Y_test, best_params, 'sklearn-mlp-cluster-img')
-    
 
     # MLP con imágenes (UMAP)
     print('Buscando mejores parámetros para modelo con imágenes con UMAP...')
