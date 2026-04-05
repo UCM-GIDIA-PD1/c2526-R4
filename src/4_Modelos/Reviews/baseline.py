@@ -33,18 +33,18 @@ def create_reviews_baseline():
     y_pred = [mayority] * len(y_true)
 
 
-    acurracy = accuracy_score(y_true, y_pred)
+    accuracy = accuracy_score(y_true, y_pred)
     balanced_accuracy = balanced_accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred)
     recall = recall_score(y_true, y_pred)
     f1 = f1_score(y_true, y_pred)
 
     wandb.log({
-        "accuracy" : acurracy,
-        "balanced_accuracy": balanced_accuracy,
-        "precision" : precision,
-        "recall" : recall,
-        "f1" : f1
+        "Accuracy": accuracy,
+        "Balanced accuracy": balanced_accuracy,
+        "Precision": precision,
+        "Recall": recall,
+        "F1-score": f1
     })
 
     run.finish()
