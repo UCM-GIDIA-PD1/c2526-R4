@@ -112,7 +112,8 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
         Returns:
             None
     """     
-
+    le = LabelEncoder()
+    df['price_range'] = le.fit_transform(df['price_range'])
     emb = df['v_clip'].apply(pd.Series)
     df = pd.concat([df.drop(columns=['v_clip']), emb], axis=1)
     
@@ -123,11 +124,13 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
        'Remote Play Together', 'Shared/Split Screen', 'Single-player',
        'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards']
     
-    columnas_numericas = df.columns.difference(columnas_categoricas).tolist()
 
     y = df['price_range']
     X = df.drop(columns=['price_range'])
+    X.columns = X.columns.astype(str)
+
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    columnas_numericas = X_train.columns.difference(columnas_categoricas).tolist()
 
     X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
     X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=50)
@@ -195,15 +198,15 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
     run.finish()
 
 def catModel(df, modelName='XGBoost Clustered'):
-        """
-        Modelo completo de CatBoosst.
+    """
+    Modelo completo de CatBoosst.
 
-        Args:
-            - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
-            - modelName (String): Nombre del modelo a subir a wandb
-        Returns:
-            None
-        """     
+    Args:
+        - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+        - modelName (String): Nombre del modelo a subir a wandb
+    Returns:
+        None
+    """     
 
     # División Train, Validation, Test
     y = df['price_range']
