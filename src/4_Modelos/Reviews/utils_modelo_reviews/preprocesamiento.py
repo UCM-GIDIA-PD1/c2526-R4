@@ -7,6 +7,7 @@ from src.utils.config import reviews
 
 import re
 from nltk.stem import PorterStemmer
+from nltk.corpus import stopwords
 
 def read_reviews(minio={"minio_write": False, "minio_read": False}):
     """Lee y limpia el dataset de reviews desde un archivo Parquet.
@@ -27,7 +28,7 @@ def read_reviews(minio={"minio_write": False, "minio_read": False}):
 
     return df
 
-def clean_text(text, ps, stop_words):
+def clean_text(text, ps=PorterStemmer(), stop_words=set(stopwords.words("english"))):
     """Se queda solo lo que es texto, quitando stopwords y aplicando stemming"""
     text = re.sub(r"[^a-z\s]", "", text)
     return " ".join(ps.stem(word) for word in text.split() if word not in stop_words)
