@@ -10,7 +10,7 @@ import wandb
 
 from src.utils.config import prices
 from src.utils.files import read_file
-from utils_modelo_precios.preprocesamiento import get_metrics
+from utils.utils import get_metrics
 
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA

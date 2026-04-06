@@ -10,12 +10,13 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split    
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
-from pandas import Series
+
 from umap import UMAP
-from numpy import vstack
-from pandas import concat
 import os
 import joblib
+
+from numpy import vstack
+from pandas import concat
 
 def read_prices(minio={"minio_write": False, "minio_read": False}):
     """Lee y limpia el dataset de precios desde un archivo Parquet.

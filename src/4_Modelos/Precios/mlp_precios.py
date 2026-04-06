@@ -3,7 +3,7 @@ Dado precios.parquet crea diferentes modelos de MLP para predecir en que rango
 de precio se sitúa un juego según sus características.
 """
 
-from utils_modelo_precios.preprocesamiento import get_metrics, read_prices, train_val_test_split
+from utils.utils import get_metrics, read_prices, train_val_test_split
 
 from sklearn.preprocessing import StandardScaler, PowerTransformer, OrdinalEncoder, MinMaxScaler, OneHotEncoder
 from sklearn.model_selection import GridSearchCV
