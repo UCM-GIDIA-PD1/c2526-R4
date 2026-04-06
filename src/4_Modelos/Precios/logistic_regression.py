@@ -18,7 +18,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler, PowerTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from umap import UMAP
 
 orden_precios = {
     '[0.01,4.99]': 0,
@@ -78,7 +77,6 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
     solver = params.get('solver', 'lbfgs')
     l1_ratio = params.get('l1_ratio', 0.0)
     C = params.get('C', 1.0)
-    dim_reduction = params.get('dim_reduction', 'pca')
     
     best_model = LogisticRegression(
         C=C, solver=solver, l1_ratio=l1_ratio, 
@@ -96,14 +94,7 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
         ('binarias', 'passthrough', cols_binarias)
     ]
     
-    if dim_reduction == 'pca':
-        final_reducer = PCA(n_components=10, random_state=42)
-    else:
-        final_reducer = UMAP(
-            n_components=10, 
-            n_neighbors=params.get('umap_n_neighbors', 15), 
-            min_dist=params.get('umap_min_dist', 0.1)
-        )
+    final_reducer = PCA(n_components=10, random_state=42)
     
     final_transformers.append(('img_reducer', final_reducer, img_cols))
     final_preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
@@ -146,8 +137,7 @@ if __name__ == '__main__':
     best_params = {
         'C': 0.041948246911196446,
         'solver': 'lbfgs',
-        'l1_ratio': 0.0,
-        'dim_reduction': 'pca'
+        'l1_ratio': 0.0
     }
 
     print('Creando modelo...')
