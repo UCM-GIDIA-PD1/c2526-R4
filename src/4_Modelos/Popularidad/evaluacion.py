@@ -126,8 +126,6 @@ def evaluate_models():
         y_max = mlp_data["y_train_max"]
         
         X_test_mlp, _ = _preprocess_test(test_df_raw, transformers_dict)
-        # Aplicar las mismas eliminaciones de columnas usadas durante el entrenamiento
-        X_test_mlp = X_test_mlp.drop(columns=['clip_umap_4','clip_umap_6','clip_umap_15','clip_umap_7','Single-player'])
         
         y_pred_mlp = mlp_model.predict(X_test_mlp)
         
