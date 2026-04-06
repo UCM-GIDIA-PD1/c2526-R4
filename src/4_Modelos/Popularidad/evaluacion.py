@@ -19,6 +19,7 @@ from src.utils.files import read_file
 from linear_regresion_log import transform_for_linear_regresion
 from xgboost_popularidad import _transform_for_xgboost
 from mlp_popularidad import _preprocess_test
+from knn_popularidad import _transform_for_knn, VARIABLES_GANADORAS
 
 def evaluate_models():
     run = wandb.init(
@@ -31,7 +32,7 @@ def evaluate_models():
     df_raw = read_file(popularity)
     y_variable = "recomendaciones_totales"
 
-    # Baseline
+    # Modelo base (Baseline)
     train_df_raw, test_df_raw = train_test_split(df_raw, test_size=0.20, random_state=42)
     mediana_train = train_df_raw[y_variable].median()
     y_test_real = test_df_raw[y_variable]
@@ -50,7 +51,7 @@ def evaluate_models():
         "baseline_r2": r2_baseline,
     }
 
-    # Linear Regression Evaluation
+    # Evaluación de la Regresión Lineal
     df_lr = transform_for_linear_regresion(df_raw)
     train_df_lr, test_df_lr = train_test_split(df_lr, test_size=0.20, random_state=42)
 
@@ -83,7 +84,7 @@ def evaluate_models():
             })
             table.add_data(model_name, mae_lr, rmse_lr, r2_lr)
 
-    # XGBoost Evaluation
+    # Evaluación de XGBoost
     df_xgb = _transform_for_xgboost(df_raw)
     train_df_xgb, test_df_xgb = train_test_split(df_xgb, test_size=0.20, random_state=42)
 
@@ -116,7 +117,7 @@ def evaluate_models():
             })
             table.add_data(model_name, mae_xgb, rmse_xgb, r2_xgb)
 
-    # MLP Evaluation
+    # Evaluación de MLP (Red Neuronal)
     if os.path.exists("data/models/mlp_model.pkl"):
         mlp_data = joblib.load("data/models/mlp_model.pkl")
         mlp_model = mlp_data["model"]
@@ -125,12 +126,12 @@ def evaluate_models():
         y_max = mlp_data["y_train_max"]
         
         X_test_mlp, _ = _preprocess_test(test_df_raw, transformers_dict)
-        # Apply the exact same drops used during training
+        # Aplicar las mismas eliminaciones de columnas usadas durante el entrenamiento
         X_test_mlp = X_test_mlp.drop(columns=['clip_umap_4','clip_umap_6','clip_umap_15','clip_umap_7','Single-player'])
         
         y_pred_mlp = mlp_model.predict(X_test_mlp)
         
-        # Clip and inverse transform using numpy clip
+        # Limitar (clip) y aplicar la transformación inversa usando numpy clip
         y_pred_clipped_mlp = np.clip(y_pred_mlp, y_min, y_max)
         y_pred_real_mlp = transformers_dict['pt1'].inverse_transform(y_pred_clipped_mlp.reshape(-1, 1)).flatten()
         
@@ -144,6 +145,28 @@ def evaluate_models():
             "mlp_r2": r2_mlp,
         })
         table.add_data("MLP", mae_mlp, rmse_mlp, r2_mlp)
+
+    # Evaluación de KNN
+    if os.path.exists("data/models/knn_model_log.pkl"):
+        knn_model = joblib.load("data/models/knn_model_log.pkl")
+        df_knn = _transform_for_knn(df_raw)
+        _, test_df_knn = train_test_split(df_knn, test_size=0.20, random_state=42)
+        
+        X_test_knn = test_df_knn[VARIABLES_GANADORAS]
+        
+        y_pred_knn = knn_model.predict(X_test_knn)
+        y_pred_knn = np.clip(y_pred_knn, 0, None)
+        
+        mae_knn = mean_absolute_error(y_test_real, y_pred_knn)
+        rmse_knn = sqrt(mean_squared_error(y_test_real, y_pred_knn))
+        r2_knn = r2_score(y_test_real, y_pred_knn)
+        
+        metrics.update({
+            "knn_log_mae": mae_knn,
+            "knn_log_rmse": rmse_knn,
+            "knn_log_r2": r2_knn,
+        })
+        table.add_data("KNN (Log)", mae_knn, rmse_knn, r2_knn)
 
     wandb.log(metrics)
     wandb.log({"comparative_table": table})
