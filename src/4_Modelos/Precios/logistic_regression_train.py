@@ -19,9 +19,6 @@ from sklearn.exceptions import ConvergenceWarning
 
 from umap import UMAP
 
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-
 load_env_file()
 df = read_file(prices, minio={"minio_write": True, "minio_read": True})
 

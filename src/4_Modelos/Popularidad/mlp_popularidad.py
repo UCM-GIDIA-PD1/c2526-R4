@@ -8,16 +8,16 @@ from src.utils.files import read_file
 
 from sklearn.preprocessing import StandardScaler, PowerTransformer, MinMaxScaler, FunctionTransformer
 from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import cross_val_score
 from sklearn.neural_network import MLPRegressor
 from sklearn.decomposition import PCA
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from umap import UMAP
-from math import sqrt
+import optuna
 
 import wandb
 
 from pandas import DataFrame, concat
-from numpy import vstack, clip, log1p, expm1
+from numpy import vstack, log1p, expm1
 import joblib
 import os
 
@@ -77,10 +77,10 @@ def _preprocess_train(df):
 
     # Aplicamos UMAP para reducir la dimensionalidad de los vectores de imágenes
     clip_matrix = vstack(df['v_clip'].values)
-    umap = UMAP(n_components=16, random_state=42) 
+    umap = UMAP(n_components=18, random_state=42) 
     clip_reduced = umap.fit_transform(clip_matrix)
     
-    for i in range(16):
+    for i in range(18):
         df4[f'clip_umap_{i}'] = clip_reduced[:, i]
     
     # Transformers usados para la transformación de los modelos
@@ -97,9 +97,9 @@ def _preprocess_test(df, transformers):
 
     # Separación de DataFrames
     y = DataFrame(df['recomendaciones_totales'])
-    X_num_log = df[['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'price_overview', 'description_len']]
+    X_num_log = df[['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'price_overview']]
     X_num_minmax = df[['release_year']]
-    X_num_std = df[['brillo']]
+    X_num_std = df[['brillo', 'description_len']]
     X_youtube = df[[c for c in df.columns if 'video_statistics' in c]]
     X_trans = df[['Action', 'Adventure', 'Casual', 'Early Access', 'Free To Play', 'Indie', 'RPG', 'Simulation', 'Strategy', 'Co-op', 
                   'Custom Volume Controls', 'Family Sharing', 'Full controller support', 'Multi-player', 'Online Co-op', 'Online PvP', 
@@ -141,14 +141,14 @@ def _preprocess_test(df, transformers):
     umap = transformers['umap']
     clip_reduced = umap.transform(clip_matrix)
     
-    for i in range(16):
+    for i in range(18):
         df4[f'clip_umap_{i}'] = clip_reduced[:, i] 
     
     return df4, df_y_trans
 
 def _best_params_mlp(X_train, Y_train):
     param_grid = {
-        'hidden_layer_sizes': [(64,32), (128, 64, 32), (128,64), (124,)],
+        'hidden_layer_sizes': [(64,32), (128, 64, 32), (128,64), (128,)],
         'activation': ['relu', 'tanh'],
         'alpha': [0.0001, 0.01, 0.1],
         'learning_rate_init': [0.001, 0.01]
@@ -158,6 +158,28 @@ def _best_params_mlp(X_train, Y_train):
     grid.fit(X_train, Y_train.values.flatten())
 
     params_mejor_modelo = grid.best_params_
+    print(f'Los parámetros del mejor modelo son:\n{params_mejor_modelo}')
+
+    return params_mejor_modelo
+
+
+def _best_params_mlp_optuna(X_train, Y_train):
+    def objective(trial):
+        params = {
+            'hidden_layer_sizes': trial.suggest_categorical('hidden_layer_sizes', [(64,32), (128, 64, 32), (128,64), (128,)]),
+            'activation': trial.suggest_categorical('activation', ['relu', 'tanh']),
+            'alpha': trial.suggest_categorical('alpha', [0.0001, 0.01, 0.1]),
+            'learning_rate_init': trial.suggest_categorical('learning_rate_init', [0.001, 0.01])
+        }
+
+        modelo = MLPRegressor(max_iter=5000, random_state=42, **params)
+        return cross_val_score(modelo, X_train, Y_train.values.flatten(), cv=5, n_jobs=-1).mean()
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=30)
+
+    params_mejor_modelo = study.best_params
+    
     print(f'Los parámetros del mejor modelo son:\n{params_mejor_modelo}')
 
     return params_mejor_modelo
@@ -198,12 +220,11 @@ if __name__ == '__main__':
 
     # Preprocesamiento
     X_train_base, y_train, transformers = _preprocess_train(df_train)
-    X_train_base = X_train_base.drop(columns=['clip_umap_4','clip_umap_6','clip_umap_15','clip_umap_7','Single-player'])
     
     # MLP Regressor con imágenes (umap)
     print('Encontrando el mejor modelo de MLP con imágenes...')
     best_params = _best_params_mlp(X_train_base, y_train)
 
     print('Creando mejor modelo MLP con imágenes...')
-    _mlp(X_train_base, y_train, best_params, 'sklearn-mlp-umap-img', transformers)
+    _mlp(X_train_base, y_train, best_params, 'mlp-umap-img', transformers)
     
