@@ -1,16 +1,20 @@
-import pandas as pd
-import numpy as np
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-import statsmodels.api as sm
-import wandb
-from math import sqrt
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from src.utils.config import popularity
 from src.utils.files import read_file
+
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import statsmodels.api as sm
+from math import sqrt
 import joblib
 import os
+
+import wandb
+
+import pandas as pd
+import numpy as np
+
 def transform_for_linear_regresion(df):
     df_clean = df.copy()
     errase_columns = ['id', 'name', 'price_range', 'v_resnet', 'v_convnext']
@@ -94,10 +98,10 @@ def forward_selection(train_df, test_df, y_variable, selection_method="AIC", use
     X_train_final = sm.add_constant(train_df[selected_variables])
     final_model = sm.OLS(y_train_target, X_train_final).fit()
 
-    os.makedirs('data/models', exist_ok=True)
+    os.makedirs('models/popularidad', exist_ok=True)
     model_name = "linear_regression_model_log.pkl" if use_log else "linear_regression_model.pkl"
-    joblib.dump({"model": final_model, "selected_variables": selected_variables}, f"data/models/{model_name}")
-    print(f"Modelo guardado en data/models/{model_name}")
+    joblib.dump({"model": final_model, "selected_variables": selected_variables}, f"models/popularidad/{model_name}")
+    print(f"Modelo guardado en models/popularidad/{model_name}")
             
 def create_linear_model_popularity(selection_method, use_log):
     run_name = f"linear-regression-log-{selection_method.lower()}" if use_log else f"linear-regression-{selection_method.lower()}"

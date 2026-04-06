@@ -4,22 +4,21 @@ Aplica transformaciones a los datos, optimización de hiperparámetros
 con Optuna y registro de métricas con Weights & Biases (wandb).
 """
 
-import math
-import numpy as np
-import pandas as pd
+from src.utils.config import popularity
+from src.utils.files import read_file
 
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import optuna
 import wandb
 import xgboost as xgb
 import umap
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
-from src.utils.config import popularity
-from src.utils.files import read_file
 import joblib
 import os
 
+import math
+import numpy as np
+import pandas as pd
 
 def _transform_for_xgboost(df):
     """
@@ -158,10 +157,10 @@ def _train_xgboost(train_df, test_df, y_variable, use_log=False):
     final_model = xgb.XGBRegressor(**best_params)
     final_model.fit(X_train_full, y_train_target_full)
 
-    os.makedirs('data/models', exist_ok=True)
+    os.makedirs('models/popularidad', exist_ok=True)
     model_name = "xgboost_model_log.pkl" if use_log else "xgboost_model.pkl"
-    joblib.dump(final_model, f"data/models/{model_name}")
-    print(f"Modelo guardado en data/models/{model_name}")
+    joblib.dump(final_model, f"models/popularidad/{model_name}")
+    print(f"Modelo guardado en models/popularidad/{model_name}")
 
     df_importances = pd.DataFrame({
         'Variable': variables,

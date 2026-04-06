@@ -21,6 +21,7 @@ catboost_info
 *.jsonl.gz
 *.Rhistory
 *.exe
+*.pkl
 
 # Archivos concretos
 test.py

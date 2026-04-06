@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import optuna
-import math
 import warnings
 
 from src.utils.config import prices, load_env_file

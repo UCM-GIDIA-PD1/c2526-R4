@@ -1,14 +1,17 @@
 from utils.utils import read_prices, train_val_test_split, class_weights, get_metrics, combine_train_val
 from utils.utils import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings,save_model
+
 from sklearn.preprocessing import LabelEncoder
-import xgboost as xgb
 from sklearn.metrics import f1_score
-import optuna
-import wandb
-import pandas as pd
-from catboost import CatBoostClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score
+from catboost import CatBoostClassifier
+import xgboost as xgb
+import optuna
+
+import wandb
+
+import pandas as pd
 
 def model_noimg(df, modelName='XGBoost-Base NoImg'):
     """
