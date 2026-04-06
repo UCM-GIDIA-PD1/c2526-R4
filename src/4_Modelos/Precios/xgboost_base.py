@@ -20,6 +20,7 @@ import pandas as pd
 from catboost import CatBoostClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score
+from sklearn.model_selection import RandomizedSearchCV
 
 def model_noimg(df, modelName='XGBoost-Base NoImg'):
     """
@@ -456,37 +457,73 @@ def model_cluster(df, modelName=None):
     run.log(metrics_dict)
     run.finish()
 
-def grid_search(X_train, y_train, sample_weights= None):
+def random_search(X_train, y_train, sample_weights=None):
     model = xgb.XGBClassifier(
-        verbosity=0,
         objective='multi:softprob',
         num_class=len(set(y_train)),
         random_state=42,
-        device='cpu'
+        tree_method='hist', 
+        device='cuda',
+        eval_metric='mlogloss'
     )
-
-    param_grid = {
-        'n_estimators': [100, 500, 1000],
-        'learning_rate': [0.01, 0.1, 0.3],
-        'max_depth': [3, 6, 10],
-        'subsample': [0.5, 0.8, 1.0],
-        'colsample_bytree': [0.5, 0.8, 1.0],
-        'gamma': [1e-8, 0.1, 1.0],
-        'min_child_weight': [1, 5, 10]
+    param_dist = {
+        'n_estimators': [200, 400, 600],
+        'learning_rate': [0.03, 0.05, 0.1],
+        'max_depth': [4, 6, 8],
+        'subsample': [0.7, 0.9, 1.0],
+        'colsample_bytree': [0.7, 0.9, 1.0],
+        'gamma': [0, 0.1, 1],
+        'min_child_weight': [1, 3, 5]
     }
-
-    grid_search = GridSearchCV(
+    search = RandomizedSearchCV(
         estimator=model,
-        param_grid=param_grid,
+        param_distributions=param_dist,
+        n_iter=120,
         cv=3,
-        n_jobs=-1, 
         verbose=1,
+        n_jobs=1,
         scoring='f1_weighted',
+        random_state=42
     )
+    search.fit(X_train, y_train, sample_weight=sample_weights)
 
-    grid_search.fit(X_train, y_train, sample_weight=sample_weights)
+    return search   
 
-    return grid_search
+def model_search(df, modelName=None):
+    le = LabelEncoder()
+    df['price_range'] = le.fit_transform(df['price_range'])
+
+
+    y = df['price_range']
+    X = df.drop(columns=['price_range'])
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+
+    sample_weights = class_weights(y_train)
+
+    X_train, X_val, X_test = umap_embeddings(X_train, X_val, X_test, emb_col='v_clip')
+
+
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Precios", 
+        name=modelName,
+        job_type='xgboost'
+    )
+    search_result = random_search(X_train, y_train, sample_weights=sample_weights)
+    
+    best_params = search_result.best_params_
+    final_model = search_result.best_estimator_
+    
+    print(f"Mejor F1-Score (CV): {search_result.best_score_}")
+    print(f"Mejores parámetros: {best_params}")
+    y_pred = final_model.predict(X_test)
+
+
+    metrics_dict = get_metrics(y_test, y_pred)
+    
+    run.config.update(best_params)
+    run.log(metrics_dict)
+    run.finish()
 
 def xgboost_base():
     print('Selecciona qué modelo quieres entrenar:')
@@ -495,6 +532,7 @@ def xgboost_base():
     print('3. XGBoost Clustered')
     print('4. CatBoost Clustered')
     print('5. XGBoost Umap')
+    print('6. XGBoost Umap RandomSearch')
     print('0. Salir')
 
     opcion = input('Ingresa el número de la opción: ')
@@ -514,6 +552,9 @@ def xgboost_base():
     elif opcion == '5':
         df_umap = df.copy()
         model_umap(df_umap, modelName='XGBoost Umap')
+    elif opcion == '6':
+        df_umap = df.copy()
+        model_search(df_umap, modelName='XGBoost Umap RandomSearch')
     else:
         return
 
