@@ -34,9 +34,9 @@ def _preprocess_train(df):
 
     # Separación de DataFrames en diferentes tipos de variables
     y = DataFrame(df['recomendaciones_totales'])
-    X_num_log = df[['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'price_overview', 'description_len']]
+    X_num_log = df[['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'price_overview']]
     X_num_minmax = df[['release_year']] # Fechas
-    X_num_std = df[['brillo']]
+    X_num_std = df[['brillo', 'description_len']]
     X_youtube = df[[c for c in df.columns if 'video_statistics' in c]]
     X_trans = df[['Action', 'Adventure', 'Casual', 'Early Access', 'Free To Play', 'Indie', 'RPG', 'Simulation', 'Strategy', 'Co-op', 
                   'Custom Volume Controls', 'Family Sharing', 'Full controller support', 'Multi-player', 'Online Co-op', 'Online PvP', 

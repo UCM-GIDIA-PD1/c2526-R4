@@ -4,13 +4,15 @@ según sus características. Realiza lo mismo con un PCA del 0.9 de varianza tot
 """
 
 from .utils_modelo_precios.preprocesamiento import get_metrics, read_prices, train_val_test_split,normalize_train_test, pca_train_test,cluster_embedings, read_prices_reduced
+
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import LabelEncoder
-import wandb
-import pandas as pd
 from imblearn.over_sampling import SMOTE
 
+import wandb
+
+import pandas as pd
 
 def grid_search_knn_full(X_train, X_val, y_train, y_val):
     """
@@ -194,12 +196,10 @@ def _reduced_model(df, modelName= 'K-NN Reduced'):
     X_val['genres']   = le.transform(X_val['genres'])
     X_test['genres']  = le.transform(X_test['genres'])
 
-
     columnas_categoricas = ['Custom Volume Controls', 'Family Sharing', 'Playable without Timed Input', 'Single-player', 'has_multiplayer']
     columnas_numericas = X_train.columns.difference(columnas_categoricas).tolist()
     X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
     X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=0.9)
-
 
     run = wandb.init(
         entity="pd1-c2526-team4",
