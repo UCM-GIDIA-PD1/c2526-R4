@@ -2,12 +2,8 @@
 Dado popularidad.parquet, ejecuta el modelo óptimo para predecir recomendaciones_totales
 """
 
-import os
-import numpy as np
-import pandas as pd
-
-import wandb
-import joblib
+from src.utils.config import popularity
+from src.utils.files import read_file
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_squared_log_error
 from sklearn.model_selection import train_test_split
@@ -15,9 +11,13 @@ from sklearn.preprocessing import StandardScaler, PowerTransformer
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
+import os
+import joblib
 
-from src.utils.config import popularity
-from src.utils.files import read_file
+import wandb
+
+import numpy as np
+import pandas as pd
 
 BEST_KNN_PARAMS = {
     "n_neighbors": 20,
@@ -120,8 +120,8 @@ def create_knn_model_popularity():
         "test_rmsle": rmsle
     })
 
-    os.makedirs('data/models', exist_ok=True)
-    model_path = "data/models/knn_model_log.pkl"
+    os.makedirs('models/popularidad', exist_ok=True)
+    model_path = "models/popularidad/knn_model_log.pkl"
     joblib.dump(final_model, model_path)
     print(f"\nModelo guardado exitosamente en {model_path}")
 

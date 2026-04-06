@@ -1,21 +1,23 @@
 from utils.utils import read_prices, train_val_test_split, class_weights, get_metrics
 from utils.utils import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings
-from sklearn.preprocessing import LabelEncoder
-import xgboost as xgb
+
 from sklearn.metrics import f1_score
-import optuna
-import wandb
-import pandas as pd
-from catboost import CatBoostClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.preprocessing import LabelEncoder
+from catboost import CatBoostClassifier
+import xgboost as xgb
+import optuna
 import os
 import joblib
 import statsmodels.api as sm
 
+import wandb
 
-def catboostModel(df, table, model_path= 'data/models/catboostClustered.pkl'):
+import pandas as pd
+
+def catboostModel(df, table, model_path= 'models/precios/catboostClustered.pkl'):
     y = df['price_range']
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
@@ -37,7 +39,7 @@ def catboostModel(df, table, model_path= 'data/models/catboostClustered.pkl'):
     else:
         raise FileNotFoundError
 
-def xgboostUmap(df, table, model_path= 'data/models/xgboostumap.pkl'):
+def xgboostUmap(df, table, model_path= 'models/precios/xgboostumap.pkl'):
     # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
     le = LabelEncoder()
     df['price_range'] = le.fit_transform(df['price_range'])
@@ -55,7 +57,6 @@ def xgboostUmap(df, table, model_path= 'data/models/xgboostumap.pkl'):
         y_pred = model.predict(X_test)
         metrics_dict = get_metrics(y_test, y_pred)
 
-
         table.add_data(
             'XGBoost Umap',
             metrics_dict['accuracy'],
@@ -66,7 +67,7 @@ def xgboostUmap(df, table, model_path= 'data/models/xgboostumap.pkl'):
     else:
          raise FileNotFoundError
 
-def knnModel(df, table, model_path= 'data/models/knncompleteclusters.pkl'):
+def knnModel(df, table, model_path= 'models/precios/knncompleteclusters.pkl'):
     pass
 
 

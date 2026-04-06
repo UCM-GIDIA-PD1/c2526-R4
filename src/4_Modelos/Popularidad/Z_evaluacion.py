@@ -4,22 +4,25 @@ Calcula métricas para Baseline, Regresión Lineal y XGBoost en el test_df aisla
 y las registra en W&B en un único run y en una tabla comparativa.
 """
 
-import os
-import numpy as np
-import pandas as pd
-import wandb
-import joblib
-import statsmodels.api as sm
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from math import sqrt
-
 from src.utils.config import popularity
 from src.utils.files import read_file
+
 from linear_regresion_log import transform_for_linear_regresion
 from xgboost_popularidad import _transform_for_xgboost
 from mlp_popularidad import _preprocess_test
 from knn_popularidad import _transform_for_knn, VARIABLES_GANADORAS
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import os
+import joblib
+import statsmodels.api as sm
+
+import wandb
+
+import numpy as np
+import pandas as pd
+from math import sqrt
 
 def evaluate_models():
     run = wandb.init(
@@ -56,8 +59,8 @@ def evaluate_models():
     train_df_lr, test_df_lr = train_test_split(df_lr, test_size=0.20, random_state=42)
 
     for use_log, model_path, model_name in [
-        (False, "data/models/linear_regression_model.pkl", "Linear Regression (Normal)"),
-        (True, "data/models/linear_regression_model_log.pkl", "Linear Regression (Log)")
+        (False, "models/popularidad/linear_regression_model.pkl", "Linear Regression (Normal)"),
+        (True, "models/popularidad/linear_regression_model_log.pkl", "Linear Regression (Log)")
     ]:
         if os.path.exists(model_path):
             lr_data = joblib.load(model_path)
@@ -89,8 +92,8 @@ def evaluate_models():
     train_df_xgb, test_df_xgb = train_test_split(df_xgb, test_size=0.20, random_state=42)
 
     for use_log, model_path, model_name in [
-        (False, "data/models/xgboost_model.pkl", "XGBoost (Normal)"),
-        (True, "data/models/xgboost_model_log.pkl", "XGBoost (Log)")
+        (False, "models/popularidad/xgboost_model.pkl", "XGBoost (Normal)"),
+        (True, "models/popularidad/xgboost_model_log.pkl", "XGBoost (Log)")
     ]:
         if os.path.exists(model_path):
             xgb_model = joblib.load(model_path)
@@ -118,8 +121,8 @@ def evaluate_models():
             table.add_data(model_name, mae_xgb, rmse_xgb, r2_xgb)
 
     # Evaluación de MLP (Red Neuronal)
-    if os.path.exists("data/models/mlp_model.pkl"):
-        mlp_data = joblib.load("data/models/mlp_model_popularidad.pkl")
+    if os.path.exists("models/popularidad/mlp_model.pkl"):
+        mlp_data = joblib.load("models/mlp_model_popularidad.pkl")
         mlp_model = mlp_data["model"]
         transformers_dict = mlp_data["transformers"]
         y_min = mlp_data["y_train_min"]
@@ -145,8 +148,8 @@ def evaluate_models():
         table.add_data("MLP", mae_mlp, rmse_mlp, r2_mlp)
 
     # Evaluación de KNN
-    if os.path.exists("data/models/knn_model_log.pkl"):
-        knn_model = joblib.load("data/models/knn_model_log.pkl")
+    if os.path.exists("models/popularidad/knn_model_log.pkl"):
+        knn_model = joblib.load("models/knn_model_log.pkl")
         df_knn = _transform_for_knn(df_raw)
         
         y_knn = df_knn['recomendaciones_totales']

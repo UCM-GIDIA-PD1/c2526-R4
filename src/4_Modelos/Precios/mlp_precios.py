@@ -74,7 +74,7 @@ def _preprocess_test(df_X, df_y, transformers):
     df_y = df_y.reset_index(drop=True)
 
     X_num_log = df_X[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
-    X_num_std = df_X[['brillo', 'description_len']]
+    X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
     X_trans = df_X.drop(columns=['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
 
@@ -198,8 +198,8 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name):
 
     run.log(metricas)
 
-    os.makedirs('data/models', exist_ok=True)
-    model_path = 'data/models/mlp_model_precios.pkl'
+    os.makedirs('models/precios', exist_ok=True)
+    model_path = 'models/precios/mlp_model_precios.pkl'
     joblib.dump({
         'model': best_mlp,
         'transformers': transformers,

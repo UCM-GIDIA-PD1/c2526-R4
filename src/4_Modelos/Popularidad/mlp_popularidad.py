@@ -199,8 +199,8 @@ def _mlp(X_train, y_train, best_params, model_name, transformers):
                              n_iter_no_change=20)
     best_mlp.fit(X_train, y_train.values.flatten())
 
-    os.makedirs('data/models', exist_ok=True)
-    model_path = 'data/models/mlp_model_popularidad.pkl'
+    os.makedirs('models/popularidad', exist_ok=True)
+    model_path = 'models/popularidad/mlp_model_popularidad.pkl'
     joblib.dump({
         'model': best_mlp,
         'transformers': transformers,
