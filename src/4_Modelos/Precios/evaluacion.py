@@ -66,6 +66,8 @@ def xgboostUmap(df, table, model_path= 'data/models/xgboostumap.pkl'):
     else:
          raise FileNotFoundError
 
+def knnModel(df, table, model_path= 'data/models/knncompleteclusters.pkl'):
+    pass
 
 
 def evaluate_models():
