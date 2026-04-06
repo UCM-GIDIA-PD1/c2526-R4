@@ -18,6 +18,8 @@ import wandb
 
 from pandas import DataFrame, concat
 from numpy import vstack, clip, log1p, expm1
+import joblib
+import os
 
 def _preprocess_train(df):
     """Función para transformar los datos para realiza MLP
@@ -34,9 +36,9 @@ def _preprocess_train(df):
 
     # Separación de DataFrames en diferentes tipos de variables
     y = DataFrame(df['recomendaciones_totales'])
-    X_num_log = df[['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'price_overview', 'description_len']]
+    X_num_log = df[['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'price_overview']]
     X_num_minmax = df[['release_year']] # Fechas
-    X_num_std = df[['brillo']]
+    X_num_std = df[['brillo', 'description_len']]
     X_youtube = df[[c for c in df.columns if 'video_statistics' in c]]
     X_trans = df[['Action', 'Adventure', 'Casual', 'Early Access', 'Free To Play', 'Indie', 'RPG', 'Simulation', 'Strategy', 'Co-op', 
                   'Custom Volume Controls', 'Family Sharing', 'Full controller support', 'Multi-player', 'Online Co-op', 'Online PvP', 
@@ -160,7 +162,7 @@ def _best_params_mlp(X_train, Y_train):
 
     return params_mejor_modelo
 
-def _mlp(X_train, X_test, y_train, y_test, best_params, model_name, target_transformer):
+def _mlp(X_train, y_train, best_params, model_name, transformers):
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Popularidad", 
@@ -175,25 +177,16 @@ def _mlp(X_train, X_test, y_train, y_test, best_params, model_name, target_trans
                              n_iter_no_change=20)
     best_mlp.fit(X_train, y_train.values.flatten())
 
-    y_pred = best_mlp.predict(X_test)
-
-    min_val_train = y_train.values.min()
-    max_val_train = y_train.values.max()
-    y_pred_clipped = clip(y_pred, min_val_train, max_val_train)
-
-    y_pred_real = target_transformer.inverse_transform(y_pred_clipped.reshape(-1, 1)).flatten()
-    y_test_real = target_transformer.inverse_transform(y_test).flatten()
-
-    mae = mean_absolute_error(y_test_real, y_pred_real)
-    rmse = sqrt(mean_squared_error(y_test_real, y_pred_real))
-    r2 = r2_score(y_test_real, y_pred_real)
-
-    run.log({
-        'test_mae' : mae,
-        'test_rmse' : rmse,
-        'test_r2' : r2
-    })
-
+    os.makedirs('data/models', exist_ok=True)
+    model_path = 'data/models/mlp_model.pkl'
+    joblib.dump({
+        'model': best_mlp,
+        'transformers': transformers,
+        'y_train_min': y_train.values.min(),
+        'y_train_max': y_train.values.max()
+    }, model_path)
+    print(f"Modelo guardado en {model_path}")
+    
     run.finish()
 
 
@@ -201,20 +194,16 @@ if __name__ == '__main__':
     # Lectura y división de datos
     print('Leyendo y preprocesando datos...')
     df = read_file(popularity)
-    df_train, df_test = train_test_split(df, test_size=0.3, random_state=42)
+    df_train, df_test = train_test_split(df, test_size=0.2, random_state=42)
 
     # Preprocesamiento
     X_train_base, y_train, transformers = _preprocess_train(df_train)
-    X_test_base, y_test = _preprocess_test(df_test, transformers)
-
     X_train_base = X_train_base.drop(columns=['clip_umap_4','clip_umap_6','clip_umap_15','clip_umap_7','Single-player'])
-    X_test_base = X_test_base.drop(columns=['clip_umap_4','clip_umap_6','clip_umap_15','clip_umap_7','Single-player'])
-
     
     # MLP Regressor con imágenes (umap)
     print('Encontrando el mejor modelo de MLP con imágenes...')
     best_params = _best_params_mlp(X_train_base, y_train)
 
     print('Creando mejor modelo MLP con imágenes...')
-    _mlp(X_train_base, X_test_base, y_train, y_test, best_params, 'sklearn-mlp-umap-img', transformers['pt1'])
+    _mlp(X_train_base, y_train, best_params, 'sklearn-mlp-umap-img', transformers)
     

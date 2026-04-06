@@ -13,6 +13,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from pandas import Series
 from umap import UMAP
 from numpy import vstack
+from pandas import concat
 
 def read_prices(minio={"minio_write": False, "minio_read": False}):
     """Lee y limpia el dataset de precios desde un archivo Parquet.
@@ -150,6 +151,13 @@ def class_weights(y):
     '''
     sample_weights = compute_sample_weight(class_weight='balanced', y=y)
     return sample_weights
+
+def combine_train_val(X_train, X_val, y_train, y_val):
+    X_train = concat([X_train, X_val])
+    y_train = concat([y_train, y_val])
+
+    return X_train, y_train
+
 
 def get_metrics(y_test, y_pred, classes=None):
     """Calcula y muestra las métricas de rendimiento para un modelo de clasificación.

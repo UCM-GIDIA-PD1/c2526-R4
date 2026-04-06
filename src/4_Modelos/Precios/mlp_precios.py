@@ -9,7 +9,9 @@ from sklearn.preprocessing import StandardScaler, PowerTransformer, OrdinalEncod
 from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPClassifier
 from sklearn.cluster import KMeans
+from sklearn.model_selection import cross_val_score
 from umap import UMAP
+import optuna
 
 import wandb
 
@@ -33,7 +35,7 @@ def _preprocess_train(df_X, df_y):
     X_num_log = df_X[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
-    X_trans = df_X.drop(columns=['price_range', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
+    X_trans = df_X.drop(columns=['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
 
     # Transformación de variables
     pt = PowerTransformer(method='yeo-johnson')
@@ -72,7 +74,7 @@ def _preprocess_test(df_X, df_y, transformers):
     X_num_log = df_X[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
-    X_trans = df_X.drop(columns=['price_range', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
+    X_trans = df_X.drop(columns=['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
 
     pt = transformers['pt']
     X_num_log_trans = pt.transform(X_num_log)
@@ -99,6 +101,8 @@ def _preprocess_test(df_X, df_y, transformers):
 
     return df3, df_y_trans
 
+""" GRIDSEARCH """
+
 def _best_params_mlp(X_train, Y_train):
     param_grid = {
         'hidden_layer_sizes': [(64,32), (100,), (80,60), (64,50), (124,)],
@@ -115,6 +119,69 @@ def _best_params_mlp(X_train, Y_train):
 
     return params_mejor_modelo
 
+
+""" OPTUNA + UMAP
+
+def _best_params_mlp(X_train, Y_train):
+    def objective(trial):
+        params = {
+            'hidden_layer_sizes': trial.suggest_categorical('hidden_layer_sizes', [(64,), (128,), (64, 32), (128, 64), (128, 64, 32)]),
+            'activation': trial.suggest_categorical('activation', ['relu', 'tanh']),
+            'alpha': trial.suggest_float('alpha', 1e-4, 1e-1, log=True),
+            'learning_rate_init': trial.suggest_float('learning_rate_init', 1e-4, 1e-1, log=True)
+        }
+
+        n_components = trial.suggest_int('n_components', 2, 32) 
+
+        X_train_trial = X_train.copy()
+        clip_matrix_train = vstack(X_train_trial['v_clip'].values)
+        
+        umap = UMAP(n_components=n_components, random_state=42)
+        clip_reduced_train = umap.fit_transform(clip_matrix_train)
+        
+        for i in range(n_components):
+            X_train_trial[f'clip_umap_{i}'] = clip_reduced_train[:, i]
+            
+        X_train_trial = X_train_trial.drop(columns=['v_clip'])
+
+        model = MLPClassifier(max_iter=5000, random_state=42, **params)
+        
+        score = cross_val_score(model, X_train_trial, Y_train.values.flatten(), cv=5, n_jobs=-1)
+        return score.mean()
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=20) 
+
+    params_mejor_modelo = study.best_params
+    print(f'Los parámetros del mejor modelo son:\n{params_mejor_modelo}')
+
+    return params_mejor_modelo
+"""
+
+""" OPTUNA + BEST CONFIG UMAP 
+
+def _best_params_mlp(X_train, Y_train):
+    def objective(trial):
+        params = {
+            'hidden_layer_sizes': trial.suggest_categorical('hidden_layer_sizes', [(64,), (128,), (64, 32), (128, 64), (128, 64, 32)]),
+            'activation': trial.suggest_categorical('activation', ['relu', 'tanh']),
+            'alpha': trial.suggest_float('alpha', 1e-4, 1e-1, log=True),
+            'learning_rate_init': trial.suggest_float('learning_rate_init', 1e-4, 1e-1, log=True)
+        }
+
+        model = MLPClassifier(max_iter=5000, random_state=42, **params)
+        
+        score = cross_val_score(model, X_train, Y_train.values.flatten(), cv=5, n_jobs=-1)
+        return score.mean()
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=50)
+
+    params_mejor_modelo = study.best_params
+    print(f'Los parámetros del mejor modelo son:\n{params_mejor_modelo}')
+
+    return params_mejor_modelo
+"""
 def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name):
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -132,12 +199,7 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name):
     Y_pred = best_mlp.predict(X_test)
     metricas = get_metrics(Y_test.values.flatten(), Y_pred, classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'])
 
-    run.log({
-        'accuracy' : metricas['accuracy'],
-        'precision' : metricas['precision'],
-        'recall' : metricas['recall'],
-        'f1-score' : metricas['f1']
-    })
+    run.log(metricas)
 
     run.finish()
 
@@ -158,7 +220,7 @@ if __name__ == '__main__':
     X_train, Y_train, transformers = _preprocess_train(X_train, y_train)
     X_test, Y_test = _preprocess_test(X_test, y_test, transformers)
 
-    
+
     # MLP sin imágenes
     print('Buscando mejores parámetros para modelo sin imágenes...')
     X_train_no_img = X_train.drop(columns=['v_clip'])
@@ -166,7 +228,7 @@ if __name__ == '__main__':
     best_params = _best_params_mlp(X_train_no_img, Y_train)
 
     print('Creando mejor modelo MLP sin imágenes...')
-    _mlp(X_train_no_img, X_test_no_img, Y_train, Y_test, best_params, 'sklearn-mlp-no-img')
+    _mlp(X_train_no_img, X_test_no_img, Y_train, Y_test, best_params, 'mlp-no-img')
     
 
     # MLP con imágenes (clusters)
@@ -195,8 +257,8 @@ if __name__ == '__main__':
     best_params = _best_params_mlp(X_train_clusters, Y_train)
 
     print('Creando mejor modelo MLP con imágenes con clusters...')
-    _mlp(X_train_clusters, X_test_clusters, Y_train, Y_test, best_params, 'sklearn-mlp-cluster-img')
-    
+    _mlp(X_train_clusters, X_test_clusters, Y_train, Y_test, best_params, 'mlp-cluster-img')
+
 
     # MLP con imágenes (UMAP)
     print('Buscando mejores parámetros para modelo con imágenes con UMAP...')
@@ -206,12 +268,12 @@ if __name__ == '__main__':
     clip_matrix_train = vstack(X_train_umap['v_clip'].values)
     clip_matrix_test = vstack(X_test_umap['v_clip'].values)
 
-    umap = UMAP(n_components=16, random_state=42) 
+    umap = UMAP(n_components=19, random_state=42) # n_components = 19 es la reducción de dimensionalidad óptima
 
     clip_reduced_train = umap.fit_transform(clip_matrix_train)
     clip_reduced_test = umap.transform(clip_matrix_test)
     
-    for i in range(16):
+    for i in range(19):
         X_train_umap[f'clip_umap_{i}'] = clip_reduced_train[:, i]
         X_test_umap[f'clip_umap_{i}'] = clip_reduced_test[:, i]
     
@@ -221,5 +283,5 @@ if __name__ == '__main__':
     best_params_umap = _best_params_mlp(X_train_umap, Y_train)
 
     print('Creando mejor modelo MLP con imágenes con UMAP...')
-    _mlp(X_train_umap, X_test_umap, Y_train, Y_test, best_params_umap, 'sklearn-mlp-umap-img')
+    _mlp(X_train_umap, X_test_umap, Y_train, Y_test, best_params_umap, 'mlp-umap-img')
     

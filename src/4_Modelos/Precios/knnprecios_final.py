@@ -1,73 +1,11 @@
-"""
-Dado precios.parquet crea un modelo de knn para predecir en que rango de precio se sitúa un juego 
-según sus características. Realiza lo mismo con un PCA del 0.9 de varianza total.
-"""
-
-from .utils_modelo_precios.preprocesamiento import get_metrics, read_prices, train_val_test_split,normalize_train_test, pca_train_test,cluster_embedings, read_prices_reduced
-
+from .utils_modelo_precios.preprocesamiento import get_metrics, read_prices, train_val_test_split,normalize_train_test, pca_train_test,cluster_embedings, read_prices_reduced, combine_train_val
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import LabelEncoder
+import wandb
+import pandas as pd
 from imblearn.over_sampling import SMOTE
 
-import wandb
-
-import pandas as pd
-
-def grid_search_knn_full(X_train, X_val, y_train, y_val):
-    """
-    Optimización de hiperparámetros para K-NN usando los conjuntos de train y validation.
-
-    Args:
-        - X_train (pd.Dataframe):  Conjunto de entranamiento
-        - X_val (pd.Dataframe): Conjunto de entranamiento
-        - y_train (pd.Dataframe): Variable objetivo del conjunto de entrenamiento
-        - y_val (pd.Dataframe): Variable objetivo del conjunto de validacion
-
-    Returns:
-        best_params (dict): Diccionario que contiene los parámetros (n_neighbors, weights, metric) del mejor modelo
-    """
-    param_grid = {
-        'n_neighbors': list(range(1, 40, 1)),
-        'weights': ['uniform', 'distance'],
-        'metric': ['euclidean', 'manhattan']
-    }
-
-    best_params = None
-    best_score = -1
-
-    print('Optimizando')
-    for n in param_grid['n_neighbors']:
-        for w in param_grid['weights']:
-            for m in param_grid['metric']:
-                knn = KNeighborsClassifier(n_neighbors=n, weights=w, metric=m)
-                knn.fit(X_train, y_train)
-                score = f1_score(y_val, knn.predict(X_val), average='weighted')
-
-                if score > best_score:
-                    best_score = score
-                    best_params = {'n_neighbors': n, 'weights': w, 'metric': m}
-                
-                print('Best Params: ', best_params)
-
-    print("Mejor combinación de parámetros:", best_params)
-    print("Mejor score en validación:", best_score)
-
-    return best_params
-
-def objective(trial, X_train, X_val, y_train, y_val):
-    params = {
-        'n_neighbors': trial.suggest_int('n_neighbors', 1, 40),
-        'weights': trial.suggest_categorical('weights', ['uniform', 'distance']),
-        'metric': trial.suggest_categorical('metric', ['euclidean', 'manhattan'])
-    }
-    knn = KNeighborsClassifier(**params)
-    knn.fit(X_train, y_train)
-    preds = knn.predict(X_val)
-    
-    score = f1_score(y_val, preds, average='weighted')
-    
-    return score
 
 def _complete_model(df, modelName= 'K-NN Complete Clusters'):
     """
@@ -98,6 +36,7 @@ def _complete_model(df, modelName= 'K-NN Complete Clusters'):
 
     columnas_numericas = X_train.columns.difference(columnas_categoricas).tolist()
     X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
+    X_train, y_train =  combine_train_val(X_train, X_val, y_train, y_val)
 
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -106,7 +45,11 @@ def _complete_model(df, modelName= 'K-NN Complete Clusters'):
         job_type='knn'
     )
 
-    best_params = grid_search_knn_full(X_train, X_val, y_train, y_val)
+    best_params = {
+        'metric':"manhattan",
+        'n_neighbors':11,
+        'weights':"distance"
+    }
 
     knn = KNeighborsClassifier(**best_params)
     knn.fit(X_train, y_train)
@@ -149,6 +92,7 @@ def _complete_pca_mode(df, modelName= 'K-NN Complete Clusters PCA'):
     columnas_numericas = X_train.columns.difference(columnas_categoricas).tolist()
     X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
     X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=0.9)
+    X_train, y_train =  combine_train_val(X_train, X_val, y_train, y_val)
 
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -157,7 +101,11 @@ def _complete_pca_mode(df, modelName= 'K-NN Complete Clusters PCA'):
         job_type='knn'
     )
 
-    best_params = grid_search_knn_full(X_train, X_val, y_train, y_val)
+    best_params = {
+        'metric':"manhattan",
+        'n_neighbors':7,
+        'weights':"distance"
+    }
 
     knn = KNeighborsClassifier(**best_params)
     knn.fit(X_train, y_train)
@@ -196,10 +144,12 @@ def _reduced_model(df, modelName= 'K-NN Reduced'):
     X_val['genres']   = le.transform(X_val['genres'])
     X_test['genres']  = le.transform(X_test['genres'])
 
+
     columnas_categoricas = ['Custom Volume Controls', 'Family Sharing', 'Playable without Timed Input', 'Single-player', 'has_multiplayer']
     columnas_numericas = X_train.columns.difference(columnas_categoricas).tolist()
     X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
     X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=0.9)
+    X_train, y_train =  combine_train_val(X_train, X_val, y_train, y_val)
 
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -208,7 +158,11 @@ def _reduced_model(df, modelName= 'K-NN Reduced'):
         job_type='knn'
     )
 
-    best_params = grid_search_knn_full(X_train, X_val, y_train, y_val)
+    best_params = {
+        'metric':"manhattan",
+        'n_neighbors':7,
+        'weights':"distance"
+    }
 
     knn = KNeighborsClassifier(**best_params)
     knn.fit(X_train, y_train)
@@ -254,6 +208,7 @@ def _oversampled_reduced(df, modelName= 'K-NN Reduced Oversampled'):
 
     X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
     X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=0.9)
+    X_train, y_train =  combine_train_val(X_train, X_val, y_train, y_val)
 
     smote = SMOTE(random_state=42)
     X_train, y_train = smote.fit_resample(X_train, y_train)
@@ -264,7 +219,11 @@ def _oversampled_reduced(df, modelName= 'K-NN Reduced Oversampled'):
         name=modelName,
         job_type='knn'
     )
-    best_params = grid_search_knn_full(X_train, X_val, y_train, y_val)
+    best_params = {
+        'metric':"euclidean",
+        'n_neighbors':1,
+        'weights':"uniform"
+    }
     knn = KNeighborsClassifier(**best_params)
     knn.fit(X_train, y_train)
     y_pred = knn.predict(X_test)
@@ -282,7 +241,6 @@ def knnprecios():
     print('2. K-NN Complete Clusters PCA')
     print('3. K-NN Reduced')
     print('4. K-NN Reduced Oversampled')
-    print('5. K-NN Best Variables')
     print('0. Salir')
     opcion = input('Ingresa el número de la opción: ')
 
@@ -296,11 +254,6 @@ def knnprecios():
         _oversampled_reduced(df_reduced.copy(), modelName='K-NN Reduced Oversampled')
     elif opcion == '0':
         return
-    elif opcion == '5':
-        df_bestv = df.copy()
-        df_bestv = df_bestv[['Indie', 'Family Sharing', 'Casual', 'Online PvP', 'Single-player', 'Steam Cloud', 'Custom Volume Controls',
-                              'total_games_by_publisher', 'num_languages', 'v_clip', 'PvP', 'price_range']]
-        _complete_model(df_bestv, modelName='K-NN Best Variables')
     else:
         print('Opción no válida')
         return

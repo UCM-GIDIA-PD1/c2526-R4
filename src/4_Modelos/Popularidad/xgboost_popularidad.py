@@ -12,12 +12,13 @@ import optuna
 import wandb
 import xgboost as xgb
 import umap
-from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from src.utils.config import popularity
 from src.utils.files import read_file
+import joblib
+import os
 
 
 def _transform_for_xgboost(df):
@@ -142,8 +143,6 @@ def _train_xgboost(train_df, test_df, y_variable, use_log=False):
     variables = [c for c in train_df.columns if c != y_variable]
     
     X_train_full = train_df[variables]
-    X_test = test_df[variables]
-    y_test_real = test_df[y_variable]
 
     if use_log:
         y_train_target_full = np.log1p(train_df[y_variable])
@@ -159,18 +158,10 @@ def _train_xgboost(train_df, test_df, y_variable, use_log=False):
     final_model = xgb.XGBRegressor(**best_params)
     final_model.fit(X_train_full, y_train_target_full)
 
-    y_pred_raw = final_model.predict(X_test)
-    
-    if use_log:
-        y_pred_raw = np.maximum(y_pred_raw, 0)
-        y_pred = np.expm1(y_pred_raw)
-    else:
-        y_pred = np.maximum(y_pred_raw, 0) 
-    
-    # Cálculo de métricas
-    mae = mean_absolute_error(y_test_real, y_pred)
-    rmse = math.sqrt(mean_squared_error(y_test_real, y_pred))
-    r2 = r2_score(y_test_real, y_pred)
+    os.makedirs('data/models', exist_ok=True)
+    model_name = "xgboost_model_log.pkl" if use_log else "xgboost_model.pkl"
+    joblib.dump(final_model, f"data/models/{model_name}")
+    print(f"Modelo guardado en data/models/{model_name}")
 
     df_importances = pd.DataFrame({
         'Variable': variables,
@@ -179,14 +170,8 @@ def _train_xgboost(train_df, test_df, y_variable, use_log=False):
 
     df_importances = df_importances.sort_values(by='Importancia', ascending=False)
     importances = df_importances.values.tolist()
-
-    wandb.log({
-        "final_test_mae": mae,
-        "final_test_rmse": rmse,
-        "final_test_r2": r2,
-    })
     
-    return mae, r2, importances
+    return importances
 
 
 def create_xgboost_model_popularity(use_log):
@@ -217,7 +202,7 @@ def create_xgboost_model_popularity(use_log):
 
     train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
 
-    mae, r2, importances = _train_xgboost(train_df, test_df, y_variable, use_log)
+    importances = _train_xgboost(train_df, test_df, y_variable, use_log)
 
     print("10 variables más importantes:")
     for var_name, var_importance in importances[:10]:

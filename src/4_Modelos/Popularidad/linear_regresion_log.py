@@ -9,7 +9,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from src.utils.config import popularity
 from src.utils.files import read_file
-
+import joblib
+import os
 def transform_for_linear_regresion(df):
     df_clean = df.copy()
     errase_columns = ['id', 'name', 'price_range', 'v_resnet', 'v_convnext']
@@ -59,8 +60,6 @@ def forward_selection(train_df, test_df, y_variable, selection_method="AIC", use
     else:
         y_train_target = train_df[y_variable]
         
-    y_test_real = test_df[y_variable]
-
     step = 0
 
     while initial_variables:
@@ -81,34 +80,24 @@ def forward_selection(train_df, test_df, y_variable, selection_method="AIC", use
             current_score = best_new_score
             step += 1
 
-            X_train_final = sm.add_constant(train_df[selected_variables])
-            best_model_step = sm.OLS(y_train_target, X_train_final).fit()
-
-            X_test = sm.add_constant(test_df[selected_variables])
-            y_pred_raw = best_model_step.predict(X_test)
-            
-            if use_log:
-                y_pred = np.expm1(y_pred_raw)
-            else:
-                y_pred = y_pred_raw
-            
-            mae = mean_absolute_error(y_test_real, y_pred)
-            rmse = sqrt(mean_squared_error(y_test_real, y_pred))
-            r2 = r2_score(y_test_real, y_pred)
-
             wandb.log({
                 "iteration": step,
                 "score": current_score,
-                "test_mae": mae,
-                "test_rmse": rmse,
-                "test_r2": r2,
                 "num_variables": len(selected_variables),
                 "current_variables": ", ".join(selected_variables) 
             })
             
-            print(f"Añadida {best_candidate} con {selection_method}: {current_score:.2f} y MAE: {mae:.2f}")
+            print(f"Añadida {best_candidate} con {selection_method}: {current_score:.2f}")
         else:
             break 
+            
+    X_train_final = sm.add_constant(train_df[selected_variables])
+    final_model = sm.OLS(y_train_target, X_train_final).fit()
+
+    os.makedirs('data/models', exist_ok=True)
+    model_name = "linear_regression_model_log.pkl" if use_log else "linear_regression_model.pkl"
+    joblib.dump({"model": final_model, "selected_variables": selected_variables}, f"data/models/{model_name}")
+    print(f"Modelo guardado en data/models/{model_name}")
             
 def create_linear_model_popularity(selection_method, use_log):
     run_name = f"linear-regression-log-{selection_method.lower()}" if use_log else f"linear-regression-{selection_method.lower()}"

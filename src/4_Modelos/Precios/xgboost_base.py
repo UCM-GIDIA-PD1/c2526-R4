@@ -18,6 +18,9 @@ import optuna
 import wandb
 import pandas as pd
 from catboost import CatBoostClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import f1_score
+from sklearn.model_selection import RandomizedSearchCV
 
 def model_noimg(df, modelName='XGBoost-Base NoImg'):
     """
@@ -112,7 +115,8 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
         Returns:
             None
     """     
-
+    le = LabelEncoder()
+    df['price_range'] = le.fit_transform(df['price_range'])
     emb = df['v_clip'].apply(pd.Series)
     df = pd.concat([df.drop(columns=['v_clip']), emb], axis=1)
     
@@ -123,11 +127,13 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
        'Remote Play Together', 'Shared/Split Screen', 'Single-player',
        'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards']
     
-    columnas_numericas = df.columns.difference(columnas_categoricas).tolist()
 
     y = df['price_range']
     X = df.drop(columns=['price_range'])
+    X.columns = X.columns.astype(str)
+
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    columnas_numericas = X_train.columns.difference(columnas_categoricas).tolist()
 
     X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
     X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=50)
@@ -195,22 +201,22 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
     run.finish()
 
 def catModel(df, modelName='XGBoost Clustered'):
-        """
-        Modelo completo de CatBoosst.
+    """
+    Modelo completo de CatBoosst.
 
-        Args:
-            - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
-            - modelName (String): Nombre del modelo a subir a wandb
-        Returns:
-            None
-        """     
+    Args:
+        - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
+        - modelName (String): Nombre del modelo a subir a wandb
+    Returns:
+        None
+    """     
 
     # División Train, Validation, Test
     y = df['price_range']
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
     
-    sample_weights = class_weights(y_train)
+    train_weights = class_weights(y_train)
     X_train, X_val, X_test = cluster_embedings(X_train, X_val, X_test, emb_col='v_clip')
     
     cat_cols = [
@@ -220,35 +226,34 @@ def catModel(df, modelName='XGBoost Clustered'):
                    'Partial Controller Support', 'Playable without Timed Input', 'PvP',
                    'Remote Play Together', 'Shared/Split Screen', 'Single-player',
                    'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards',
-                   'Steam Trading Cards', 'clusters'
+                   'Steam Trading Cards', 'cluster'
     ]
 
     def objective(trial):
             params = {
-                    "iterations": trial.suggest_int("iterations", 300, 800),
-                        "depth": trial.suggest_int("depth", 4, 10),
-                        "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
-                        "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 1e-3, 10, log=True),
-                        "border_count": trial.suggest_int("border_count", 32, 255),
-                        "loss_function": "MultiClass",
-                        "eval_metric": "TotalF1",
-                        "random_state": 42,
-                        "verbose": 0,
-                        "class_weights": sample_weights 
-                        }
+                "iterations": trial.suggest_int("iterations", 300, 800),
+                "depth": trial.suggest_int("depth", 4, 10),
+                "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
+                "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 1e-3, 10, log=True),
+                "border_count": trial.suggest_int("border_count", 32, 255),
+                "loss_function": "MultiClass",
+                "eval_metric": "TotalF1",
+                "random_state": 42,
+                "verbose": 0
+            }
 
             model = CatBoostClassifier(**params)
             model.fit(
-                    X_train,
-                    y_train,
-                    cat_features=cat_cols,
-                    eval_set=(X_val, y_val),
-                    early_stopping_rounds=50,
-                    verbose=False
-                    )
+                X_train,
+                y_train,
+                sample_weight=train_weights,
+                cat_features=cat_cols,
+                eval_set=(X_val, y_val),
+                early_stopping_rounds=50,
+                verbose=False
+            )
             preds = model.predict(X_val)
-            score = f1_score(y_val, preds, average='weighted')
-            return score
+            return f1_score(y_val, preds, average='weighted')
 
     study = optuna.create_study(direction="maximize")
     study.optimize(objective, n_trials=50)
@@ -452,6 +457,74 @@ def model_cluster(df, modelName=None):
     run.log(metrics_dict)
     run.finish()
 
+def random_search(X_train, y_train, sample_weights=None):
+    model = xgb.XGBClassifier(
+        objective='multi:softprob',
+        num_class=len(set(y_train)),
+        random_state=42,
+        tree_method='hist', 
+        device='cuda',
+        eval_metric='mlogloss'
+    )
+    param_dist = {
+        'n_estimators': [200, 400, 600],
+        'learning_rate': [0.03, 0.05, 0.1],
+        'max_depth': [4, 6, 8],
+        'subsample': [0.7, 0.9, 1.0],
+        'colsample_bytree': [0.7, 0.9, 1.0],
+        'gamma': [0, 0.1, 1],
+        'min_child_weight': [1, 3, 5]
+    }
+    search = RandomizedSearchCV(
+        estimator=model,
+        param_distributions=param_dist,
+        n_iter=120,
+        cv=3,
+        verbose=1,
+        n_jobs=1,
+        scoring='f1_weighted',
+        random_state=42
+    )
+    search.fit(X_train, y_train, sample_weight=sample_weights)
+
+    return search   
+
+def model_search(df, modelName=None):
+    le = LabelEncoder()
+    df['price_range'] = le.fit_transform(df['price_range'])
+
+
+    y = df['price_range']
+    X = df.drop(columns=['price_range'])
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+
+    sample_weights = class_weights(y_train)
+
+    X_train, X_val, X_test = umap_embeddings(X_train, X_val, X_test, emb_col='v_clip')
+
+
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Precios", 
+        name=modelName,
+        job_type='xgboost'
+    )
+    search_result = random_search(X_train, y_train, sample_weights=sample_weights)
+    
+    best_params = search_result.best_params_
+    final_model = search_result.best_estimator_
+    
+    print(f"Mejor F1-Score (CV): {search_result.best_score_}")
+    print(f"Mejores parámetros: {best_params}")
+    y_pred = final_model.predict(X_test)
+
+
+    metrics_dict = get_metrics(y_test, y_pred)
+    
+    run.config.update(best_params)
+    run.log(metrics_dict)
+    run.finish()
+
 def xgboost_base():
     print('Selecciona qué modelo quieres entrenar:')
     print('1. XGBoost Base sin imágenes')
@@ -459,6 +532,7 @@ def xgboost_base():
     print('3. XGBoost Clustered')
     print('4. CatBoost Clustered')
     print('5. XGBoost Umap')
+    print('6. XGBoost Umap RandomSearch')
     print('0. Salir')
 
     opcion = input('Ingresa el número de la opción: ')
@@ -474,13 +548,13 @@ def xgboost_base():
         model_cluster(df_clustered, modelName='XGBoost Clustered')
     elif opcion == '4':
         df_clustered = df.copy()
-        clusters = cluster_embedings(df_clustered, 'v_clip')
-        df_clustered['clusters'] = clusters
-        df_clustered.drop(columns=['v_clip'], inplace=True)
         catModel(df_clustered, modelName='Cat Clustered')
     elif opcion == '5':
         df_umap = df.copy()
         model_umap(df_umap, modelName='XGBoost Umap')
+    elif opcion == '6':
+        df_umap = df.copy()
+        model_search(df_umap, modelName='XGBoost Umap RandomSearch')
     else:
         return
 
