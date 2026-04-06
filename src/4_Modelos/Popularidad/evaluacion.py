@@ -119,7 +119,7 @@ def evaluate_models():
 
     # Evaluación de MLP (Red Neuronal)
     if os.path.exists("data/models/mlp_model.pkl"):
-        mlp_data = joblib.load("data/models/mlp_model.pkl")
+        mlp_data = joblib.load("data/models/mlp_model_popularidad.pkl")
         mlp_model = mlp_data["model"]
         transformers_dict = mlp_data["transformers"]
         y_min = mlp_data["y_train_min"]
