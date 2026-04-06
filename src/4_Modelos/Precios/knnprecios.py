@@ -282,6 +282,7 @@ def knnprecios():
     print('2. K-NN Complete Clusters PCA')
     print('3. K-NN Reduced')
     print('4. K-NN Reduced Oversampled')
+    print('5. K-NN Best Variables')
     print('0. Salir')
     opcion = input('Ingresa el número de la opción: ')
 
@@ -295,10 +296,14 @@ def knnprecios():
         _oversampled_reduced(df_reduced.copy(), modelName='K-NN Reduced Oversampled')
     elif opcion == '0':
         return
+    elif opcion == '5':
+        df_bestv = df.copy()
+        df_bestv = df_bestv[['Indie', 'Family Sharing', 'Casual', 'Online PvP', 'Single-player', 'Steam Cloud', 'Custom Volume Controls',
+                              'total_games_by_publisher', 'num_languages', 'v_clip', 'PvP', 'price_range']]
+        _complete_model(df_bestv, modelName='K-NN Best Variables')
     else:
         print('Opción no válida')
         return
-
     
 if __name__ == '__main__':
     knnprecios()

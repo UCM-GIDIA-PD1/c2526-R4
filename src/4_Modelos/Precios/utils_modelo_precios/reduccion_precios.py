@@ -11,7 +11,7 @@ Output:
     precios_reducido.parquet
 """
 
-from .utils_modelo_precios.preprocesamiento import read_prices
+from utils_modelo_precios.preprocesamiento import read_prices
 
 def reducir_precios():
     df = read_prices()
