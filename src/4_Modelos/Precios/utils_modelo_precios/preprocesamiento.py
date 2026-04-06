@@ -14,6 +14,8 @@ from pandas import Series
 from umap import UMAP
 from numpy import vstack
 from pandas import concat
+import os
+import joblib
 
 def read_prices(minio={"minio_write": False, "minio_read": False}):
     """Lee y limpia el dataset de precios desde un archivo Parquet.
@@ -190,3 +192,9 @@ def get_metrics(y_test, y_pred, classes=None):
     print(cm)
 
     return {'accuracy': acc, 'precision': prec, 'recall': rec, 'f1-score': f1 }
+
+
+def save_model(output_file, final_model ):
+    os.makedirs('data/models', exist_ok=True)
+    joblib.dump(final_model, f"data/models/{output_file}")
+    print(f"Modelo guardado en data/models/{output_file}")

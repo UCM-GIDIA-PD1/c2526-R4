@@ -10,7 +10,7 @@ Dependencias:
 """
 
 from .utils_modelo_precios.preprocesamiento import read_prices, train_val_test_split, class_weights, get_metrics
-from .utils_modelo_precios.preprocesamiento import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings
+from .utils_modelo_precios.preprocesamiento import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings, save_model
 from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb
 from sklearn.metrics import f1_score
@@ -21,6 +21,8 @@ from catboost import CatBoostClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score
 from sklearn.model_selection import RandomizedSearchCV
+import joblib
+import os
 
 def model_noimg(df, modelName='XGBoost-Base NoImg'):
     """
@@ -283,6 +285,8 @@ def catModel(df, modelName='XGBoost Clustered'):
     y_pred = final_model.predict(X_test)
     metrics_dict = get_metrics(y_test, y_pred)
     
+    save_model(output_file='catboostClustered.pkl', final_model=final_model)
+
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
@@ -367,7 +371,9 @@ def model_umap(df, modelName=None):
     y_pred = final_model.predict(X_test)
 
     metrics_dict = get_metrics(y_test, y_pred)
-    
+    save_model(output_file='xgboostumap.pkl', final_model=final_model)
+
+
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
@@ -531,7 +537,7 @@ def xgboost_base():
     print('2. XGBoost Base con imágenes (PCA 50)')
     print('3. XGBoost Clustered')
     print('4. CatBoost Clustered')
-    print('5. XGBoost Umap')
+    print('5. XGBoost  Umap')
     print('6. XGBoost Umap RandomSearch')
     print('0. Salir')
 
