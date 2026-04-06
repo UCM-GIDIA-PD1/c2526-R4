@@ -62,6 +62,7 @@ def build_objective(X_train, y_train, X_val, y_val):
 
     return objective
 
+
 def best_model(best_params):
     tfidf = TfidfVectorizer(
             analyzer="word",
@@ -83,15 +84,14 @@ def best_model(best_params):
     
     return Pipeline([("tfidf", tfidf),("clf", clf)])
 
-if __name__ == "__main__":
-    tqdm.pandas(desc="Limpiando texto")
-    print("Leyendo Datos")
-    df = read_file(reviews)
+def train_optuna():
     
-    print("Preprocesado de los datos")
-    X, y = _preprocess(df)
-    
-    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Reviews", 
+        name= "logistic-regression",
+        job_type='logistic-regression'
+    )
     
     optuna.logging.set_verbosity(optuna.logging.WARNING)
     study = optuna.create_study(
@@ -115,9 +115,33 @@ if __name__ == "__main__":
     balanced_accuracy = balanced_accuracy_score(y_test, y_pred_test)
     recall= recall_score(y_test, y_pred_test)
     precision=  precision_score(y_test, y_pred_test)
-
+    
+    run.config.update(study.best_params)
+    run.log({
+        "Accuracy": accuracy,
+        "Balanced accuracy": balanced_accuracy,
+        "Precision": precision,
+        "Recall": recall,
+        "F1-score": f1
+    })
+    run.finish()
+    
     print(f"Valor de accuracy: {accuracy}")
     print(f"Valor de f1: {f1}")
     print(f"Valor de balanced_accuracy: {balanced_accuracy}")
     print(f"Valor de recall: {recall}")
     print(f"Valor de precision: {precision}")
+    
+
+if __name__ == "__main__":
+    tqdm.pandas(desc="Limpiando texto")
+    print("Leyendo Datos")
+    df = read_file(reviews)
+    
+    print("Preprocesado de los datos")
+    X, y = _preprocess(df)
+    
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    
+    train_optuna()
+    
