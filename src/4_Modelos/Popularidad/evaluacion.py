@@ -150,16 +150,22 @@ def evaluate_models():
     if os.path.exists("data/models/knn_model_log.pkl"):
         knn_model = joblib.load("data/models/knn_model_log.pkl")
         df_knn = _transform_for_knn(df_raw)
-        _, test_df_knn = train_test_split(df_knn, test_size=0.20, random_state=42)
+        
+        y_knn = df_knn['recomendaciones_totales']
+        bins_strat = [-1, 10, 100, 1000, 10000, float('inf')]
+        y_binned = pd.cut(y_knn, bins=bins_strat, labels=False)
+        
+        _, test_df_knn = train_test_split(df_knn, test_size=0.20, random_state=42, stratify=y_binned)
         
         X_test_knn = test_df_knn[VARIABLES_GANADORAS]
+        y_test_real_knn = test_df_knn['recomendaciones_totales']
         
         y_pred_knn = knn_model.predict(X_test_knn)
         y_pred_knn = np.clip(y_pred_knn, 0, None)
         
-        mae_knn = mean_absolute_error(y_test_real, y_pred_knn)
-        rmse_knn = sqrt(mean_squared_error(y_test_real, y_pred_knn))
-        r2_knn = r2_score(y_test_real, y_pred_knn)
+        mae_knn = mean_absolute_error(y_test_real_knn, y_pred_knn)
+        rmse_knn = sqrt(mean_squared_error(y_test_real_knn, y_pred_knn))
+        r2_knn = r2_score(y_test_real_knn, y_pred_knn)
         
         metrics.update({
             "knn_log_mae": mae_knn,
