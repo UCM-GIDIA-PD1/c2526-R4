@@ -9,8 +9,8 @@ Dependencias:
     - precios.parquet
 """
 
-from .utils_modelo_precios.preprocesamiento import read_prices, train_val_test_split, class_weights, get_metrics
-from .utils_modelo_precios.preprocesamiento import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings, save_model
+from utils.utils import read_prices, train_val_test_split, class_weights, get_metrics
+from utils.utils import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings, save_model
 from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb
 from sklearn.metrics import f1_score
