@@ -12,6 +12,8 @@ from sklearn.cluster import KMeans
 from sklearn.model_selection import cross_val_score
 from umap import UMAP
 import optuna
+import joblib
+import os
 
 import wandb
 
@@ -101,9 +103,8 @@ def _preprocess_test(df_X, df_y, transformers):
 
     return df3, df_y_trans
 
-""" GRIDSEARCH """
-
 def _best_params_mlp(X_train, Y_train):
+    """ GRIDSEARCH """
     param_grid = {
         'hidden_layer_sizes': [(64,32), (100,), (80,60), (64,50), (124,)],
         'activation': ['relu', 'tanh'],
@@ -119,10 +120,8 @@ def _best_params_mlp(X_train, Y_train):
 
     return params_mejor_modelo
 
-
-""" OPTUNA + UMAP
-
-def _best_params_mlp(X_train, Y_train):
+def _best_params_mlp_optuna_umap(X_train, Y_train):
+    """ OPTUNA + UMAP """
     def objective(trial):
         params = {
             'hidden_layer_sizes': trial.suggest_categorical('hidden_layer_sizes', [(64,), (128,), (64, 32), (128, 64), (128, 64, 32)]),
@@ -156,11 +155,9 @@ def _best_params_mlp(X_train, Y_train):
     print(f'Los parámetros del mejor modelo son:\n{params_mejor_modelo}')
 
     return params_mejor_modelo
-"""
 
-""" OPTUNA + BEST CONFIG UMAP 
-
-def _best_params_mlp(X_train, Y_train):
+def _best_params_mlp_optuna(X_train, Y_train):
+    """ OPTUNA """
     def objective(trial):
         params = {
             'hidden_layer_sizes': trial.suggest_categorical('hidden_layer_sizes', [(64,), (128,), (64, 32), (128, 64), (128, 64, 32)]),
@@ -181,7 +178,7 @@ def _best_params_mlp(X_train, Y_train):
     print(f'Los parámetros del mejor modelo son:\n{params_mejor_modelo}')
 
     return params_mejor_modelo
-"""
+
 def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name):
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -200,6 +197,16 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name):
     metricas = get_metrics(Y_test.values.flatten(), Y_pred, classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'])
 
     run.log(metricas)
+
+    os.makedirs('data/models', exist_ok=True)
+    model_path = 'data/models/mlp_model_precios.pkl'
+    joblib.dump({
+        'model': best_mlp,
+        'transformers': transformers,
+        'y_train_min': y_train.values.min(),
+        'y_train_max': y_train.values.max()
+    }, model_path)
+    print(f"Modelo guardado en {model_path}")
 
     run.finish()
 
@@ -220,7 +227,7 @@ if __name__ == '__main__':
     X_train, Y_train, transformers = _preprocess_train(X_train, y_train)
     X_test, Y_test = _preprocess_test(X_test, y_test, transformers)
 
-
+    """
     # MLP sin imágenes
     print('Buscando mejores parámetros para modelo sin imágenes...')
     X_train_no_img = X_train.drop(columns=['v_clip'])
@@ -258,7 +265,7 @@ if __name__ == '__main__':
 
     print('Creando mejor modelo MLP con imágenes con clusters...')
     _mlp(X_train_clusters, X_test_clusters, Y_train, Y_test, best_params, 'mlp-cluster-img')
-
+    """
 
     # MLP con imágenes (UMAP)
     print('Buscando mejores parámetros para modelo con imágenes con UMAP...')
