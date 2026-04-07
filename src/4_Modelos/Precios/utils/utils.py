@@ -161,7 +161,6 @@ def combine_train_val(X_train, X_val, y_train, y_val):
 
     return X_train, y_train
 
-
 def get_metrics(y_test, y_pred, classes=None):
     """Calcula y muestra las métricas de rendimiento para un modelo de clasificación.
 
@@ -194,8 +193,7 @@ def get_metrics(y_test, y_pred, classes=None):
 
     return {'accuracy': acc, 'precision': prec, 'recall': rec, 'f1-score': f1 }
 
-
-def save_model(output_file, final_model ):
-    os.makedirs('data/models', exist_ok=True)
-    joblib.dump(final_model, f"data/models/{output_file}")
-    print(f"Modelo guardado en data/models/{output_file}")
+def save_model(output_file, final_model):
+    os.makedirs('models/precios', exist_ok=True)
+    joblib.dump(final_model, f"models/precios/{output_file}")
+    print(f"Modelo guardado en models/precios/{output_file}")

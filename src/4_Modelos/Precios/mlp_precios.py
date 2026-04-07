@@ -111,6 +111,13 @@ def _best_params_mlp(X_train, Y_train):
         'alpha': [0.0001, 0.01, 0.1],
         'learning_rate_init': [0.001, 0.01]
     }
+    """ MEJORES HIPERPARÁMETROS
+    param_grid = {
+        'hidden_layer_sizes': [(64,32)],
+        'activation': ['tanh'],
+        'alpha': [0.1],
+        'learning_rate_init': [0.001]
+    }"""
 
     grid = GridSearchCV(MLPClassifier(max_iter=5000, random_state=42), param_grid=param_grid, cv=5, n_jobs=-1)
     grid.fit(X_train, Y_train.values.flatten())
@@ -179,7 +186,7 @@ def _best_params_mlp_optuna(X_train, Y_train):
 
     return params_mejor_modelo
 
-def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name):
+def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers):
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Precios", 
@@ -202,9 +209,7 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name):
     model_path = 'models/precios/mlp_model_precios.pkl'
     joblib.dump({
         'model': best_mlp,
-        'transformers': transformers,
-        'y_train_min': y_train.values.min(),
-        'y_train_max': y_train.values.max()
+        'transformers': transformers
     }, model_path)
     print(f"Modelo guardado en {model_path}")
 
@@ -279,6 +284,8 @@ if __name__ == '__main__':
 
     clip_reduced_train = umap.fit_transform(clip_matrix_train)
     clip_reduced_test = umap.transform(clip_matrix_test)
+
+    transformers['umap'] = umap
     
     for i in range(19):
         X_train_umap[f'clip_umap_{i}'] = clip_reduced_train[:, i]
@@ -290,5 +297,5 @@ if __name__ == '__main__':
     best_params_umap = _best_params_mlp(X_train_umap, Y_train)
 
     print('Creando mejor modelo MLP con imágenes con UMAP...')
-    _mlp(X_train_umap, X_test_umap, Y_train, Y_test, best_params_umap, 'mlp-umap-img')
+    _mlp(X_train_umap, X_test_umap, Y_train, Y_test, best_params_umap, 'mlp-umap-img', transformers)
     

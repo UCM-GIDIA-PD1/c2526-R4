@@ -121,8 +121,8 @@ def evaluate_models():
             table.add_data(model_name, mae_xgb, rmse_xgb, r2_xgb)
 
     # Evaluación de MLP (Red Neuronal)
-    if os.path.exists("models/popularidad/mlp_model.pkl"):
-        mlp_data = joblib.load("models/mlp_model_popularidad.pkl")
+    if os.path.exists("models/popularidad/mlp_model_popularidad.pkl"):
+        mlp_data = joblib.load("models/popularidad/mlp_model_popularidad.pkl")
         mlp_model = mlp_data["model"]
         transformers_dict = mlp_data["transformers"]
         y_min = mlp_data["y_train_min"]

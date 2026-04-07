@@ -1,22 +1,15 @@
-from utils.utils import read_prices, train_val_test_split, class_weights, get_metrics
-from utils.utils import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings
+from utils.utils import read_prices, train_val_test_split, get_metrics
+from utils.utils import normalize_train_test, cluster_embedings, umap_embeddings
+from mlp_precios import _preprocess_test
 
-from sklearn.metrics import f1_score
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import f1_score
-from sklearn.model_selection import RandomizedSearchCV
 from sklearn.preprocessing import LabelEncoder
-from catboost import CatBoostClassifier
-import xgboost as xgb
-import optuna
 import os
 import joblib
-import statsmodels.api as sm
-from sklearn.neighbors import KNeighborsClassifier
 
 import wandb
 
 import pandas as pd
+from numpy import vstack
 
 def catboostModel(df, table, model_path= 'models/precios/catboostClustered.pkl'):
     y = df['price_range']
@@ -95,7 +88,6 @@ def knnModel(df, table, model_path= 'models/precios/knncompleteclusters.pkl'):
         y_pred = model.predict(X_test)
         metrics_dict = get_metrics(y_test, y_pred)
 
-
         table.add_data(
             'K-NN Complete Clusters',
             metrics_dict['accuracy'],
@@ -106,6 +98,39 @@ def knnModel(df, table, model_path= 'models/precios/knncompleteclusters.pkl'):
     else:
          raise FileNotFoundError
 
+def mlpModel(df, table):
+    if os.path.exists("models/precios/mlp_model_precios.pkl"):
+        mlp_data = joblib.load("models/precios/mlp_model_precios.pkl")
+        mlp_model = mlp_data["model"]
+        transformers_dict = mlp_data["transformers"]
+        
+        y_all = pd.DataFrame(df['price_range'])
+        X_all = df.drop(columns=['price_range'])
+
+        X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X_all, y_all)
+        
+        X_test_mlp, Y_test_mlp = _preprocess_test(X_test, y_test, transformers_dict)
+        
+        clip_matrix_test = vstack(X_test_mlp['v_clip'].values)
+        umap = transformers_dict['umap']
+        clip_reduced_test = umap.transform(clip_matrix_test)
+        
+        for i in range(19):
+            X_test_mlp[f'clip_umap_{i}'] = clip_reduced_test[:, i]
+            
+        X_test_mlp = X_test_mlp.drop(columns=['v_clip'])
+        
+        y_pred_mlp = mlp_model.predict(X_test_mlp)
+
+        metricas = get_metrics(Y_test_mlp.values.flatten(), y_pred_mlp)
+        
+        table.add_data(
+            'MLP GridSearchCV UMAP',
+            metricas['accuracy'],
+            metricas['f1-score'],
+            metricas['precision'],
+            metricas['recall']
+        )
 
 def evaluate_models():
     run = wandb.init(
@@ -118,13 +143,22 @@ def evaluate_models():
     df = read_prices()
     table = wandb.Table(columns=["Model", "accuracy", "f1-score", "precision", 'recall'])
 
+    print('Subiendo baseline')
+    table.add_data(
+        'Baseline Mode',
+        0.49749916638879627,
+        0.3305583416842948,
+        0.2475054205575472,
+        0.49749916638879627
+    )
     print('Subiendo modelo de Catboost')
     catboostModel(df.copy(), table)
-    print('Subiendo modelo XGBoost UMap')
+    print('Subiendo modelo XGBoost UMAP')
     xgboostUmap(df.copy(), table)
     print('Subiendo modelo KNN Complete Clusters')
     knnModel(df.copy(), table)
-                
+    print('Subiendo modelo MLP UMAP')
+    mlpModel(df.copy(), table)
                 
     wandb.log({"comparative_table": table})
     print("Evaluación completada. Resultados en W&B.")
