@@ -20,7 +20,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 
 import os
-import joblib
 
 orden_precios = {
     '[0.01,4.99]': 0,
@@ -114,10 +113,12 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
 
     cm_path = 'models/precios/graficos/confusionMatrix/logisticregression.png'
 
+    os.makedirs(os.path.dirname(cm_path), exist_ok=True)
+
     metricas = get_metrics(
         y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
-        img_path=cm_path
+        img_path=cm_path, download_images=True
     )
 
     run.log({
