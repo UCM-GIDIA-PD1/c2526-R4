@@ -24,6 +24,7 @@ from sklearn.model_selection import RandomizedSearchCV
 import joblib
 import os
 from imblearn.over_sampling import SMOTE
+from src.utils.config import seed
 
 def model_noimg(df, modelName='XGBoost-Base NoImg'):
     """
@@ -91,7 +92,7 @@ def model_noimg(df, modelName='XGBoost-Base NoImg'):
         **best_params,
         objective='multi:softprob',
         num_class=len(le.classes_),
-        random_state=42
+        random_state=seed
     )
     
     final_model.fit(
@@ -102,7 +103,16 @@ def model_noimg(df, modelName='XGBoost-Base NoImg'):
 
     y_pred = final_model.predict(X_test)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test_labels, y_pred_labels,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     
     run.config.update(best_params)
     run.log(metrics_dict)
@@ -186,7 +196,7 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
         **best_params,
         objective='multi:softprob',
         num_class=len(le.classes_),
-        random_state=42
+        random_state=seed
     )
 
     final_model.fit(
@@ -197,7 +207,16 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
 
     y_pred = final_model.predict(X_test)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test_labels, y_pred_labels,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     
     run.config.update(best_params)
     run.log(metrics_dict)
@@ -284,7 +303,14 @@ def catModel(df, modelName='XGBoost Clustered'):
             )
 
     y_pred = final_model.predict(X_test)
-    metrics_dict = get_metrics(y_test, y_pred)
+    
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test, y_pred,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     
     save_model(output_file='catboostClustered.pkl', final_model=final_model)
 
@@ -316,7 +342,7 @@ def model_umap(df, modelName=None):
     
     X_train, X_val, X_test = umap_embeddings(X_train, X_val, X_test, emb_col='v_clip')
 
-    smote = SMOTE(random_state=42)
+    smote = SMOTE(random_state=seed)
     X_train, y_train = smote.fit_resample(X_train, y_train)
 
     def objective(trial):
@@ -363,7 +389,7 @@ def model_umap(df, modelName=None):
         **best_params,
         objective='multi:softprob',
         num_class=len(le.classes_),
-        random_state=42
+        random_state=seed
     )
     
     final_model.fit(
@@ -374,7 +400,17 @@ def model_umap(df, modelName=None):
 
     y_pred = final_model.predict(X_test)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test_labels, y_pred_labels,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
+
     save_model(output_file='xgboostumapOS.pkl', final_model=final_model)
 
 
@@ -450,7 +486,7 @@ def model_cluster(df, modelName=None):
         **best_params,
         objective='multi:softprob',
         num_class=len(le.classes_),
-        random_state=42
+        random_state=seed
     )
     
     final_model.fit(
@@ -461,7 +497,16 @@ def model_cluster(df, modelName=None):
 
     y_pred = final_model.predict(X_test)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test_labels, y_pred_labels,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     
     run.config.update(best_params)
     run.log(metrics_dict)
@@ -471,7 +516,7 @@ def random_search(X_train, y_train, sample_weights=None):
     model = xgb.XGBClassifier(
         objective='multi:softprob',
         num_class=len(set(y_train)),
-        random_state=42,
+        random_state=seed,
         tree_method='hist', 
         device='cuda',
         eval_metric='mlogloss'
@@ -493,7 +538,7 @@ def random_search(X_train, y_train, sample_weights=None):
         verbose=1,
         n_jobs=1,
         scoring='f1_weighted',
-        random_state=42
+        random_state=seed
     )
     search.fit(X_train, y_train, sample_weight=sample_weights)
 
@@ -528,8 +573,16 @@ def model_search(df, modelName=None):
     print(f"Mejores parámetros: {best_params}")
     y_pred = final_model.predict(X_test)
 
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test_labels, y_pred_labels,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     
     run.config.update(best_params)
     run.log(metrics_dict)
@@ -568,5 +621,9 @@ def xgboost_base():
     else:
         return
 
-if __name__ == '__main__':
+
+def main():
     xgboost_base()
+
+if __name__ == "__main__":
+    main()

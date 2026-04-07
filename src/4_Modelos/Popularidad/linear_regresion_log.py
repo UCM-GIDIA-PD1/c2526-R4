@@ -1,19 +1,18 @@
 from src.utils.config import popularity
-from src.utils.files import read_file
+from src.utils.files import read_file, write_to_file
+from src.utils.config import popularidad_linear_regression_log_file, popularidad_linear_regression_file, models_popularidad_path
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import statsmodels.api as sm
-from math import sqrt
-import joblib
 import os
 
 import wandb
 
 import pandas as pd
 import numpy as np
+from src.utils.config import seed
 
 def transform_for_linear_regresion(df):
     df_clean = df.copy()
@@ -28,7 +27,7 @@ def transform_for_linear_regresion(df):
     
     clip_matrix = np.vstack(df_clean['v_clip'].values)
     
-    pca = PCA(n_components=10, random_state=42)
+    pca = PCA(n_components=10, random_state=seed)
     clip_pca = pca.fit_transform(clip_matrix)
     
     for i in range(10):
@@ -98,11 +97,12 @@ def forward_selection(train_df, test_df, y_variable, selection_method="AIC", use
     X_train_final = sm.add_constant(train_df[selected_variables])
     final_model = sm.OLS(y_train_target, X_train_final).fit()
 
-    os.makedirs('models/popularidad', exist_ok=True)
-    model_name = "linear_regression_model_log.pkl" if use_log else "linear_regression_model.pkl"
-    joblib.dump({"model": final_model, "selected_variables": selected_variables}, f"models/popularidad/{model_name}")
-    print(f"Modelo guardado en models/popularidad/{model_name}")
-            
+    os.makedirs(models_popularidad_path(), exist_ok=True)
+    model_name = popularidad_linear_regression_log_file if use_log else popularidad_linear_regression_file
+    data = {"model": final_model, "selected_variables": selected_variables}
+    write_to_file(data, model_name, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    print(f"Modelo guardado en {model_name}")
+    
 def create_linear_model_popularity(selection_method, use_log):
     run_name = f"linear-regression-log-{selection_method.lower()}" if use_log else f"linear-regression-{selection_method.lower()}"
     
@@ -118,13 +118,15 @@ def create_linear_model_popularity(selection_method, use_log):
     
     df = transform_for_linear_regresion(df)
 
-    train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
+    train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
 
     forward_selection(train_df, test_df, y_variable, selection_method, use_log)
 
     run.finish()
 
-if __name__ == "__main__":
+
+
+def main():
     # Con AIC Normal
     create_linear_model_popularity(selection_method="AIC", use_log=False)
 
@@ -137,3 +139,6 @@ if __name__ == "__main__":
     #create_linear_model_popularity(selection_method="BIC", use_log=False)
     # Con BIC Logarítmico
     #create_linear_model_popularity(selection_method="BIC", use_log=True)
+
+if __name__ == "__main__":
+    main()

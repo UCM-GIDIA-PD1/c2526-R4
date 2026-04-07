@@ -13,6 +13,7 @@ from imblearn.over_sampling import SMOTE
 import wandb
 
 import pandas as pd
+from src.utils.config import seed
 
 def grid_search_knn_full(X_train, X_val, y_train, y_val):
     """
@@ -112,7 +113,16 @@ def _complete_model(df, modelName= 'K-NN Complete Clusters'):
     knn.fit(X_train, y_train)
     y_pred = knn.predict(X_test)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_complete_clusters.png'
+
+    metrics_dict = get_metrics(
+        y_test_labels, y_pred_labels,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
 
     save_model(output_file='knncompleteclusters.pkl', final_model=knn)
 
@@ -165,7 +175,16 @@ def _complete_pca_mode(df, modelName= 'K-NN Complete Clusters PCA'):
     knn.fit(X_train, y_train)
     y_pred = knn.predict(X_test)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_complete_clusters_pca.png'
+
+    metrics_dict = get_metrics(
+        y_test_labels, y_pred_labels,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
 
     run.config.update(best_params)
     run.log(metrics_dict)
@@ -216,7 +235,16 @@ def _reduced_model(df, modelName= 'K-NN Reduced'):
     knn.fit(X_train, y_train)
     y_pred = knn.predict(X_test)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test_labels, y_pred_labels,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
 
     run.config.update(best_params)
     run.log(metrics_dict)
@@ -257,7 +285,7 @@ def _oversampled_reduced(df, modelName= 'K-NN Reduced Oversampled'):
     X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
     X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=0.9)
 
-    smote = SMOTE(random_state=42)
+    smote = SMOTE(random_state=seed)
     X_train, y_train = smote.fit_resample(X_train, y_train)
 
     run = wandb.init(
@@ -270,7 +298,14 @@ def _oversampled_reduced(df, modelName= 'K-NN Reduced Oversampled'):
     knn = KNeighborsClassifier(**best_params)
     knn.fit(X_train, y_train)
     y_pred = knn.predict(X_test)
-    metrics_dict = get_metrics(y_test, y_pred)
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced_oversampled.png'
+    metrics_dict = get_metrics(
+        y_test_labels, y_pred_labels,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
@@ -307,5 +342,9 @@ def knnprecios():
         print('Opción no válida')
         return
     
-if __name__ == '__main__':
+
+def main():
     knnprecios()
+
+if __name__ == "__main__":
+    main()

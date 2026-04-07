@@ -3,7 +3,8 @@ Dado popularidad.parquet, ejecuta el modelo óptimo para predecir recomendacione
 """
 
 from src.utils.config import popularity
-from src.utils.files import read_file
+from src.utils.files import read_file, write_to_file
+from src.utils.config import popularidad_knn_log_file, models_popularidad_path
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_squared_log_error
 from sklearn.model_selection import train_test_split
@@ -12,12 +13,12 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 import os
-import joblib
 
 import wandb
 
 import numpy as np
 import pandas as pd
+from src.utils.config import seed
 
 BEST_KNN_PARAMS = {
     "n_neighbors": 20,
@@ -74,7 +75,7 @@ def create_knn_model_popularity():
     y_binned = pd.cut(y, bins=bins_strat, labels=False)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y_binned
+        X, y, test_size=0.2, random_state=seed, stratify=y_binned
     )
 
     todas_sesgadas = ['price_overview', 'num_languages', 'total_games_by_publisher']
@@ -120,12 +121,15 @@ def create_knn_model_popularity():
         "test_rmsle": rmsle
     })
 
-    os.makedirs('models/popularidad', exist_ok=True)
-    model_path = "models/popularidad/knn_model_log.pkl"
-    joblib.dump(final_model, model_path)
-    print(f"\nModelo guardado exitosamente en {model_path}")
+    os.makedirs(models_popularidad_path(), exist_ok=True)
+    write_to_file(final_model, popularidad_knn_log_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    print(f"Modelo guardado en {popularidad_knn_log_file}")
 
     run.finish()
 
-if __name__ == "__main__":
+
+def main():
     create_knn_model_popularity()
+
+if __name__ == "__main__":
+    main()

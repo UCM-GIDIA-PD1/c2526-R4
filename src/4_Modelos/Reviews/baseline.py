@@ -7,11 +7,13 @@ Las métricas se registran en Weights & Biases (wandb).
 import pandas as pd
 import wandb
 
-from src.utils.config import reviews
+from src.utils.config import reviews, seed
 from src.utils.files import read_file
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score,f1_score
+from utils_modelo_reviews.utils import get_metrics
 
+class_names = ["Negativo", "Positivo"]
 
 def create_reviews_baseline():
 
@@ -25,30 +27,30 @@ def create_reviews_baseline():
     df = read_file(reviews)
     y_column = "is_positive"
 
-    train_df, test_df = train_test_split(df, test_size=0.30, random_state=42)
+    train_df, test_df = train_test_split(df, test_size=0.30, random_state=seed)
 
     mayority = train_df[y_column].value_counts().idxmax()
 
     y_true = test_df[y_column]
     y_pred = [mayority] * len(y_true)
 
+    cm_path = 'models/reviews/graficos/confusionMatrix/baseline.png'
 
-    accuracy = accuracy_score(y_true, y_pred)
-    balanced_accuracy = balanced_accuracy_score(y_true, y_pred)
-    precision = precision_score(y_true, y_pred)
-    recall = recall_score(y_true, y_pred)
-    f1 = f1_score(y_true, y_pred)
+    metricas = get_metrics(
+        y_true, 
+        y_pred,
+        classes=class_names,
+        img_path=cm_path, 
+        download_images=True
+    )
 
-    wandb.log({
-        "Accuracy": accuracy,
-        "Balanced accuracy": balanced_accuracy,
-        "Precision": precision,
-        "Recall": recall,
-        "F1-score": f1
-    })
-
+    run.log(metricas)
     run.finish()
 
 
-if __name__ == "__main__":
+
+def main():
     create_reviews_baseline()
+
+if __name__ == "__main__":
+    main()

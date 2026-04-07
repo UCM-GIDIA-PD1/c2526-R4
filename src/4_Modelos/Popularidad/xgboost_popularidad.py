@@ -5,20 +5,21 @@ con Optuna y registro de métricas con Weights & Biases (wandb).
 """
 
 from src.utils.config import popularity
-from src.utils.files import read_file
+from src.utils.files import read_file, write_to_file
+from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, models_popularidad_path
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error
 import optuna
 import wandb
 import xgboost as xgb
 import umap
-import joblib
 import os
 
 import math
 import numpy as np
 import pandas as pd
+from src.utils.config import seed
 
 def _transform_for_xgboost(df):
     """
@@ -46,7 +47,7 @@ def _transform_for_xgboost(df):
     # Extraemos la matriz de características y aplicamos UMAP para reducir la dimensionalidad
     clip_matrix = np.vstack(df_clean['v_clip'].values)
 
-    reducer = umap.UMAP(n_components=10, random_state=42) 
+    reducer = umap.UMAP(n_components=10, random_state=seed) 
     clip_reduced = reducer.fit_transform(clip_matrix)
     
     for i in range(10):
@@ -79,7 +80,7 @@ def _get_best_xgboost_params(X_train_full, y_train_target_full, use_log):
     """
     # Dividimos internamente en conjunto de entrenamiento y validación para Optuna
     X_train_opt, X_val_opt, y_train_opt, y_val_opt = train_test_split(
-        X_train_full, y_train_target_full, test_size=0.20, random_state=42
+        X_train_full, y_train_target_full, test_size=0.20, random_state=seed
     )
 
     def objective(trial):
@@ -157,10 +158,10 @@ def _train_xgboost(train_df, test_df, y_variable, use_log=False):
     final_model = xgb.XGBRegressor(**best_params)
     final_model.fit(X_train_full, y_train_target_full)
 
-    os.makedirs('models/popularidad', exist_ok=True)
-    model_name = "xgboost_model_log.pkl" if use_log else "xgboost_model.pkl"
-    joblib.dump(final_model, f"models/popularidad/{model_name}")
-    print(f"Modelo guardado en models/popularidad/{model_name}")
+    os.makedirs(models_popularidad_path(), exist_ok=True)
+    model_name = popularidad_xgboost_log_file if use_log else popularidad_xgboost_file
+    write_to_file(final_model, model_name, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    print(f"Modelo guardado en {model_name}")
 
     df_importances = pd.DataFrame({
         'Variable': variables,
@@ -171,7 +172,6 @@ def _train_xgboost(train_df, test_df, y_variable, use_log=False):
     importances = df_importances.values.tolist()
     
     return importances
-
 
 def create_xgboost_model_popularity(use_log):
     """
@@ -199,7 +199,7 @@ def create_xgboost_model_popularity(use_log):
     
     df = _transform_for_xgboost(df)
 
-    train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
+    train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
 
     importances = _train_xgboost(train_df, test_df, y_variable, use_log)
 
@@ -209,6 +209,10 @@ def create_xgboost_model_popularity(use_log):
 
     run.finish()
 
-if __name__ == "__main__":
+
+def main():
     create_xgboost_model_popularity(use_log=False)
     create_xgboost_model_popularity(use_log=True)
+
+if __name__ == "__main__":
+    main()

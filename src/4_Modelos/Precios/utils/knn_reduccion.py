@@ -68,5 +68,9 @@ def reducir_precios():
     
     df.to_parquet('precios_reducido.parquet')
 
-if __name__ == '__main__':
+
+def main():
     reducir_precios()
+
+if __name__ == "__main__":
+    main()

@@ -24,6 +24,11 @@ from nltk.corpus import stopwords
 from tqdm import tqdm
 
 from utils_modelo_reviews.preprocesamiento import clean_text_stem, train_val_test_split
+from src.utils.config import seed
+
+from utils_modelo_reviews.utils import get_metrics
+
+class_names = ["Negativo", "Positivo"]
 
 def preprocess(df):
     '''
@@ -78,7 +83,7 @@ def build_objective(X_train, y_train, X_val, y_val):
             C=trial.suggest_float("C", 1e-2, 20.0, log=True),
             class_weight=trial.suggest_categorical("class_weight", [None, "balanced"]),
             max_iter=3000,
-            random_state=42
+            random_state=seed
         )
 
         pipe = Pipeline([
@@ -126,7 +131,7 @@ def best_model_optuna(best_params):
             C= best_params["C"],
             class_weight= best_params["class_weight"],
             max_iter=3000,
-            random_state=42
+            random_state=seed
     )
     
     return Pipeline([("tfidf", tfidf),("clf", clf)])
@@ -212,7 +217,7 @@ def train_gridsearch():
         )),("clf", LogisticRegression(
             solver= "saga",
             max_iter = 3000,
-            random_state= 42
+            random_state=seed
         ))])
 
     # Valores sobre los que probará GridSearch,
@@ -224,7 +229,7 @@ def train_gridsearch():
     "clf__C": [0.1, 1, 10],
     }
     
-    cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
     
     grid = GridSearchCV(
         pipe,
@@ -269,20 +274,25 @@ def train_gridsearch():
     print(f"Valor de precision: {precision}")
     
 
-if __name__ == "__main__":
+
+def main():
     tqdm.pandas(desc="Limpiando texto")
     print("Leyendo Datos")
     df = read_file(reviews)
-    
+
     print("Preprocesado de los datos")
     X, y = preprocess(df)
-    
+
+    global X_train, X_val, X_test, y_train, y_val, y_test
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
-    
+
     use_optuna = True
-    
+
     if use_optuna:
         train_optuna()
     else:
         train_gridsearch()
-    
+
+
+if __name__ == "__main__":
+    main()

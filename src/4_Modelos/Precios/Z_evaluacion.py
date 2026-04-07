@@ -20,6 +20,7 @@ import wandb
 
 import pandas as pd
 from numpy import vstack
+from src.utils.config import seed
 
 def catboostModel(df, table, model_path= 'models/precios/catboostClustered.pkl'):
     y = df['price_range']
@@ -141,7 +142,7 @@ def mlpModel(df, table):
             metricas['recall']
         )
 
-def logisticRegModel(df, table, model_path= 'models/precios/logistic_regression_precios.pkl'):
+def logisticRegModel(df, table, model_path='models/precios/logistic_regression_precios.pkl'):
 
     orden_precios = {
     '[0.01,4.99]': 0,
@@ -154,40 +155,23 @@ def logisticRegModel(df, table, model_path= 'models/precios/logistic_regression_
     }
     orden_inverso = {v: k for k, v in orden_precios.items()}
 
-    X, y = _preprocess(df)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    df_prepared = _preprocess(df, image_col='v_clip', use_images=True)
 
-
-    cols_sesgadas = ['num_languages', 'total_games_by_publisher', 'total_games_by_developer']
-    cols_normales = ['description_len', 'release_year', 'brillo']
-    img_cols = [col for col in X_train.columns if col.startswith("v_clip_")]
-    cols_binarias = [col for col in X_train.columns if col not in cols_sesgadas + cols_normales + img_cols]
+    X = df_prepared.drop(columns=['price_range'])
+    y_raw = df_prepared['price_range']
+    y = y_raw.map(orden_precios)
     
-    final_transformers = [
-        ('sesgadas', PowerTransformer(method='yeo-johnson'), cols_sesgadas),
-        ('normales', StandardScaler(), cols_normales),
-        ('binarias', 'passthrough', cols_binarias)
-    ]
-    
-    final_reducer = PCA(n_components=10, random_state=42)
-    
-    final_transformers.append(('img_reducer', final_reducer, img_cols))
-    final_preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed, stratify=y)
 
     if os.path.exists(model_path):
-        best_model = joblib.load(model_path)
+        final_pipeline = joblib.load(model_path)
     else:
         raise FileNotFoundError
 
-    final_pipeline = Pipeline([
-        ('prep', final_preprocessor),
-        ('clf', best_model)
-    ])
-
-
+    y_pred = final_pipeline.predict(X_test)
+    
     y_test_labels = y_test.map(orden_inverso)
     y_pred_labels = pd.Series(y_pred, index=y_test.index).map(orden_inverso)
-    y_pred = final_pipeline.predict(X_test)
     
     metrics_dict = get_metrics(
         y_test_labels, y_pred_labels, 
@@ -231,11 +215,15 @@ def evaluate_models():
     print('Subiendo modelo MLP UMAP')
     mlpModel(df.copy(), table)
     print('Subiendo modelo Logistic Regression')
-    mlpModel(df.copy(), table)
+    logisticRegModel(df.copy(), table)
                 
     wandb.log({"comparative_table": table})
     print("Evaluación completada. Resultados en W&B.")
     run.finish()
 
-if __name__ == "__main__":
+
+def main():
     evaluate_models()
+
+if __name__ == "__main__":
+    main()
