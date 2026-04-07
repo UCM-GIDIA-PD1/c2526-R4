@@ -5,6 +5,7 @@ from sklearn.naive_bayes import ComplementNB
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score, f1_score
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import cross_val_score
 import optuna
 import nltk
 import wandb
@@ -55,6 +56,49 @@ def entrenar_modelo_con_gridsearch(X_train, y_train):
 
     return grid_search.best_estimator_, grid_search.best_params_
 
+
+def entrenar_modelo_con_optuna(X_train, y_train, n_trials=30):
+    
+    def objective(trial):
+        ngram_max = trial.suggest_int('ngram_max', 1, 2)
+        
+        param_grid = {
+            'vect__ngram_range': (1, ngram_max),
+            'vect__min_df': trial.suggest_int('min_df', 1, 5),
+            'vect__max_df': trial.suggest_float('max_df', 0.7, 1.0),
+            'clf__alpha': trial.suggest_float('alpha', 0.01, 2.0, log=True)
+        }
+
+        pipeline = Pipeline([
+            ('vect', CountVectorizer(
+                ngram_range=param_grid['vect__ngram_range'],
+                min_df=param_grid['vect__min_df'],
+                max_df=param_grid['vect__max_df']
+            )),
+            ('clf', ComplementNB(alpha=param_grid['clf__alpha']))
+        ])
+
+        score = cross_val_score(pipeline, X_train, y_train, n_jobs=-1, cv=5, scoring='balanced_accuracy')
+        return score.mean()
+
+
+    study = optuna.create_study(direction="maximize")
+    study.optimize(objective, n_trials=n_trials)
+
+    best_params = study.best_params
+    final_model = Pipeline([
+        ('vect', CountVectorizer(
+            ngram_range=(1, best_params['ngram_max']),
+            min_df=best_params['min_df'],
+            max_df=best_params['max_df']
+        )),
+        ('clf', ComplementNB(alpha=best_params['alpha']))
+    ])
+    
+    final_model.fit(X_train, y_train)
+    
+    return final_model, best_params
+
 def calcular_metricas(y_true, y_pred):
 
     accuracy = accuracy_score(y_true, y_pred)
@@ -81,14 +125,13 @@ def calcular_metricas(y_true, y_pred):
 # run.finish()
 if __name__ == "__main__":
     df = read_reviews()
-    df = read_reviews()
     reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
     labels = df["is_positive"].to_list()
 
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
 
     X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
-    modelo, mejores_params = entrenar_modelo_con_gridsearch(X_train, y_train)
+    modelo, mejores_params = entrenar_modelo_con_optuna(X_train, y_train)
     y_pred = modelo.predict(X_val)
     calcular_metricas(y_val, y_pred)
     print(mejores_params)
