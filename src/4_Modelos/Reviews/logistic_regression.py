@@ -1,7 +1,14 @@
+"""
+Dado resenyas.parquet crea un modelo de Regresión Logística para predecir 
+si la review es positiva o negativa en base al texto de esta. Utiliza TF-IDF
+para la transformación de texto a vectores numéricos.
+"""
 import pandas as pd
 import wandb
 import optuna
 import numpy as np
+import joblib
+import os
 
 from src.utils.config import reviews
 from src.utils.files import read_file
@@ -18,7 +25,7 @@ from tqdm import tqdm
 
 from utils_modelo_reviews.preprocesamiento import clean_text, train_val_test_split
 
-def _preprocess(df):
+def preprocess(df):
     '''
     Función que se encarga del preprocesado del texto.
     
@@ -134,7 +141,7 @@ def train_optuna():
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Reviews", 
-        name= "logistic-regression",
+        name= "logistic-regression_optuna",
         job_type='logistic-regression'
     )
     
@@ -170,6 +177,12 @@ def train_optuna():
         "F1-score": f1
     })
     run.finish()
+    
+    os.makedirs('data/models', exist_ok=True)
+    model_name = "logistic_regression_optuna.pkl" 
+    joblib.dump(best_logistic_model, f"data/models/{model_name}")
+    print(f"Modelo guardado en data/models/{model_name}")
+    
     
     print(f"Valor de accuracy: {accuracy}")
     print(f"Valor de f1: {f1}")
@@ -246,6 +259,11 @@ def train_gridsearch():
     })
     run.finish()
     
+    os.makedirs('models', exist_ok=True)
+    model_name = "logistic_regression_gridsearch.pkl" 
+    joblib.dump(grid, f"models/{model_name}")
+    print(f"Modelo guardado en models/{model_name}")
+    
     print(f"Valor de accuracy: {accuracy}")
     print(f"Valor de f1: {f1}")
     print(f"Valor de balanced_accuracy: {balanced_accuracy}")
@@ -259,11 +277,11 @@ if __name__ == "__main__":
     df = read_file(reviews)
     
     print("Preprocesado de los datos")
-    X, y = _preprocess(df)
+    X, y = preprocess(df)
     
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
     
-    use_optuna = False
+    use_optuna = True
     
     if use_optuna:
         train_optuna()
