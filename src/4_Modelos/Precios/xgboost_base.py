@@ -103,10 +103,13 @@ def model_noimg(df, modelName='XGBoost-Base NoImg'):
 
     y_pred = final_model.predict(X_test)
 
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
     cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
 
     metrics_dict = get_metrics(
-        y_test, y_pred,
+        y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
         img_path=cm_path, download_images=True
     )
@@ -204,10 +207,13 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
 
     y_pred = final_model.predict(X_test)
 
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
     cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
 
     metrics_dict = get_metrics(
-        y_test, y_pred,
+        y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
         img_path=cm_path, download_images=True
     )
@@ -297,6 +303,7 @@ def catModel(df, modelName='XGBoost Clustered'):
             )
 
     y_pred = final_model.predict(X_test)
+    
     cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
 
     metrics_dict = get_metrics(
@@ -393,10 +400,13 @@ def model_umap(df, modelName=None):
 
     y_pred = final_model.predict(X_test)
 
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
     cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
 
     metrics_dict = get_metrics(
-        y_test, y_pred,
+        y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
         img_path=cm_path, download_images=True
     )
@@ -487,10 +497,13 @@ def model_cluster(df, modelName=None):
 
     y_pred = final_model.predict(X_test)
 
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
     cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
 
     metrics_dict = get_metrics(
-        y_test, y_pred,
+        y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
         img_path=cm_path, download_images=True
     )
@@ -560,10 +573,13 @@ def model_search(df, modelName=None):
     print(f"Mejores parámetros: {best_params}")
     y_pred = final_model.predict(X_test)
 
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
     cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
 
     metrics_dict = get_metrics(
-        y_test, y_pred,
+        y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
         img_path=cm_path, download_images=True
     )

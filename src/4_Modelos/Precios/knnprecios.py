@@ -113,10 +113,13 @@ def _complete_model(df, modelName= 'K-NN Complete Clusters'):
     knn.fit(X_train, y_train)
     y_pred = knn.predict(X_test)
 
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
     cm_path = 'models/precios/graficos/confusionMatrix/knn_complete_clusters.png'
 
     metrics_dict = get_metrics(
-        y_test, y_pred,
+        y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
         img_path=cm_path, download_images=True
     )
@@ -172,10 +175,13 @@ def _complete_pca_mode(df, modelName= 'K-NN Complete Clusters PCA'):
     knn.fit(X_train, y_train)
     y_pred = knn.predict(X_test)
 
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
     cm_path = 'models/precios/graficos/confusionMatrix/knn_complete_clusters_pca.png'
 
     metrics_dict = get_metrics(
-        y_test, y_pred,
+        y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
         img_path=cm_path, download_images=True
     )
@@ -229,10 +235,13 @@ def _reduced_model(df, modelName= 'K-NN Reduced'):
     knn.fit(X_train, y_train)
     y_pred = knn.predict(X_test)
 
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
+
     cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
 
     metrics_dict = get_metrics(
-        y_test, y_pred,
+        y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
         img_path=cm_path, download_images=True
     )
@@ -289,9 +298,11 @@ def _oversampled_reduced(df, modelName= 'K-NN Reduced Oversampled'):
     knn = KNeighborsClassifier(**best_params)
     knn.fit(X_train, y_train)
     y_pred = knn.predict(X_test)
+    y_test_labels = le.inverse_transform(y_test)
+    y_pred_labels = le.inverse_transform(y_pred)
     cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced_oversampled.png'
     metrics_dict = get_metrics(
-        y_test, y_pred,
+        y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
         img_path=cm_path, download_images=True
     )
