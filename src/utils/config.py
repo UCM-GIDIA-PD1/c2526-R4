@@ -73,6 +73,46 @@ def raw_data_path():
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def models_path():
+    """Devuelve un objecto Path con el directorio de la carpeta models.
+
+    Returns:
+        Path: directorio models del proyecto.
+    """
+    path = project_root() / "models"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def models_popularidad_path():
+    """Devuelve un objecto Path con el directorio models/popularidad.
+
+    Returns:
+        Path: directorio processed.
+    """
+    path = models_path() / "popularidad"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def models_precios_path():
+    """Devuelve un objecto Path con el directorio models/precios.
+
+    Returns:
+        Path: directorio processed.
+    """
+    path = models_path() / "precios"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def models_reviews_path():
+    """Devuelve un objecto Path con el directorio models/reviews.
+
+    Returns:
+        Path: directorio reviews.
+    """
+    path = models_path() / "reviews"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
 def processed_data_path():
     """Devuelve un objecto Path con el directorio processed.
 
@@ -175,3 +215,24 @@ reviews =  processed_data_path() / "resenyas.parquet"
 
 # Reducción en modelo de precios
 reduced_prices = processed_data_path() / "precios_reducido.parquet"
+
+# ------ PATHS A MODELOS ------ #
+
+# Popularidad
+popularidad_xgboost_file = models_popularidad_path() / "xgboost_model.pkl"
+popularidad_xgboost_log_file = models_popularidad_path() / "xgboost_model_log.pkl"
+popularidad_mlp_file = models_popularidad_path() / "mlp_model_popularidad.pkl"
+popularidad_linear_regression_file = models_popularidad_path() / "linear_regression_model.pkl"
+popularidad_linear_regression_log_file = models_popularidad_path() / "linear_regression_model_log.pkl"
+popularidad_knn_log_file = models_popularidad_path() / "knn_model_log.pkl"
+
+# Precios
+precios_xgboostumap_file = models_precios_path() / "xgboostumap.pkl"
+precios_mlp_file = models_precios_path() / "mlp_model_precios.pkl"
+precios_knncompleteclusters_file = models_precios_path() / "knncompleteclusters.pkl"
+precios_catboostClustered_file = models_precios_path() / "catboostClustered.pkl"
+precios_logistic_regression_file = models_precios_path() / "logistic_regression_precios.pkl"
+
+# Reviews
+reviews_logistic_regression_optuna_file = models_reviews_path() / "logistic_regression_optuna.pkl"
+reviews_logistic_regression_gridsearch_file = models_reviews_path() / "logistic_regression_gridsearch.pkl"
