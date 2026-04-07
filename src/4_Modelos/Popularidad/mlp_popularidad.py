@@ -4,7 +4,8 @@ de precio se sitúa un juego según sus características.
 """
 
 from src.utils.config import popularity
-from src.utils.files import read_file
+from src.utils.files import read_file, write_to_file
+from src.utils.config import popularidad_mlp_file, models_popularidad_path
 
 from sklearn.preprocessing import StandardScaler, PowerTransformer, MinMaxScaler, FunctionTransformer
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -18,7 +19,6 @@ import wandb
 
 from pandas import DataFrame, concat
 from numpy import vstack, log1p, expm1
-import joblib
 import os
 
 def _preprocess_train(df):
@@ -199,15 +199,15 @@ def _mlp(X_train, y_train, best_params, model_name, transformers):
                              n_iter_no_change=20)
     best_mlp.fit(X_train, y_train.values.flatten())
 
-    os.makedirs('models/popularidad', exist_ok=True)
-    model_path = 'models/popularidad/mlp_model_popularidad.pkl'
-    joblib.dump({
+    os.makedirs(models_popularidad_path(), exist_ok=True)
+    data = {
         'model': best_mlp,
         'transformers': transformers,
         'y_train_min': y_train.values.min(),
         'y_train_max': y_train.values.max()
-    }, model_path)
-    print(f"Modelo guardado en {model_path}")
+    }
+    write_to_file(data, popularidad_mlp_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    print(f"Modelo guardado en {popularidad_mlp_file}")
     
     run.finish()
 
