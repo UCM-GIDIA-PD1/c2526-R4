@@ -130,8 +130,12 @@ if __name__ == "__main__":
 
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
 
+    X_train_full = X_train + X_val
+    X_train_full = y_train + y_val
+    
     X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
-    modelo, mejores_params = entrenar_modelo_con_optuna(X_train, y_train)
-    y_pred = modelo.predict(X_val)
-    calcular_metricas(y_val, y_pred)
+    modelo, mejores_params = entrenar_modelo_con_optuna(X_train_full, X_train_full)
+
+    y_pred = modelo.predict(X_test)
+    calcular_metricas(y_test, y_pred)
     print(mejores_params)
