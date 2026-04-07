@@ -23,7 +23,7 @@ from nltk.corpus import stopwords
 
 from tqdm import tqdm
 
-from utils_modelo_reviews.preprocesamiento import clean_text_lemma, train_val_test_split
+from utils_modelo_reviews.preprocesamiento import clean_text_stem, train_val_test_split
 
 def preprocess(df):
     '''
@@ -39,7 +39,7 @@ def preprocess(df):
     '''
 
     y = df["is_positive"]
-    X = df["text"].progress_apply(lambda x : clean_text_lemma(x))
+    X = df["text"].progress_apply(lambda x : clean_text_stem(x))
     
     return X, y
 
