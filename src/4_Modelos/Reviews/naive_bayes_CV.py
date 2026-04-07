@@ -9,6 +9,9 @@ from sklearn.model_selection import cross_val_score
 import optuna
 import nltk
 import wandb
+import os
+import joblib
+import json
 nltk.download('stopwords')
 tqdm.pandas(desc="Limpiando texto")
 # run = wandb.init(
@@ -93,7 +96,7 @@ def entrenar_modelo_con_optuna(X_train,X_val, y_train,y_val, n_trials=30):
         return score.mean()
 
 
-    study = optuna.create_study(direction="maximize")
+    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=42))
     study.optimize(objective, n_trials=n_trials)
 
     best_params = study.best_params
@@ -157,6 +160,14 @@ def _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test):
     })
     run.finish()
 
+    os.makedirs('models/reviews', exist_ok=True)
+    model_filename = "models/reviews/naivebayes_cv_gridsearch.pkl"
+    joblib.dump(modelo, model_filename)
+
+    with open("models/reviews/naivebayes_cv_gridsearch_hyperparameters.json", "w") as f:
+        json.dump(mejores_params, f, indent=4)
+
+
 def _optuna(X_train, X_val, X_test, y_train, y_val, y_test):
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -179,6 +190,13 @@ def _optuna(X_train, X_val, X_test, y_train, y_val, y_test):
         "F1-score": f1
     })
     run.finish()
+
+    os.makedirs('models/reviews', exist_ok=True)
+    model_filename = "models/reviews/naivebayes_cv_optuna.pkl"
+    joblib.dump(modelo, model_filename)
+
+    with open("models/reviews/naivebayes_cv_optuna_hyperparameters.json", "w") as f:
+        json.dump(mejores_params, f, indent=4)
 
 def handle_input(initial_message, isResponseValid = lambda x: True):
     """
