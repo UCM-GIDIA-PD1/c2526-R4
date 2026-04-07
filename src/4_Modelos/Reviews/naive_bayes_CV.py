@@ -30,7 +30,9 @@ def entrenar_modelo(X_train, y_train):
     classifier.fit(X_train, y_train)
     return classifier
 
-def entrenar_modelo_con_gridsearch(X_train, y_train):
+def entrenar_modelo_con_gridsearch(X_train, X_val, y_train, y_val):
+    X_train_full = X_train + X_val
+    y_train_full = y_train + y_val
     pipeline = Pipeline([
         ('vect', CountVectorizer()),
         ('clf', ComplementNB())
@@ -52,13 +54,22 @@ def entrenar_modelo_con_gridsearch(X_train, y_train):
         verbose=2
     )
 
-    grid_search.fit(X_train, y_train)
+    grid_search.fit(X_train_full, y_train_full)
+    final_model = Pipeline([
+        ('vect', CountVectorizer(
+            ngram_range=grid_search.best_params_['vect__ngram_range'],
+            min_df=grid_search.best_params_['vect__min_df'],
+            max_df=grid_search.best_params_['vect__max_df']
+        )),
+        ('clf', ComplementNB(alpha=grid_search.best_params_['clf__alpha']))
+    ])
+    final_model.fit(X_train, y_train)
+    return final_model, grid_search.best_params_
 
-    return grid_search.best_estimator_, grid_search.best_params_
 
-
-def entrenar_modelo_con_optuna(X_train, y_train, n_trials=30):
-    
+def entrenar_modelo_con_optuna(X_train,X_val, y_train,y_val, n_trials=30):
+    X_train_full = X_train + X_val
+    y_train_full = y_train + y_val
     def objective(trial):
         ngram_max = trial.suggest_int('ngram_max', 1, 2)
         
@@ -78,7 +89,7 @@ def entrenar_modelo_con_optuna(X_train, y_train, n_trials=30):
             ('clf', ComplementNB(alpha=param_grid['clf__alpha']))
         ])
 
-        score = cross_val_score(pipeline, X_train, y_train, n_jobs=-1, cv=5, scoring='balanced_accuracy')
+        score = cross_val_score(pipeline, X_train_full, y_train_full, n_jobs=-1, cv=5, scoring='balanced_accuracy')
         return score.mean()
 
 
@@ -129,12 +140,9 @@ if __name__ == "__main__":
     labels = df["is_positive"].to_list()
 
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
-
-    X_train_full = X_train + X_val
-    X_train_full = y_train + y_val
     
     X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
-    modelo, mejores_params = entrenar_modelo_con_optuna(X_train_full, X_train_full)
+    modelo, mejores_params = entrenar_modelo_con_optuna(X_train, X_val, y_train, y_val)
 
     y_pred = modelo.predict(X_test)
     calcular_metricas(y_test, y_pred)
