@@ -112,13 +112,13 @@ def _best_params_mlp(X_train, Y_train):
         'alpha': [0.0001, 0.01, 0.1],
         'learning_rate_init': [0.001, 0.01]
     }
-    """ MEJORES HIPERPARÁMETROS
+    """ MEJORES HIPERPARÁMETROS"""
     param_grid = {
         'hidden_layer_sizes': [(64,32)],
         'activation': ['tanh'],
         'alpha': [0.1],
         'learning_rate_init': [0.001]
-    }"""
+    }
 
     grid = GridSearchCV(MLPClassifier(max_iter=5000, random_state=42), param_grid=param_grid, cv=5, n_jobs=-1)
     grid.fit(X_train, Y_train.values.flatten())
@@ -202,8 +202,13 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers
     best_mlp.fit(X_train, Y_train.values.flatten())
 
     Y_pred = best_mlp.predict(X_test)
-    metricas = get_metrics(Y_test.values.flatten(), Y_pred, classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'])
+    cm_path = 'models/precios/graficos/confusionMatrix/mlp.png'
 
+    metricas = get_metrics(
+        Y_test.values.flatten(), Y_pred,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     run.log(metricas)
 
     

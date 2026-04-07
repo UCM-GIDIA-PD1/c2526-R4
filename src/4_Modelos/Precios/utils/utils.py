@@ -20,6 +20,7 @@ from numpy import vstack
 from pandas import concat
 
 import matplotlib.pyplot as plt
+import wandb
 
 def read_prices(minio={"minio_write": False, "minio_read": False}):
     """Lee y limpia el dataset de precios desde un archivo Parquet.
@@ -172,6 +173,8 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=Fal
         y_pred (pd.Dataframe): Etiquetas predichas por el modelo.
         classes (list, optional): Nombres de las categorías para el informe de 
             clasificación. Por defecto es None.
+        img_path (str | Path, optional): ruta en donde guardar la imagen
+        download_images (bool, optional): booleano que indica si guardar la imagen localmente
 
     Returns:
         dict: Diccionario con las métricas calculadas:
@@ -194,7 +197,8 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=Fal
     cm = confusion_matrix(y_test, y_pred)
     print(cm)
 
-    if classes and img_path and download_images:
+    wandb_matrix = None
+    if classes:
         fig, ax = plt.subplots(figsize=(10,6))
         disp = ConfusionMatrixDisplay.from_predictions(
             y_test, y_pred,
@@ -204,9 +208,17 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=Fal
             ax=ax,
             xticks_rotation=45
         )
-        write_to_file(data=disp.figure_, filepath=img_path)
 
-    return {'accuracy': acc, 'precision': prec, 'recall': rec, 'f1-score': f1 }
+        wandb_matrix = wandb.Image(fig)
+
+        if img_path and download_images:
+            os.makedirs(os.path.dirname(img_path), exist_ok=True)
+            write_to_file(data=disp.figure_, filepath=img_path)
+        else:
+            plt.close()
+
+    return {'accuracy': acc, 'precision': prec, 'recall': rec, 'f1-score': f1, 
+            'confusion_matrix': wandb_matrix }
 
 def save_model(output_file, final_model):
     os.makedirs('models/precios', exist_ok=True)

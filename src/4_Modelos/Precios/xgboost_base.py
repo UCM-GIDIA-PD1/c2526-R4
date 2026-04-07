@@ -102,7 +102,13 @@ def model_noimg(df, modelName='XGBoost-Base NoImg'):
 
     y_pred = final_model.predict(X_test)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test, y_pred,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     
     run.config.update(best_params)
     run.log(metrics_dict)
@@ -197,7 +203,13 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
 
     y_pred = final_model.predict(X_test)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test, y_pred,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     
     run.config.update(best_params)
     run.log(metrics_dict)
@@ -284,7 +296,13 @@ def catModel(df, modelName='XGBoost Clustered'):
             )
 
     y_pred = final_model.predict(X_test)
-    metrics_dict = get_metrics(y_test, y_pred)
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test, y_pred,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     
     save_model(output_file='catboostClustered.pkl', final_model=final_model)
 
@@ -374,7 +392,14 @@ def model_umap(df, modelName=None):
 
     y_pred = final_model.predict(X_test)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test, y_pred,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
+
     save_model(output_file='xgboostumapOS.pkl', final_model=final_model)
 
 
@@ -461,7 +486,13 @@ def model_cluster(df, modelName=None):
 
     y_pred = final_model.predict(X_test)
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+
+    metrics_dict = get_metrics(
+        y_test, y_pred,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     
     run.config.update(best_params)
     run.log(metrics_dict)
@@ -528,8 +559,13 @@ def model_search(df, modelName=None):
     print(f"Mejores parámetros: {best_params}")
     y_pred = final_model.predict(X_test)
 
+    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
 
-    metrics_dict = get_metrics(y_test, y_pred)
+    metrics_dict = get_metrics(
+        y_test, y_pred,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path, download_images=True
+    )
     
     run.config.update(best_params)
     run.log(metrics_dict)

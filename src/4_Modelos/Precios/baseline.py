@@ -36,8 +36,14 @@ def create_price_mode_baseline():
     run.config.update({'mode': mode})
     
     y_pred = [mode] * len(y_test)
+
+    cm_path = 'models/precios/graficos/confusionMatrix/baseline.png'
   
-    metricas = get_metrics(y_test.values.flatten(), y_pred, classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'])
+    metricas = get_metrics(y_test.values.flatten(), y_pred, 
+                    classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', 
+                         '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+                    img_path=cm_path, download_images=True
+                )
 
     run.log(metricas)
     

@@ -113,23 +113,13 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
 
     cm_path = 'models/precios/graficos/confusionMatrix/logisticregression.png'
 
-    os.makedirs(os.path.dirname(cm_path), exist_ok=True)
-
     metricas = get_metrics(
         y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
         img_path=cm_path, download_images=True
     )
 
-    run.log({
-        'accuracy': metricas['accuracy'],
-        'precision': metricas['precision'],
-        'recall': metricas['recall'],
-        'f1-score': metricas['f1-score'],
-        'confusion_matrix': wandb.Image(cm_path)
-    })
-
-    run.save(cm_path)
+    run.log(metricas)
 
     model_name = "logistic_regression_precios.pkl"
     save_model(model_name, final_pipeline)
