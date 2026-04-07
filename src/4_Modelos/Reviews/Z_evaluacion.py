@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import wandb
 import joblib
+import nltk
 
 from utils_modelo_reviews.preprocesamiento import train_val_test_split, read_reviews
 
@@ -37,7 +38,7 @@ def evaluate_models():
     # Modelo baseline (moda)
     y_column = "is_positive"
 
-    train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
+    train_df, test_df = train_test_split(df, test_size=0.30, random_state=42)
 
     mayority = train_df[y_column].value_counts().idxmax()
 
@@ -55,7 +56,6 @@ def evaluate_models():
     table.add_data("baseline-mode", accuracy, f1, balanced_accuracy, recall, precision)
     
     # Modelos naive bayes 
-    
     # CountVectorizer
     df = read_reviews()
     reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
