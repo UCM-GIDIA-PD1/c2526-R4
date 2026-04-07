@@ -8,9 +8,7 @@ import pandas as pd
 import wandb
 import joblib
 
-from src.utils.config import reviews
-from src.utils.files import read_file
-from utils_modelo_reviews.preprocesamiento import train_val_test_split
+from utils_modelo_reviews.preprocesamiento import train_val_test_split, read_reviews
 
 from tqdm import tqdm
 
@@ -18,6 +16,11 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_s
 from sklearn.model_selection import train_test_split
 
 from logistic_regression import preprocess
+from naive_bayes_CV import preprocesar_texto as preprocesar_cv
+from naive_bayes_CV import calcular_metricas
+from naive_bayes_CV import train_best_model  as train_naivebayes_cv
+from naive_bayes_TFIDF import preprocesar_texto as preprocesar_tfidf
+from naive_bayes_TFIDF import train_best_model  as train_naivebayes_tfidf
 
 
 def evaluate_models():
@@ -28,7 +31,7 @@ def evaluate_models():
         job_type="evaluation"
     )
     tqdm.pandas(desc="Limpiando texto")
-    df = read_file(reviews)
+    df = read_reviews()
     
     
     # Modelo baseline (moda)
@@ -51,7 +54,37 @@ def evaluate_models():
     table = wandb.Table(columns=["Model", "Accuracy", "F1-score", "Balanced accuracy", "Recall", "Precision"])
     table.add_data("baseline-mode", accuracy, f1, balanced_accuracy, recall, precision)
     
+    # Modelos naive bayes 
     
+    # CountVectorizer
+    df = read_reviews()
+    reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
+    labels = df["is_positive"].to_list()
+
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
+    X_train, X_val, X_test = preprocesar_cv(X_train, X_val, X_test)
+    X_train_full = X_train + X_val
+    y_train_full = y_train + y_val
+
+    best_naivebayes_cv = train_naivebayes_cv(X_train_full, y_train_full)
+    y_pred = best_naivebayes_cv.predict(X_test)
+    accuracy, balanced_accuracy, precision, recall, f1 = calcular_metricas(y_test, y_pred)
+    table.add_data("naivebayes_cv", accuracy, f1, balanced_accuracy, recall, precision)
+
+    # Tf-idf
+    df = read_reviews()
+    reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
+    labels = df["is_positive"].to_list()
+
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
+    X_train, X_val, X_test = preprocesar_tfidf(X_train, X_val, X_test)
+    X_train_full = X_train + X_val
+    y_train_full = y_train + y_val
+    best_naivebayes_tfidf = train_naivebayes_tfidf(X_train_full, y_train_full)
+    y_pred = best_naivebayes_tfidf.predict(X_test)
+    accuracy, balanced_accuracy, precision, recall, f1 = calcular_metricas(y_test, y_pred)
+    table.add_data("naivebayes_tfidf", accuracy, f1, balanced_accuracy, recall, precision)
+
     # Modelo de regresión logística
     X, y = preprocess(df)
     
