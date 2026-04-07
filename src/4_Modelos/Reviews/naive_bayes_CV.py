@@ -134,7 +134,15 @@ def calcular_metricas(y_true, y_pred):
 #     })
 
 # run.finish()
-if __name__ == "__main__":
+
+def _gridsearch():
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Reviews", 
+        name= "naive-bayes-cv-gridsearch",
+        job_type='naive-bayes-cv'
+    )
+
     df = read_reviews()
     reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
     labels = df["is_positive"].to_list()
@@ -142,8 +150,83 @@ if __name__ == "__main__":
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
     
     X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
-    modelo, mejores_params = entrenar_modelo_con_optuna(X_train, X_val, y_train, y_val)
-
+    
+    modelo, mejores_params = entrenar_modelo_con_gridsearch(X_train, X_val, y_train, y_val)
+    
     y_pred = modelo.predict(X_test)
-    calcular_metricas(y_test, y_pred)
-    print(mejores_params)
+    accuracy, balanced_accuracy, precision, recall, f1 = calcular_metricas(y_test, y_pred)
+
+    run.config.update(mejores_params)
+    run.log({
+        "Accuracy": accuracy,
+        "Balanced accuracy": balanced_accuracy,
+        "Precision": precision,
+        "Recall": recall,
+        "F1-score": f1
+    })
+    run.finish()
+
+def _optuna():
+    run = wandb.init(
+        entity="pd1-c2526-team4",
+        project="Reviews", 
+        name= "naive-bayes-cv-optuna",
+        job_type='naive-bayes-cv'
+    )
+
+    df = read_reviews()
+    reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
+    labels = df["is_positive"].to_list()
+
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
+    
+    X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
+    
+    modelo, mejores_params = entrenar_modelo_con_optuna(X_train, X_val, y_train, y_val)
+    
+    y_pred = modelo.predict(X_test)
+    accuracy, balanced_accuracy, precision, recall, f1 = calcular_metricas(y_test, y_pred)
+
+    run.config.update(mejores_params)
+    run.log({
+        "Accuracy": accuracy,
+        "Balanced accuracy": balanced_accuracy,
+        "Precision": precision,
+        "Recall": recall,
+        "F1-score": f1
+    })
+    run.finish()
+
+def handle_input(initial_message, isResponseValid = lambda x: True):
+    """
+    Función que maneja la entrada. Por defecto la función siempre devuelve True.
+
+    Args:
+        initial_mensagge (str): mensaje inicial. 
+        isResponseValid (function): función que verifica la validez de un input dado.
+
+    Returns:
+        bool: True si el input es correcto, False en caso contrario.
+    """
+    respuesta = input(initial_message).strip()
+
+    # Hasta que no se dé una respuesta válida no se puede salir del bucle
+    while not isResponseValid(respuesta):
+        respuesta = input("Opción no válida, prueba de nuevo: ").strip()
+    
+    return respuesta
+
+if __name__ == "__main__":
+    gridsearch_message = "Ejecutar gridsearch [Y/N]: "
+    response = handle_input(gridsearch_message, lambda x: x.lower() in ["y", "n"])
+    do_gridsearch = response.lower() == "y"
+
+    optuna_message = "Ejecutar optuna [Y/N]: "
+    response = handle_input(optuna_message, lambda x: x.lower() in ["y", "n"])
+    do_optuna = response.lower() == "y"
+
+    if do_gridsearch:
+        _gridsearch()
+    
+    if do_optuna:
+        _optuna()
