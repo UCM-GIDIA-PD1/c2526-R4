@@ -49,6 +49,9 @@ def _save_txt(data, filepath):
     with open(filepath, "wt", encoding = "utf-8") as f:
         f.write(str(data))
 
+def _save_pkl(data, filepath):
+    joblib.dump(data, filepath)
+
 def _save_figure(fig, filepath):
     """Guarda un objeto Figure de Matplotlib y lo cierra."""
     fig.savefig(filepath, bbox_inches='tight')
@@ -128,6 +131,8 @@ def write_to_file(data, filepath, minio = {"minio_write": False, "minio_read": F
             _save_parquet(data, filepath)
         elif filepath.suffix == ".txt":
             _save_txt(data, filepath)
+        elif filepath.suffix == ".pkl":
+            _save_pkl(data, filepath)
         elif isinstance(data, Figure):
             _save_figure(data, filepath)
         else:

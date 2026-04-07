@@ -5,15 +5,15 @@ con Optuna y registro de métricas con Weights & Biases (wandb).
 """
 
 from src.utils.config import popularity
-from src.utils.files import read_file
+from src.utils.files import read_file, write_to_file
+from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, models_popularidad_path
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error
 import optuna
 import wandb
 import xgboost as xgb
 import umap
-import joblib
 import os
 
 import math
@@ -157,10 +157,10 @@ def _train_xgboost(train_df, test_df, y_variable, use_log=False):
     final_model = xgb.XGBRegressor(**best_params)
     final_model.fit(X_train_full, y_train_target_full)
 
-    os.makedirs('models/popularidad', exist_ok=True)
-    model_name = "xgboost_model_log.pkl" if use_log else "xgboost_model.pkl"
-    joblib.dump(final_model, f"models/popularidad/{model_name}")
-    print(f"Modelo guardado en models/popularidad/{model_name}")
+    os.makedirs(models_popularidad_path(), exist_ok=True)
+    model_name = popularidad_xgboost_log_file if use_log else popularidad_xgboost_file
+    write_to_file(final_model, model_name, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    print(f"Modelo guardado en {model_name}")
 
     df_importances = pd.DataFrame({
         'Variable': variables,
@@ -171,7 +171,6 @@ def _train_xgboost(train_df, test_df, y_variable, use_log=False):
     importances = df_importances.values.tolist()
     
     return importances
-
 
 def create_xgboost_model_popularity(use_log):
     """
