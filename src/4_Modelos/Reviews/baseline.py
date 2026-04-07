@@ -21,7 +21,6 @@ def create_reviews_baseline():
         name="baseline_all_positive",
         job_type="baseline"
     )
-    tqdm.pandas(desc="Limpiando texto")
     
     df = read_file(reviews)
     y_column = "is_positive"

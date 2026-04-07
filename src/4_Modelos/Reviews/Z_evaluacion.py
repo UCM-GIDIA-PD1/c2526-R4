@@ -57,9 +57,6 @@ def evaluate_models():
     
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
     
-    X_train_val = np.concatenate([X_train, X_val])
-    y_train_val = np.concatenate([y_train, y_val])
-    
     model_path_optuna = "models/reviews/logistic_regression_optuna.pkl"
     
     if os.path.exists(model_path_optuna):
