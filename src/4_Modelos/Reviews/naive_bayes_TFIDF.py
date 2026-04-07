@@ -12,6 +12,11 @@ import wandb
 import os
 import joblib
 import json
+
+from utils_modelo_reviews.utils import get_metrics
+
+class_names = ["Negativo", "Positivo"]
+
 nltk.download('stopwords')
 tqdm.pandas(desc="Limpiando texto")
 

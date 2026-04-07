@@ -26,6 +26,10 @@ from tqdm import tqdm
 from utils_modelo_reviews.preprocesamiento import clean_text_stem, train_val_test_split
 from src.utils.config import seed
 
+from utils_modelo_reviews.utils import get_metrics
+
+class_names = ["Negativo", "Positivo"]
+
 def preprocess(df):
     '''
     Función que se encarga del preprocesado del texto.
@@ -279,6 +283,7 @@ def main():
     print("Preprocesado de los datos")
     X, y = preprocess(df)
 
+    global X_train, X_val, X_test, y_train, y_val, y_test
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
 
     use_optuna = True
