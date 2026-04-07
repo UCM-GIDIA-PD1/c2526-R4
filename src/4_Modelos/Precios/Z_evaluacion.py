@@ -1,10 +1,20 @@
 from utils.utils import read_prices, train_val_test_split, get_metrics
 from utils.utils import normalize_train_test, cluster_embedings, umap_embeddings
 from mlp_precios import _preprocess_test
+from src.utils.config import precios_xgboostumap_file, precios_mlp_file, precios_knncompleteclusters_file
+from src.utils.config import precios_catboostClustered_file, precios_logistic_regression_file
+from src.utils.files import read_file
+from logistic_regression_train import _preprocess
 
 from sklearn.preprocessing import LabelEncoder
 import os
 import joblib
+from sklearn.model_selection import train_test_split
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler, PowerTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
 
 import wandb
 
@@ -43,7 +53,6 @@ def xgboostUmap(df, table, model_path= 'models/precios/xgboostumap.pkl'):
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
     X_train, X_val, X_test = umap_embeddings(X_train, X_val, X_test, emb_col='v_clip')
-
 
     if os.path.exists(model_path):
         model = joblib.load(model_path)
@@ -99,8 +108,8 @@ def knnModel(df, table, model_path= 'models/precios/knncompleteclusters.pkl'):
          raise FileNotFoundError
 
 def mlpModel(df, table):
-    if os.path.exists("models/precios/mlp_model_precios.pkl"):
-        mlp_data = joblib.load("models/precios/mlp_model_precios.pkl")
+    mlp_data = read_file(precios_mlp_file, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+    if mlp_data:
         mlp_model = mlp_data["model"]
         transformers_dict = mlp_data["transformers"]
         
@@ -123,7 +132,7 @@ def mlpModel(df, table):
         y_pred_mlp = mlp_model.predict(X_test_mlp)
 
         metricas = get_metrics(Y_test_mlp.values.flatten(), y_pred_mlp)
-        
+
         table.add_data(
             'MLP GridSearchCV UMAP',
             metricas['accuracy'],
@@ -131,6 +140,68 @@ def mlpModel(df, table):
             metricas['precision'],
             metricas['recall']
         )
+
+def logisticRegModel(df, table, model_path= 'models/precios/logistic_regression_precios.pkl'):
+
+    orden_precios = {
+    '[0.01,4.99]': 0,
+    '[5.00,9.99]': 1,
+    '[10.00,14.99]': 2,
+    '[15.00,19.99]': 3,
+    '[20.00,29.99]': 4,
+    '[30.00,39.99]': 5,
+    '>40': 6
+    }
+    orden_inverso = {v: k for k, v in orden_precios.items()}
+
+    X, y = _preprocess(df)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+
+
+    cols_sesgadas = ['num_languages', 'total_games_by_publisher', 'total_games_by_developer']
+    cols_normales = ['description_len', 'release_year', 'brillo']
+    img_cols = [col for col in X_train.columns if col.startswith("v_clip_")]
+    cols_binarias = [col for col in X_train.columns if col not in cols_sesgadas + cols_normales + img_cols]
+    
+    final_transformers = [
+        ('sesgadas', PowerTransformer(method='yeo-johnson'), cols_sesgadas),
+        ('normales', StandardScaler(), cols_normales),
+        ('binarias', 'passthrough', cols_binarias)
+    ]
+    
+    final_reducer = PCA(n_components=10, random_state=42)
+    
+    final_transformers.append(('img_reducer', final_reducer, img_cols))
+    final_preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
+
+    if os.path.exists(model_path):
+        best_model = joblib.load(model_path)
+    else:
+        raise FileNotFoundError
+
+    final_pipeline = Pipeline([
+        ('prep', final_preprocessor),
+        ('clf', best_model)
+    ])
+
+
+    y_test_labels = y_test.map(orden_inverso)
+    y_pred_labels = pd.Series(y_pred, index=y_test.index).map(orden_inverso)
+    y_pred = final_pipeline.predict(X_test)
+    
+    metrics_dict = get_metrics(
+        y_test_labels, y_pred_labels, 
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']
+    )
+
+    table.add_data(
+        'Logistic Regression',
+        metrics_dict['accuracy'],
+        metrics_dict['f1-score'],
+        metrics_dict['precision'],
+        metrics_dict['recall']
+    )
+    
 
 def evaluate_models():
     run = wandb.init(
@@ -158,6 +229,8 @@ def evaluate_models():
     print('Subiendo modelo KNN Complete Clusters')
     knnModel(df.copy(), table)
     print('Subiendo modelo MLP UMAP')
+    mlpModel(df.copy(), table)
+    print('Subiendo modelo Logistic Regression')
     mlpModel(df.copy(), table)
                 
     wandb.log({"comparative_table": table})

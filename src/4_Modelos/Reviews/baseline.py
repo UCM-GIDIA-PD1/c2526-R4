@@ -25,7 +25,7 @@ def create_reviews_baseline():
     df = read_file(reviews)
     y_column = "is_positive"
 
-    train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
+    train_df, test_df = train_test_split(df, test_size=0.30, random_state=42)
 
     mayority = train_df[y_column].value_counts().idxmax()
 

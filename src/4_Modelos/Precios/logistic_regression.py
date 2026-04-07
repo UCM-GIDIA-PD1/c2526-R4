@@ -1,5 +1,5 @@
 """
-Dado precios.parquet crea un modelo de Regresión Logística para predecir 
+Dado precios.parquet crea un modelo de Regresión Logística para predecir
 en qué rango de precio se sitúa un juego según sus características.
 Utiliza hiperparámetros previamente calculados en el notebook.
 """
@@ -10,7 +10,7 @@ import wandb
 
 from src.utils.config import prices
 from src.utils.files import read_file
-from utils.utils import get_metrics
+from utils.utils import get_metrics, save_model
 
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
@@ -39,7 +39,7 @@ def _preprocess(df):
     No escala ni aplica PCA aquí para evitar el Data Leakage.
     """
     df_clean = df.copy()
-    
+
     target_col = df_clean['price_range']
     y = target_col.map(orden_precios)
 
@@ -51,7 +51,7 @@ def _preprocess(df):
     df_clean['v_clip'] = df_clean['v_clip'].apply(
         lambda x: x if isinstance(x, (list, np.ndarray)) else zero_vector
     )
-    
+
     img_df = pd.DataFrame(df_clean['v_clip'].tolist(), index=df_clean.index)
     img_df.columns = [f'v_clip_{i}' for i in range(img_df.shape[1])]
     df_clean = pd.concat([df_clean.drop(columns=['v_clip']), img_df], axis=1)
@@ -64,25 +64,24 @@ def _preprocess(df):
 
     return X, y
 
-
 def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
     """
     Crea el pipeline del modelo, evalúa y sube las métricas a Weights & Biases.
     """
     run = wandb.init(
         entity="pd1-c2526-team4",
-        project="Precios", 
+        project="Precios",
         name='logistic-regression',
         job_type='logistic-regression'
     )
-    
+
     params = best_params.copy()
     solver = params.get('solver', 'lbfgs')
     l1_ratio = params.get('l1_ratio', 0.0)
     C = params.get('C', 1.0)
-    
+
     best_model = LogisticRegression(
-        C=C, solver=solver, l1_ratio=l1_ratio, 
+        C=C, solver=solver, l1_ratio=l1_ratio,
         max_iter=1500, random_state=42, class_weight='balanced'
     )
 
@@ -90,15 +89,15 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
     cols_normales = ['description_len', 'release_year', 'brillo']
     img_cols = [col for col in X_train.columns if col.startswith("v_clip_")]
     cols_binarias = [col for col in X_train.columns if col not in cols_sesgadas + cols_normales + img_cols]
-    
+
     final_transformers = [
         ('sesgadas', PowerTransformer(method='yeo-johnson'), cols_sesgadas),
         ('normales', StandardScaler(), cols_normales),
         ('binarias', 'passthrough', cols_binarias)
     ]
-    
+
     final_reducer = PCA(n_components=10, random_state=42)
-    
+
     final_transformers.append(('img_reducer', final_reducer, img_cols))
     final_preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
 
@@ -113,30 +112,33 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
     y_test_labels = y_test.map(orden_inverso)
     y_pred_labels = pd.Series(y_pred, index=y_test.index).map(orden_inverso)
 
+    cm_path = 'models/precios/graficos/confusionMatrix/logisticregression.png'
+
     metricas = get_metrics(
-        y_test_labels, y_pred_labels, 
-        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']
+        y_test_labels, y_pred_labels,
+        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
+        img_path=cm_path
     )
 
     run.log({
         'accuracy': metricas['accuracy'],
         'precision': metricas['precision'],
         'recall': metricas['recall'],
-        'f1-score': metricas['f1-score']
+        'f1-score': metricas['f1-score'],
+        'confusion_matrix': wandb.Image(cm_path)
     })
 
-    os.makedirs('models/precios', exist_ok=True)
-    model_path = "models/precios/logistic_regression_precios.pkl"
-    joblib.dump(final_pipeline, model_path)
-    print(f"Modelo guardado exitosamente en {model_path}")
+    run.save(cm_path)
+
+    model_name = "logistic_regression_precios.pkl"
+    save_model(model_name, final_pipeline)
 
     run.finish()
-
 
 if __name__ == '__main__':
     print('Leyendo datos...')
     df = read_file(prices)
-    
+
     print('Preprocesando los datos...')
     X, y = _preprocess(df)
 
