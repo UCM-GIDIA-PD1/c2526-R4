@@ -2,22 +2,19 @@
 Script unificado para evaluar los modelos del problema de reviews de predecir si
 una valoración es positiva o negativa.
 """
-import os
-import numpy as np
-import pandas as pd
-import wandb
-import joblib
 
-from src.utils.config import reviews
 from src.utils.files import read_file
+from src.utils.config import reviews_logistic_regression_gridsearch_file, reviews_logistic_regression_optuna_file
+from src.utils.config import reviews
 from utils_modelo_reviews.preprocesamiento import train_val_test_split
+from logistic_regression import preprocess
 
+import wandb
 from tqdm import tqdm
 
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score,f1_score
 from sklearn.model_selection import train_test_split
 
-from logistic_regression import preprocess
 
 
 def evaluate_models():
@@ -29,7 +26,6 @@ def evaluate_models():
     )
     tqdm.pandas(desc="Limpiando texto")
     df = read_file(reviews)
-    
     
     # Modelo baseline (moda)
     y_column = "is_positive"
@@ -51,17 +47,13 @@ def evaluate_models():
     table = wandb.Table(columns=["Model", "Accuracy", "F1-score", "Balanced accuracy", "Recall", "Precision"])
     table.add_data("baseline-mode", accuracy, f1, balanced_accuracy, recall, precision)
     
-    
     # Modelo de regresión logística
     X, y = preprocess(df)
     
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
     
-    model_path_optuna = "models/reviews/logistic_regression_optuna.pkl"
-    
-    if os.path.exists(model_path_optuna):
-        best_logistic_model = joblib.load(model_path_optuna)
-        
+    best_logistic_model = read_file(reviews_logistic_regression_optuna_file, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+    if best_logistic_model:
         y_pred_test = best_logistic_model.predict(X_test)
 
         accuracy = accuracy_score(y_test, y_pred_test)
@@ -69,15 +61,11 @@ def evaluate_models():
         balanced_accuracy = balanced_accuracy_score(y_test, y_pred_test)
         recall= recall_score(y_test, y_pred_test)
         precision=  precision_score(y_test, y_pred_test)
-        
 
         table.add_data("logistic_regression_optuna", accuracy, f1, balanced_accuracy, recall, precision)
-        
-    model_path_gridsearch = "models/reviews/logistic_regression_gridsearch.pkl"
     
-    if os.path.exists(model_path_gridsearch):
-        best_logistic_model = joblib.load(model_path_gridsearch)
-        
+    best_logistic_model = read_file(reviews_logistic_regression_gridsearch_file, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+    if best_logistic_model:        
         y_pred_test = best_logistic_model.predict(X_test)
 
         accuracy = accuracy_score(y_test, y_pred_test)

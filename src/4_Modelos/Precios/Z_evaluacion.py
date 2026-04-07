@@ -1,6 +1,9 @@
 from utils.utils import read_prices, train_val_test_split, get_metrics
 from utils.utils import normalize_train_test, cluster_embedings, umap_embeddings
 from mlp_precios import _preprocess_test
+from src.utils.config import precios_xgboostumap_file, precios_mlp_file, precios_knncompleteclusters_file
+from src.utils.config import precios_catboostClustered_file, precios_logistic_regression_file
+from src.utils.files import read_file
 
 from sklearn.preprocessing import LabelEncoder
 import os
@@ -43,7 +46,6 @@ def xgboostUmap(df, table, model_path= 'models/precios/xgboostumap.pkl'):
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
     X_train, X_val, X_test = umap_embeddings(X_train, X_val, X_test, emb_col='v_clip')
-
 
     if os.path.exists(model_path):
         model = joblib.load(model_path)
@@ -99,8 +101,8 @@ def knnModel(df, table, model_path= 'models/precios/knncompleteclusters.pkl'):
          raise FileNotFoundError
 
 def mlpModel(df, table):
-    if os.path.exists("models/precios/mlp_model_precios.pkl"):
-        mlp_data = joblib.load("models/precios/mlp_model_precios.pkl")
+    mlp_data = read_file(precios_mlp_file, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+    if mlp_data:
         mlp_model = mlp_data["model"]
         transformers_dict = mlp_data["transformers"]
         
