@@ -2,14 +2,15 @@
 Módulo de preprocesamiento de dataframe de precios para los modelos de predicción de rango de precio de un juego.
 '''
 
-from src.utils.files import read_file
+from src.utils.files import read_file, write_to_file
 from src.utils.config import prices, reduced_prices
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split    
 from sklearn.utils.class_weight import compute_sample_weight
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix 
+from sklearn.metrics import ConfusionMatrixDisplay, classification_report
 
 from umap import UMAP
 import os
@@ -17,6 +18,8 @@ import joblib
 
 from numpy import vstack
 from pandas import concat
+
+import matplotlib.pyplot as plt
 
 def read_prices(minio={"minio_write": False, "minio_read": False}):
     """Lee y limpia el dataset de precios desde un archivo Parquet.
@@ -161,7 +164,7 @@ def combine_train_val(X_train, X_val, y_train, y_val):
 
     return X_train, y_train
 
-def get_metrics(y_test, y_pred, classes=None):
+def get_metrics(y_test, y_pred, classes=None, img_path=None):
     """Calcula y muestra las métricas de rendimiento para un modelo de clasificación.
 
     Args:
@@ -190,6 +193,17 @@ def get_metrics(y_test, y_pred, classes=None):
 
     cm = confusion_matrix(y_test, y_pred)
     print(cm)
+
+    if classes and img_path:
+        fig, ax = plt.subplots(figsize=(10,6))
+        disp = ConfusionMatrixDisplay.from_predictions(
+            y_test, y_pred, 
+            display_labels=classes,
+            cmap='Blues',
+            ax=ax,
+            xticks_rotation=45
+        )
+        write_to_file(data=disp.figure_, filepath=img_path)
 
     return {'accuracy': acc, 'precision': prec, 'recall': rec, 'f1-score': f1 }
 
