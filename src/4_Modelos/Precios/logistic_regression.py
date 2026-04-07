@@ -19,6 +19,9 @@ from sklearn.preprocessing import StandardScaler, PowerTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 
+import os
+import joblib
+
 orden_precios = {
     '[0.01,4.99]': 0,
     '[5.00,9.99]': 1,
@@ -119,8 +122,13 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
         'accuracy': metricas['accuracy'],
         'precision': metricas['precision'],
         'recall': metricas['recall'],
-        'f1-score': metricas['f1']
+        'f1-score': metricas['f1-score']
     })
+
+    os.makedirs('models/precios', exist_ok=True)
+    model_path = "models/precios/logistic_regression_precios.pkl"
+    joblib.dump(final_pipeline, model_path)
+    print(f"Modelo guardado exitosamente en {model_path}")
 
     run.finish()
 
