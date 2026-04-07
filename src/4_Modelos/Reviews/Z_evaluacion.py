@@ -9,8 +9,13 @@ import wandb
 import joblib
 import nltk
 
+from src.utils.files import read_file
+from src.utils.config import reviews_logistic_regression_gridsearch_file, reviews_logistic_regression_optuna_file
+from src.utils.config import reviews
 from utils_modelo_reviews.preprocesamiento import train_val_test_split, read_reviews
+from logistic_regression import preprocess
 
+import wandb
 from tqdm import tqdm
 
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score,f1_score
@@ -23,7 +28,6 @@ from naive_bayes_CV import train_best_model  as train_naivebayes_cv
 from naive_bayes_TFIDF import preprocesar_texto as preprocesar_tfidf
 from naive_bayes_TFIDF import train_best_model  as train_naivebayes_tfidf
 
-
 def evaluate_models():
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -33,7 +37,6 @@ def evaluate_models():
     )
     tqdm.pandas(desc="Limpiando texto")
     df = read_reviews()
-    
     
     # Modelo baseline (moda)
     y_column = "is_positive"
@@ -90,11 +93,8 @@ def evaluate_models():
     
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
     
-    model_path_optuna = "models/reviews/logistic_regression_optuna.pkl"
-    
-    if os.path.exists(model_path_optuna):
-        best_logistic_model = joblib.load(model_path_optuna)
-        
+    best_logistic_model = read_file(reviews_logistic_regression_optuna_file, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+    if best_logistic_model:
         y_pred_test = best_logistic_model.predict(X_test)
 
         accuracy = accuracy_score(y_test, y_pred_test)
@@ -102,15 +102,11 @@ def evaluate_models():
         balanced_accuracy = balanced_accuracy_score(y_test, y_pred_test)
         recall= recall_score(y_test, y_pred_test)
         precision=  precision_score(y_test, y_pred_test)
-        
 
         table.add_data("logistic_regression_optuna", accuracy, f1, balanced_accuracy, recall, precision)
-        
-    model_path_gridsearch = "models/reviews/logistic_regression_gridsearch.pkl"
     
-    if os.path.exists(model_path_gridsearch):
-        best_logistic_model = joblib.load(model_path_gridsearch)
-        
+    best_logistic_model = read_file(reviews_logistic_regression_gridsearch_file, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+    if best_logistic_model:        
         y_pred_test = best_logistic_model.predict(X_test)
 
         accuracy = accuracy_score(y_test, y_pred_test)
