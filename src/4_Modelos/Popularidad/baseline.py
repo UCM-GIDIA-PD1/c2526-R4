@@ -15,6 +15,7 @@ import wandb
 
 from numpy import sqrt
 import pandas as pd
+from src.utils.config import seed
 
 def create_popularity_median_baseline():
     run = wandb.init(
@@ -27,7 +28,7 @@ def create_popularity_median_baseline():
     df = read_file(popularity)
     y_column = "recomendaciones_totales"
 
-    train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
+    train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
 
     # Calculamos la mediana, que es el valor que va a predecir este baseline
     mediana_train = train_df[y_column].median()
@@ -61,7 +62,7 @@ def create_popularity_mean_baseline():
     df = read_file(popularity)
     y_column = "recomendaciones_totales"
 
-    train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
+    train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
 
     # Calculamos la media, que es el valor que va a predecir este baseline
     mean_train = train_df[y_column].mean()

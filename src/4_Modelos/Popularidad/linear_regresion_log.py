@@ -12,6 +12,7 @@ import wandb
 
 import pandas as pd
 import numpy as np
+from src.utils.config import seed
 
 def transform_for_linear_regresion(df):
     df_clean = df.copy()
@@ -26,7 +27,7 @@ def transform_for_linear_regresion(df):
     
     clip_matrix = np.vstack(df_clean['v_clip'].values)
     
-    pca = PCA(n_components=10, random_state=42)
+    pca = PCA(n_components=10, random_state=seed)
     clip_pca = pca.fit_transform(clip_matrix)
     
     for i in range(10):
@@ -117,7 +118,7 @@ def create_linear_model_popularity(selection_method, use_log):
     
     df = transform_for_linear_regresion(df)
 
-    train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
+    train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
 
     forward_selection(train_df, test_df, y_variable, selection_method, use_log)
 

@@ -17,6 +17,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.exceptions import ConvergenceWarning
 
 from umap import UMAP
+from src.utils.config import seed
 
 load_env_file()
 df = read_file(prices, minio={"minio_write": True, "minio_read": True})
@@ -105,7 +106,7 @@ def training_optuna():
             l1_ratio = 0.0
             
         # class_weight='balanced' para que se penalice más los fallos en las clases mayoritarias
-        model = LogisticRegression(C=C, solver=solver, l1_ratio=l1_ratio, max_iter=1500, random_state=42, class_weight='balanced')
+        model = LogisticRegression(C=C, solver=solver, l1_ratio=l1_ratio, max_iter=1500, random_state=seed, class_weight='balanced')
         
         # Construimos el pipeline. Garantiza que en cada iteración de la validación cruzada, 
         # el PCA y el Scaler entrenen solo con los datos de entrenamiento de ese intento.
@@ -127,7 +128,7 @@ def training_optuna():
             dim_reduction = trial.suggest_categorical('dim_reduction', ['pca', 'umap'])
             
             if dim_reduction == 'pca':
-                reducer = PCA(n_components=10, random_state=42)
+                reducer = PCA(n_components=10, random_state=seed)
             else:
                 n_neighbors = trial.suggest_int('umap_n_neighbors', 5, 50)
                 min_dist = trial.suggest_float('umap_min_dist', 0.0, 0.5)
@@ -140,7 +141,7 @@ def training_optuna():
         steps.append(('clf', model))
         
         pipeline = Pipeline(steps)
-        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
         
         scores = cross_validate(pipeline, X_t, y_t, cv=cv, scoring='f1_weighted', return_train_score=True)
         
@@ -170,7 +171,7 @@ def training_optuna():
         # Aplicamos el mapeo ordinal manual para mantener los precios ordenados
         y = y_raw.map(orden_precios)
         
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed, stratify=y)
 
         # Optuna busca los mejores parámetros
         study = optuna.create_study(direction='maximize')
@@ -186,7 +187,7 @@ def training_optuna():
         l1_ratio = best_params.get('l1_ratio', 0.0)
 
         best_model = LogisticRegression(C=best_params['C'], solver=solver, l1_ratio=l1_ratio, 
-                                        max_iter=3000, random_state=42, class_weight='balanced')
+                                        max_iter=3000, random_state=seed, class_weight='balanced')
         
         # Reconstruimos el mejor Pipeline para aplicarlo al Test Set final
         final_steps = []
@@ -206,7 +207,7 @@ def training_optuna():
             dim_reduction = best_params.get('dim_reduction', 'pca')
             
             if dim_reduction == 'pca':
-                final_reducer = PCA(n_components=10, random_state=42)
+                final_reducer = PCA(n_components=10, random_state=seed)
             else:
                 final_reducer = UMAP(
                     n_components=10,
@@ -285,7 +286,7 @@ def training_gridsearchcv():
         
         y = y_raw.map(orden_precios)
         
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed, stratify=y)
 
         cols_sesgadas = ['num_languages', 'total_games_by_publisher', 'total_games_by_developer']
         cols_normales = ['description_len', 'release_year', 'brillo']
@@ -299,13 +300,13 @@ def training_gridsearchcv():
         ]
         
         if c[1]:
-            transformers_list.append(('img_reducer', PCA(n_components=10, random_state=42), img_cols))
+            transformers_list.append(('img_reducer', PCA(n_components=10, random_state=seed), img_cols))
             
         preprocessor = ColumnTransformer(transformers=transformers_list)
 
         pipeline = Pipeline([
             ('prep', preprocessor),
-            ('clf', LogisticRegression(max_iter=1500, random_state=42, class_weight='balanced'))
+            ('clf', LogisticRegression(max_iter=1500, random_state=seed, class_weight='balanced'))
         ])
         
         # 5 valores para no eternizar la ejecución: de 0.0001 a 10.0
@@ -316,7 +317,7 @@ def training_gridsearchcv():
         if c[1]:
             # Lista de reductores de dimensionalidad a probar
             reducers_list = [
-                PCA(n_components=10, random_state=42),
+                PCA(n_components=10, random_state=seed),
                 UMAP(n_components=10, n_neighbors=15, min_dist=0.1) # Un UMAP estándar balanceado
             ]
             # Separamos en dos diccionarios para no mezclar lbfgs con l1_ratio > 0 (que daría error)
@@ -330,7 +331,7 @@ def training_gridsearchcv():
                 {'clf__solver': ['saga'], 'clf__C': C_values, 'clf__l1_ratio': [0.0, 0.5, 1.0]}
             ])
 
-        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
         grid_search = GridSearchCV(
             estimator=pipeline,
             param_grid=grid_params,

@@ -13,6 +13,7 @@ from imblearn.over_sampling import SMOTE
 import wandb
 
 import pandas as pd
+from src.utils.config import seed
 
 def grid_search_knn_full(X_train, X_val, y_train, y_val):
     """
@@ -257,7 +258,7 @@ def _oversampled_reduced(df, modelName= 'K-NN Reduced Oversampled'):
     X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
     X_train, X_val, X_test = pca_train_test(X_train, X_val, X_test, n_comp=0.9)
 
-    smote = SMOTE(random_state=42)
+    smote = SMOTE(random_state=seed)
     X_train, y_train = smote.fit_resample(X_train, y_train)
 
     run = wandb.init(
