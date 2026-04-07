@@ -24,6 +24,7 @@ from sklearn.model_selection import RandomizedSearchCV
 import joblib
 import os
 from imblearn.over_sampling import SMOTE
+from src.utils.config import seed
 
 def model_noimg(df, modelName='XGBoost-Base NoImg'):
     """
@@ -91,7 +92,7 @@ def model_noimg(df, modelName='XGBoost-Base NoImg'):
         **best_params,
         objective='multi:softprob',
         num_class=len(le.classes_),
-        random_state=42
+        random_state=seed
     )
     
     final_model.fit(
@@ -192,7 +193,7 @@ def model_img(df, modelName='XGBoost-Base Img PCA 50'):
         **best_params,
         objective='multi:softprob',
         num_class=len(le.classes_),
-        random_state=42
+        random_state=seed
     )
 
     final_model.fit(
@@ -334,7 +335,7 @@ def model_umap(df, modelName=None):
     
     X_train, X_val, X_test = umap_embeddings(X_train, X_val, X_test, emb_col='v_clip')
 
-    smote = SMOTE(random_state=42)
+    smote = SMOTE(random_state=seed)
     X_train, y_train = smote.fit_resample(X_train, y_train)
 
     def objective(trial):
@@ -381,7 +382,7 @@ def model_umap(df, modelName=None):
         **best_params,
         objective='multi:softprob',
         num_class=len(le.classes_),
-        random_state=42
+        random_state=seed
     )
     
     final_model.fit(
@@ -475,7 +476,7 @@ def model_cluster(df, modelName=None):
         **best_params,
         objective='multi:softprob',
         num_class=len(le.classes_),
-        random_state=42
+        random_state=seed
     )
     
     final_model.fit(
@@ -502,7 +503,7 @@ def random_search(X_train, y_train, sample_weights=None):
     model = xgb.XGBClassifier(
         objective='multi:softprob',
         num_class=len(set(y_train)),
-        random_state=42,
+        random_state=seed,
         tree_method='hist', 
         device='cuda',
         eval_metric='mlogloss'
@@ -524,7 +525,7 @@ def random_search(X_train, y_train, sample_weights=None):
         verbose=1,
         n_jobs=1,
         scoring='f1_weighted',
-        random_state=42
+        random_state=seed
     )
     search.fit(X_train, y_train, sample_weight=sample_weights)
 
@@ -604,5 +605,9 @@ def xgboost_base():
     else:
         return
 
-if __name__ == '__main__':
+
+def main():
     xgboost_base()
+
+if __name__ == "__main__":
+    main()

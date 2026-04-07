@@ -19,6 +19,7 @@ import os
 import math
 import numpy as np
 import pandas as pd
+from src.utils.config import seed
 
 def _transform_for_xgboost(df):
     """
@@ -46,7 +47,7 @@ def _transform_for_xgboost(df):
     # Extraemos la matriz de características y aplicamos UMAP para reducir la dimensionalidad
     clip_matrix = np.vstack(df_clean['v_clip'].values)
 
-    reducer = umap.UMAP(n_components=10, random_state=42) 
+    reducer = umap.UMAP(n_components=10, random_state=seed) 
     clip_reduced = reducer.fit_transform(clip_matrix)
     
     for i in range(10):
@@ -79,7 +80,7 @@ def _get_best_xgboost_params(X_train_full, y_train_target_full, use_log):
     """
     # Dividimos internamente en conjunto de entrenamiento y validación para Optuna
     X_train_opt, X_val_opt, y_train_opt, y_val_opt = train_test_split(
-        X_train_full, y_train_target_full, test_size=0.20, random_state=42
+        X_train_full, y_train_target_full, test_size=0.20, random_state=seed
     )
 
     def objective(trial):
@@ -198,7 +199,7 @@ def create_xgboost_model_popularity(use_log):
     
     df = _transform_for_xgboost(df)
 
-    train_df, test_df = train_test_split(df, test_size=0.20, random_state=42)
+    train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
 
     importances = _train_xgboost(train_df, test_df, y_variable, use_log)
 
@@ -208,6 +209,10 @@ def create_xgboost_model_popularity(use_log):
 
     run.finish()
 
-if __name__ == "__main__":
+
+def main():
     create_xgboost_model_popularity(use_log=False)
     create_xgboost_model_popularity(use_log=True)
+
+if __name__ == "__main__":
+    main()

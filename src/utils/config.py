@@ -157,6 +157,7 @@ def load_env_file():
 
 # Total de miembros del equipo de extracción para dividirla en bloques
 members = 6
+seed = 42
 
 # Config Path
 config_file = config_path() / "config.json"

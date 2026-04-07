@@ -20,6 +20,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 
 import os
+from src.utils.config import seed
 
 orden_precios = {
     '[0.01,4.99]': 0,
@@ -81,7 +82,7 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
 
     best_model = LogisticRegression(
         C=C, solver=solver, l1_ratio=l1_ratio,
-        max_iter=1500, random_state=42, class_weight='balanced'
+        max_iter=1500, random_state=seed, class_weight='balanced'
     )
 
     cols_sesgadas = ['num_languages', 'total_games_by_publisher', 'total_games_by_developer']
@@ -95,7 +96,7 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
         ('binarias', 'passthrough', cols_binarias)
     ]
 
-    final_reducer = PCA(n_components=10, random_state=42)
+    final_reducer = PCA(n_components=10, random_state=seed)
 
     final_transformers.append(('img_reducer', final_reducer, img_cols))
     final_preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
@@ -126,14 +127,15 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
 
     run.finish()
 
-if __name__ == '__main__':
+
+def main():
     print('Leyendo datos...')
     df = read_file(prices)
 
     print('Preprocesando los datos...')
     X, y = _preprocess(df)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed, stratify=y)
 
     best_params = {
         'C': 0.041948246911196446,
@@ -143,3 +145,6 @@ if __name__ == '__main__':
 
     print('Creando modelo...')
     _create_lr_model(X_train, X_test, y_train, y_test, best_params)
+
+if __name__ == "__main__":
+    main()

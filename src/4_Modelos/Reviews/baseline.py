@@ -7,11 +7,10 @@ Las métricas se registran en Weights & Biases (wandb).
 import pandas as pd
 import wandb
 
-from src.utils.config import reviews
+from src.utils.config import reviews, seed
 from src.utils.files import read_file
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score,f1_score
-
 
 def create_reviews_baseline():
 
@@ -25,7 +24,7 @@ def create_reviews_baseline():
     df = read_file(reviews)
     y_column = "is_positive"
 
-    train_df, test_df = train_test_split(df, test_size=0.30, random_state=42)
+    train_df, test_df = train_test_split(df, test_size=0.30, random_state=seed)
 
     mayority = train_df[y_column].value_counts().idxmax()
 
@@ -50,5 +49,9 @@ def create_reviews_baseline():
     run.finish()
 
 
-if __name__ == "__main__":
+
+def main():
     create_reviews_baseline()
+
+if __name__ == "__main__":
+    main()

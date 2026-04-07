@@ -20,6 +20,7 @@ import wandb
 
 import pandas as pd
 from numpy import vstack
+from src.utils.config import seed
 
 def catboostModel(df, table, model_path= 'models/precios/catboostClustered.pkl'):
     y = df['price_range']
@@ -160,7 +161,7 @@ def logisticRegModel(df, table, model_path='models/precios/logistic_regression_p
     y_raw = df_prepared['price_range']
     y = y_raw.map(orden_precios)
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed, stratify=y)
 
     if os.path.exists(model_path):
         final_pipeline = joblib.load(model_path)
@@ -220,5 +221,9 @@ def evaluate_models():
     print("Evaluación completada. Resultados en W&B.")
     run.finish()
 
-if __name__ == "__main__":
+
+def main():
     evaluate_models()
+
+if __name__ == "__main__":
+    main()

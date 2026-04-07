@@ -20,6 +20,7 @@ import wandb
 
 from pandas import DataFrame, concat
 from numpy import vstack
+from src.utils.config import seed
 
 def _preprocess_train(df_X, df_y):
     """Función para transformar los datos para realiza MLP
@@ -120,7 +121,7 @@ def _best_params_mlp(X_train, Y_train):
         'learning_rate_init': [0.001]
     }
 
-    grid = GridSearchCV(MLPClassifier(max_iter=5000, random_state=42), param_grid=param_grid, cv=5, n_jobs=-1)
+    grid = GridSearchCV(MLPClassifier(max_iter=5000, random_state=seed), param_grid=param_grid, cv=5, n_jobs=-1)
     grid.fit(X_train, Y_train.values.flatten())
 
     params_mejor_modelo = grid.best_params_
@@ -143,7 +144,7 @@ def _best_params_mlp_optuna_umap(X_train, Y_train):
         X_train_trial = X_train.copy()
         clip_matrix_train = vstack(X_train_trial['v_clip'].values)
         
-        umap = UMAP(n_components=n_components, random_state=42)
+        umap = UMAP(n_components=n_components, random_state=seed)
         clip_reduced_train = umap.fit_transform(clip_matrix_train)
         
         for i in range(n_components):
@@ -151,7 +152,7 @@ def _best_params_mlp_optuna_umap(X_train, Y_train):
             
         X_train_trial = X_train_trial.drop(columns=['v_clip'])
 
-        model = MLPClassifier(max_iter=5000, random_state=42, **params)
+        model = MLPClassifier(max_iter=5000, random_state=seed, **params)
         
         score = cross_val_score(model, X_train_trial, Y_train.values.flatten(), cv=5, n_jobs=-1)
         return score.mean()
@@ -174,7 +175,7 @@ def _best_params_mlp_optuna(X_train, Y_train):
             'learning_rate_init': trial.suggest_float('learning_rate_init', 1e-4, 1e-1, log=True)
         }
 
-        model = MLPClassifier(max_iter=5000, random_state=42, **params)
+        model = MLPClassifier(max_iter=5000, random_state=seed, **params)
         
         score = cross_val_score(model, X_train, Y_train.values.flatten(), cv=5, n_jobs=-1)
         return score.mean()
@@ -196,7 +197,7 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers
         config=best_params
     )
     
-    best_mlp = MLPClassifier(max_iter=10000, random_state=42, activation=best_params['activation'],
+    best_mlp = MLPClassifier(max_iter=10000, random_state=seed, activation=best_params['activation'],
                              hidden_layer_sizes=best_params['hidden_layer_sizes'], alpha=best_params['alpha'],
                              learning_rate_init=best_params['learning_rate_init'])
     best_mlp.fit(X_train, Y_train.values.flatten())
@@ -222,7 +223,8 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers
 
     run.finish()
 
-if __name__ == '__main__':
+
+def main():
     # Preprocesado de datos
     print('Leyendo y preprocesando datos...')
     df = read_prices()
@@ -248,14 +250,14 @@ if __name__ == '__main__':
 
     print('Creando mejor modelo MLP sin imágenes...')
     _mlp(X_train_no_img, X_test_no_img, Y_train, Y_test, best_params, 'mlp-no-img')
-    
+
 
     # MLP con imágenes (clusters)
     print('Buscando mejores parámetros para modelo con imágenes con clusters...')
     X_train_clusters = X_train.copy()
     X_test_clusters = X_test.copy()
 
-    kmeans = KMeans(random_state=42, n_clusters=8)
+    kmeans = KMeans(random_state=seed, n_clusters=8)
     matrix_train = vstack(X_train_clusters['v_clip'].values)
     matrix_test = vstack(X_test_clusters['v_clip'].values)
 
@@ -287,22 +289,25 @@ if __name__ == '__main__':
     clip_matrix_train = vstack(X_train_umap['v_clip'].values)
     clip_matrix_test = vstack(X_test_umap['v_clip'].values)
 
-    umap = UMAP(n_components=19, random_state=42) # n_components = 19 es la reducción de dimensionalidad óptima
+    umap = UMAP(n_components=19, random_state=seed) # n_components = 19 es la reducción de dimensionalidad óptima
 
     clip_reduced_train = umap.fit_transform(clip_matrix_train)
     clip_reduced_test = umap.transform(clip_matrix_test)
 
     transformers['umap'] = umap
-    
+
     for i in range(19):
         X_train_umap[f'clip_umap_{i}'] = clip_reduced_train[:, i]
         X_test_umap[f'clip_umap_{i}'] = clip_reduced_test[:, i]
-    
+
     X_train_umap = X_train_umap.drop(columns=['v_clip'])
     X_test_umap = X_test_umap.drop(columns=['v_clip'])
-    
+
     best_params_umap = _best_params_mlp(X_train_umap, Y_train)
 
     print('Creando mejor modelo MLP con imágenes con UMAP...')
     _mlp(X_train_umap, X_test_umap, Y_train, Y_test, best_params_umap, 'mlp-umap-img', transformers)
-    
+
+
+if __name__ == "__main__":
+    main()

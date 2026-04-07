@@ -18,6 +18,7 @@ import xgboost as xgb
 from umap import UMAP
 
 import matplotlib.pyplot as plt
+from src.utils.config import seed
 
 load_env_file()
 df = read_file(popularity, minio={"minio_write": False, "minio_read": False})
@@ -117,11 +118,11 @@ def _xgb_variable_selection():
             dim_reduction = trial.suggest_categorical('dim_reduction', ['pca', 'umap'])
             
             if dim_reduction == 'pca':
-                reducer = PCA(n_components=10, random_state=42)
+                reducer = PCA(n_components=10, random_state=seed)
             else:
                 n_neighbors = trial.suggest_int('umap_n_neighbors', 5, 50)
                 min_dist = trial.suggest_float('umap_min_dist', 0.0, 0.5)
-                reducer = UMAP(n_components=10, n_neighbors=n_neighbors, min_dist=min_dist, random_state=42)
+                reducer = UMAP(n_components=10, n_neighbors=n_neighbors, min_dist=min_dist, random_state=seed)
                 
             transformers_list.append(('reducer', reducer, img_cols))
             
@@ -138,7 +139,7 @@ def _xgb_variable_selection():
             inverse_func=np.expm1
         )
         
-        cv = KFold(n_splits=5, shuffle=True, random_state=42)
+        cv = KFold(n_splits=5, shuffle=True, random_state=seed)
         scores = cross_validate(final_model, X_t, y_t, cv=cv, scoring='neg_mean_absolute_error', return_train_score=True,
                                 n_jobs=-1)
         
@@ -160,7 +161,7 @@ def _xgb_variable_selection():
         X = df_prepared.drop(columns=['recomendaciones_totales'])
         y = df_prepared['recomendaciones_totales']
         
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed)
 
         study = optuna.create_study(direction='minimize')
         study.optimize(lambda trial: objective_xgb(trial, X_train, y_train, c[0], c[1]), n_trials=35)
@@ -178,7 +179,7 @@ def _xgb_variable_selection():
                 print(f"min_dist óptimo para UMAP: {best_params.get('umap_min_dist')}")
 
         xgb_params = {k: v for k, v in best_params.items() if k not in ['dim_reduction', 'umap_n_neighbors', 'umap_min_dist']}
-        best_xgb = xgb.XGBRegressor(**xgb_params, random_state=42, n_jobs=-1)
+        best_xgb = xgb.XGBRegressor(**xgb_params, random_state=seed, n_jobs=-1)
         
         cols_sesgadas = [col for col in ['price_overview', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer'] if col in X_train.columns]
         img_cols = [col for col in X_train.columns if col.startswith(f"{c[0]}_")] if c[1] else []
@@ -194,9 +195,9 @@ def _xgb_variable_selection():
         if c[1]:
             dim_reduction = best_params.get('dim_reduction', 'pca')
             if dim_reduction == 'pca':
-                final_reducer = PCA(n_components=10, random_state=42)
+                final_reducer = PCA(n_components=10, random_state=seed)
             else:
-                final_reducer = UMAP(n_components=10, n_neighbors=best_params['umap_n_neighbors'], min_dist=best_params['umap_min_dist'], random_state=42)
+                final_reducer = UMAP(n_components=10, n_neighbors=best_params['umap_n_neighbors'], min_dist=best_params['umap_min_dist'], random_state=seed)
             final_transformers.append(('reducer', final_reducer, img_cols))
             
         final_preprocessor = ColumnTransformer(transformers=final_transformers, remainder='drop')
@@ -258,7 +259,7 @@ def _train_knn(top_tabular_variables):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y,
         test_size=0.2,
-        random_state=42,
+        random_state=seed,
         stratify=y_binned
     )
 
@@ -297,7 +298,7 @@ def _train_knn(top_tabular_variables):
             dim_reduction = trial.suggest_categorical('dim_reduction', ['pca', 'umap'])
             if dim_reduction == 'pca':
                 reducer = Pipeline([
-                    ('pca', PCA(n_components=10, random_state=42)),
+                    ('pca', PCA(n_components=10, random_state=seed)),
                     ('scaler', StandardScaler())
                 ])
             else:
@@ -306,7 +307,7 @@ def _train_knn(top_tabular_variables):
                         n_components=10,
                         n_neighbors=trial.suggest_int('umap_n_neighbors', 5, 50),
                         min_dist=trial.suggest_float('umap_min_dist', 0.0, 0.5),
-                        random_state=42
+                        random_state=seed
                     )),
                     ('scaler', StandardScaler())
                 ])
@@ -319,7 +320,7 @@ def _train_knn(top_tabular_variables):
         ])
         final_model = TransformedTargetRegressor(regressor=pipeline, func=np.log1p, inverse_func=np.expm1)
 
-        cv = KFold(n_splits=5, shuffle=True, random_state=42)
+        cv = KFold(n_splits=5, shuffle=True, random_state=seed)
 
         scores = cross_validate(
             final_model, X_filtrada, y_t,
@@ -356,7 +357,7 @@ def _train_knn(top_tabular_variables):
         dim_reduction = mejores_parametros.get('dim_reduction', 'pca')
         if dim_reduction == 'pca':
             final_reducer = Pipeline([
-                ('pca', PCA(n_components=10, random_state=42)),
+                ('pca', PCA(n_components=10, random_state=seed)),
                 ('scaler', StandardScaler())
             ])
         else:
@@ -365,7 +366,7 @@ def _train_knn(top_tabular_variables):
                     n_components=10,
                     n_neighbors=mejores_parametros['umap_n_neighbors'],
                     min_dist=mejores_parametros['umap_min_dist'],
-                    random_state=42
+                    random_state=seed
                 )),
                 ('scaler', StandardScaler())
             ])

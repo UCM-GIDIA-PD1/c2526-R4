@@ -21,6 +21,7 @@ from pandas import concat
 
 import matplotlib.pyplot as plt
 import wandb
+from src.utils.config import seed
 
 def read_prices(minio={"minio_write": False, "minio_read": False}):
     """Lee y limpia el dataset de precios desde un archivo Parquet.
@@ -61,8 +62,8 @@ def train_val_test_split(X, y):
             X_train, X_val, X_test, y_train, y_val, y_test.
     """
 
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
-    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42, stratify=y_temp)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=seed, stratify=y)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=seed, stratify=y_temp)
 
     return X_train, X_val, X_test, y_train, y_val, y_test
 
@@ -84,7 +85,7 @@ def umap_embeddings(X_train, X_val, X_test, emb_col, n_components=16):
     clip_matrix_val   = vstack(X_val[emb_col].values)
     clip_matrix_test  = vstack(X_test[emb_col].values)
     
-    umap = UMAP(n_components=n_components, random_state=42)
+    umap = UMAP(n_components=n_components, random_state=seed)
     clip_reduced_train = umap.fit_transform(clip_matrix_train)
     clip_reduced_val   = umap.transform(clip_matrix_val)
     clip_reduced_test  = umap.transform(clip_matrix_test)
@@ -109,7 +110,7 @@ def cluster_embedings(X_train, X_val, X_test, emb_col,  n_clusters=8):
     clip_matrix_val   = vstack(X_val[emb_col].values)
     clip_matrix_test  = vstack(X_test[emb_col].values)
     
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=seed)
     cluster_train = kmeans.fit_predict(clip_matrix_train)
     cluster_val   = kmeans.predict(clip_matrix_val)
     cluster_test  = kmeans.predict(clip_matrix_test)
@@ -144,7 +145,7 @@ def pca_train_test(X_train, X_val, X_test, n_comp = 0.9):
     '''
     Dados unos conjuntos train y test realiza un pca sobre ellos para reducir dimensionalidad.
     '''
-    pca = PCA(n_components=n_comp, random_state=42)
+    pca = PCA(n_components=n_comp, random_state=seed)
 
     X_train_pca = pca.fit_transform(X_train)
     X_val_pca = pca.transform(X_val)
@@ -224,3 +225,20 @@ def save_model(output_file, final_model):
     os.makedirs('models/precios', exist_ok=True)
     joblib.dump(final_model, f"models/precios/{output_file}")
     print(f"Modelo guardado en models/precios/{output_file}")
+
+def save_confusion_matrix(y_test, y_pred, classes, img_path='models/media/confusionmatrix.png', encoder=None):
+    if encoder:
+        y_test= encoder.inverse_transform(y_test)
+        y_preds= encoder.inverse_transform(y_pred)
+        
+    fig, ax = plt.subplots(figsize=(10,6))
+    disp = ConfusionMatrixDisplay.from_predictions(
+        y_test, y_pred, 
+        display_labels=classes,
+        cmap='Blues',
+        ax=ax,
+        xticks_rotation=45
+    )
+    write_to_file(data=disp.figure_, filepath=img_path)
+
+

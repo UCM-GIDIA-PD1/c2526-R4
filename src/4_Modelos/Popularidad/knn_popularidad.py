@@ -18,6 +18,7 @@ import wandb
 
 import numpy as np
 import pandas as pd
+from src.utils.config import seed
 
 BEST_KNN_PARAMS = {
     "n_neighbors": 20,
@@ -74,7 +75,7 @@ def create_knn_model_popularity():
     y_binned = pd.cut(y, bins=bins_strat, labels=False)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y_binned
+        X, y, test_size=0.2, random_state=seed, stratify=y_binned
     )
 
     todas_sesgadas = ['price_overview', 'num_languages', 'total_games_by_publisher']
@@ -126,5 +127,9 @@ def create_knn_model_popularity():
 
     run.finish()
 
-if __name__ == "__main__":
+
+def main():
     create_knn_model_popularity()
+
+if __name__ == "__main__":
+    main()
