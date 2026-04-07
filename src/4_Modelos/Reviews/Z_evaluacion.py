@@ -8,8 +8,6 @@ import pandas as pd
 import wandb
 import joblib
 
-from src.utils.config import reviews
-from src.utils.files import read_file
 from utils_modelo_reviews.preprocesamiento import train_val_test_split, read_reviews
 
 from tqdm import tqdm
@@ -33,7 +31,7 @@ def evaluate_models():
         job_type="evaluation"
     )
     tqdm.pandas(desc="Limpiando texto")
-    df = read_file(reviews)
+    df = read_reviews()
     
     
     # Modelo baseline (moda)
@@ -86,7 +84,7 @@ def evaluate_models():
     y_pred = best_naivebayes_tfidf.predict(X_test)
     accuracy, balanced_accuracy, precision, recall, f1 = calcular_metricas(y_test, y_pred)
     table.add_data("naivebayes_tfidf", accuracy, f1, balanced_accuracy, recall, precision)
-    
+
     # Modelo de regresión logística
     X, y = preprocess(df)
     
