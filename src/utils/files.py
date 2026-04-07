@@ -10,6 +10,11 @@ from os import remove, path
 from .config import steam_log_file
 from .minio_server import upload_to_minio, download_from_minio, erase_from_minio, file_exists_minio
 
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+
+from pathlib import Path
+
 # ------- GUARDAR DATOS A FICHEROS -------
 
 def _save_json(data, filepath):
@@ -42,6 +47,11 @@ def _save_parquet(data, filepath):
 def _save_txt(data, filepath):
     with open(filepath, "wt", encoding = "utf-8") as f:
         f.write(str(data))
+
+def _save_figure(fig, filepath):
+    """Guarda un objeto Figure de Matplotlib y lo cierra."""
+    fig.savefig(filepath, bbox_inches='tight')
+    plt.close(fig)
 
 # ------- CARGAR DATOS DE FICHEROS -------
 
@@ -88,16 +98,19 @@ def log_appid_errors(appid, reason):
 
 def write_to_file(data, filepath, minio = {"minio_write": False, "minio_read": False}):
     """
-    Guarda un diccionario en el formato indicado en la ruta especificada.
+    Guarda un archivo en el formato indicado en la ruta especificada.
 
     Args:
-        datos (dict): Diccionario con la información a exportar. (Lista de diccionarios en caso de ser un jsonl)
-        filepath (str): Ruta del sistema de archivos.
-        minio (dic): Activar para traer y guardar los datos en el servidor de MinIO
+        datos (obj): Objeto con la información a exportar.
+        filepath (str | Path): Ruta del sistema de archivos.
+        minio (dict): Activar para traer y guardar los datos en el servidor de MinIO
     
     Returns:
         boolean: True si se ha escrito en el archivo correctamente, false en caso contrario.
     """
+
+    filepath = Path(filepath)
+
     try:
         if filepath.suffix == ".json":
             _save_json(data, filepath)
@@ -111,6 +124,8 @@ def write_to_file(data, filepath, minio = {"minio_write": False, "minio_read": F
             _save_parquet(data, filepath)
         elif filepath.suffix == ".txt":
             _save_txt(data, filepath)
+        elif isinstance(data, Figure):
+            _save_figure(data, filepath)
         else:
             print(f"File extension not supported: {filepath.name}")
             return
