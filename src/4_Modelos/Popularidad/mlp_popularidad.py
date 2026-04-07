@@ -212,7 +212,8 @@ def _mlp(X_train, y_train, best_params, model_name, transformers):
     run.finish()
 
 
-if __name__ == '__main__':
+
+def main():
     # Lectura y división de datos
     print('Leyendo y preprocesando datos...')
     df = read_file(popularity)
@@ -220,11 +221,14 @@ if __name__ == '__main__':
 
     # Preprocesamiento
     X_train_base, y_train, transformers = _preprocess_train(df_train)
-    
+
     # MLP Regressor con imágenes (umap)
     print('Encontrando el mejor modelo de MLP con imágenes...')
     best_params = _best_params_mlp(X_train_base, y_train)
 
     print('Creando mejor modelo MLP con imágenes...')
     _mlp(X_train_base, y_train, best_params, 'mlp-umap-img', transformers)
-    
+
+
+if __name__ == "__main__":
+    main()

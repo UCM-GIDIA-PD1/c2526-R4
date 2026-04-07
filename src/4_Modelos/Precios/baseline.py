@@ -44,5 +44,9 @@ def create_price_mode_baseline():
     run.finish()
 
 
-if __name__ == "__main__":
+
+def main():
     create_price_mode_baseline()
+
+if __name__ == "__main__":
+    main()

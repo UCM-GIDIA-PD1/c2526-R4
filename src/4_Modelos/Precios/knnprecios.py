@@ -307,5 +307,9 @@ def knnprecios():
         print('Opción no válida')
         return
     
-if __name__ == '__main__':
+
+def main():
     knnprecios()
+
+if __name__ == "__main__":
+    main()

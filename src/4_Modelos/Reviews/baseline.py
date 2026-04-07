@@ -50,5 +50,9 @@ def create_reviews_baseline():
     run.finish()
 
 
-if __name__ == "__main__":
+
+def main():
     create_reviews_baseline()
+
+if __name__ == "__main__":
+    main()

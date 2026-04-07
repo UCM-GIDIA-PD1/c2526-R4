@@ -217,7 +217,8 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers
 
     run.finish()
 
-if __name__ == '__main__':
+
+def main():
     # Preprocesado de datos
     print('Leyendo y preprocesando datos...')
     df = read_prices()
@@ -243,7 +244,7 @@ if __name__ == '__main__':
 
     print('Creando mejor modelo MLP sin imágenes...')
     _mlp(X_train_no_img, X_test_no_img, Y_train, Y_test, best_params, 'mlp-no-img')
-    
+
 
     # MLP con imágenes (clusters)
     print('Buscando mejores parámetros para modelo con imágenes con clusters...')
@@ -288,16 +289,19 @@ if __name__ == '__main__':
     clip_reduced_test = umap.transform(clip_matrix_test)
 
     transformers['umap'] = umap
-    
+
     for i in range(19):
         X_train_umap[f'clip_umap_{i}'] = clip_reduced_train[:, i]
         X_test_umap[f'clip_umap_{i}'] = clip_reduced_test[:, i]
-    
+
     X_train_umap = X_train_umap.drop(columns=['v_clip'])
     X_test_umap = X_test_umap.drop(columns=['v_clip'])
-    
+
     best_params_umap = _best_params_mlp(X_train_umap, Y_train)
 
     print('Creando mejor modelo MLP con imágenes con UMAP...')
     _mlp(X_train_umap, X_test_umap, Y_train, Y_test, best_params_umap, 'mlp-umap-img', transformers)
-    
+
+
+if __name__ == "__main__":
+    main()

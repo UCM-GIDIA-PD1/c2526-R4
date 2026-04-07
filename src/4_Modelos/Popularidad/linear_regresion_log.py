@@ -124,7 +124,8 @@ def create_linear_model_popularity(selection_method, use_log):
     run.finish()
 
 
-if __name__ == "__main__":
+
+def main():
     # Con AIC Normal
     create_linear_model_popularity(selection_method="AIC", use_log=False)
 
@@ -137,3 +138,6 @@ if __name__ == "__main__":
     #create_linear_model_popularity(selection_method="BIC", use_log=False)
     # Con BIC Logarítmico
     #create_linear_model_popularity(selection_method="BIC", use_log=True)
+
+if __name__ == "__main__":
+    main()

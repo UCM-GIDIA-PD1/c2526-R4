@@ -124,5 +124,9 @@ def evaluate_models():
     run.finish()
     
     
-if __name__ == "__main__":
+
+def main():
     evaluate_models()
+
+if __name__ == "__main__":
+    main()

@@ -135,7 +135,8 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
 
     run.finish()
 
-if __name__ == '__main__':
+
+def main():
     print('Leyendo datos...')
     df = read_file(prices)
 
@@ -152,3 +153,6 @@ if __name__ == '__main__':
 
     print('Creando modelo...')
     _create_lr_model(X_train, X_test, y_train, y_test, best_params)
+
+if __name__ == "__main__":
+    main()

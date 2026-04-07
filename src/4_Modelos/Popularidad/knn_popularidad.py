@@ -126,5 +126,9 @@ def create_knn_model_popularity():
 
     run.finish()
 
-if __name__ == "__main__":
+
+def main():
     create_knn_model_popularity()
+
+if __name__ == "__main__":
+    main()

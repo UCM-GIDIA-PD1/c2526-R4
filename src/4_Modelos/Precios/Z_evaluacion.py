@@ -237,5 +237,9 @@ def evaluate_models():
     print("Evaluación completada. Resultados en W&B.")
     run.finish()
 
-if __name__ == "__main__":
+
+def main():
     evaluate_models()
+
+if __name__ == "__main__":
+    main()

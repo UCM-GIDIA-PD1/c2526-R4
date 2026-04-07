@@ -84,6 +84,9 @@ def create_popularity_mean_baseline():
     
     run.finish()
 
-if __name__ == "__main__":
+def main():
     create_popularity_mean_baseline()
     create_popularity_median_baseline()
+
+if __name__ == "__main__":
+    main()

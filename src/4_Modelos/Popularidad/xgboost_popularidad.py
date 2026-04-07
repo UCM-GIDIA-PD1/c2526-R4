@@ -208,6 +208,10 @@ def create_xgboost_model_popularity(use_log):
 
     run.finish()
 
-if __name__ == "__main__":
+
+def main():
     create_xgboost_model_popularity(use_log=False)
     create_xgboost_model_popularity(use_log=True)
+
+if __name__ == "__main__":
+    main()
