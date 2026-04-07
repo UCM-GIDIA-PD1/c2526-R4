@@ -10,7 +10,7 @@ import joblib
 
 from src.utils.config import reviews
 from src.utils.files import read_file
-from utils_modelo_reviews.preprocesamiento import train_val_test_split
+from utils_modelo_reviews.preprocesamiento import train_val_test_split, read_reviews
 
 from tqdm import tqdm
 
@@ -18,6 +18,9 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_s
 from sklearn.model_selection import train_test_split
 
 from logistic_regression import preprocess
+from naive_bayes_CV import preprocesar_texto as preprocesar_cv
+from naive_bayes_CV import train_best_model, calcular_metricas
+from naive_bayes_TFIDF import preprocesar_texto as preprocesar_tfidf
 
 
 def evaluate_models():
@@ -51,6 +54,24 @@ def evaluate_models():
     table = wandb.Table(columns=["Model", "Accuracy", "F1-score", "Balanced accuracy", "Recall", "Precision"])
     table.add_data("baseline-mode", accuracy, f1, balanced_accuracy, recall, precision)
     
+    # Modelos naive bayes 
+    
+    # CountVectorizer
+    df = read_reviews()
+    reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
+    labels = df["is_positive"].to_list()
+
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
+    X_train, X_val, X_test = preprocesar_cv(X_train, X_val, X_test)
+    X_train_full = X_train + X_val
+    y_train_full = y_train + y_val
+
+    best_naivebayes_cv = train_best_model(X_train_full, y_train_full)
+    y_pred = best_naivebayes_cv.predict(X_test)
+    accuracy, balanced_accuracy, precision, recall, f1 = calcular_metricas(y_test, y_pred)
+    table.add_data("naivebayes_cv", accuracy, f1, balanced_accuracy, recall, precision)
+
+    # Tf-idf
     
     # Modelo de regresión logística
     X, y = preprocess(df)
