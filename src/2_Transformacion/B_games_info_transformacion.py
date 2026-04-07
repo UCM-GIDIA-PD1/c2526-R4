@@ -100,9 +100,12 @@ def _number_publishers(x, publishers_dict):
     nGames = publishers_dict.get(strX)
     return nGames if nGames else 0
 
-def _get_info_reviews(df, author):
-    df_
-    return total_reviews, average_reviews
+def _get_info_reviews(author):
+    
+    return None
+
+def _get_info_prices(author):
+    return None
 
 def trans_general(df, minio):
     df = df.join(df["appdetails"].apply(pd.Series))
@@ -120,15 +123,10 @@ def trans_general(df, minio):
 
     publishers_dict = dict(read_file(steam_publishers_count, minio))
     df['total_games_by_publisher'] = df['publishers'].apply(lambda x: _number_publishers(x,publishers_dict))
-    total_reviews_by_publisher, average_reviews_by_publisher = _get_info_reviews(df, 'publisher')
-    df['total_reviews_by_publisher'] = total_reviews_by_publisher
-    df['average_reviews_by_publisher'] = average_reviews_by_publisher
 
     developers_dict = dict(read_file(steam_developers_count, minio))
     df['total_games_by_developer'] = df['developers'].apply(lambda x: _number_publishers(x,developers_dict))
-    total_reviews_by_developer, average_reviews_by_developer = _get_info_reviews(df, 'developer')
-    df['total_reviews_by_developer'] = total_reviews_by_developer
-    df['average_reviews_by_developer'] = average_reviews_by_developer
+    
 
     df = categories_and_genres(df) # Aplicamos a categorías y géneros one hot encoding
 
@@ -171,7 +169,12 @@ def categories_and_genres(df):
 
 
 def trans_prices(df, minio):
-    return trans_general(df, minio)
+    df_prices = trans_general(df, minio)
+    df_prices[['mode_price_by_publisher', 'average_price_by_publisher']] = df_prices.apply(_get_info_prices('publisher'),
+                                                                                  axis=1, result_type='expand')
+    df_prices[['mode_price_by_developer', 'average_price_by_developer']] = df_prices.apply(_get_info_prices('developer'),
+                                                                                  axis=1, result_type='expand')
+    return df_prices
 
 def trans_popularity(df, minio):
     df["recomendaciones_positivas"] = df["appreviewhistogram"].apply(
@@ -187,6 +190,12 @@ def trans_popularity(df, minio):
     df["recomendaciones_totales"] = df["recomendaciones_positivas"] + df["recomendaciones_negativas"]
 
     df = trans_general(df, minio)
+
+    df[['total_reviews_by_publisher', 'average_reviews_by_publisher']] = df.apply(_get_info_reviews('publisher'),
+                                                                                  axis=1, result_type='expand')
+    df[['total_reviews_by_developer', 'average_reviews_by_developer']] = df.apply(_get_info_reviews('developer'),
+                                                                                  axis=1, result_type='expand')
+    
     df.drop(columns=["prince_range", "recomendaciones_positivas", "recomendaciones_negativas"], inplace=True,errors="ignore")
     return df
 
