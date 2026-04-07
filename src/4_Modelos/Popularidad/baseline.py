@@ -5,13 +5,16 @@ predecir el número de reviews y otro que utiliza la mediana.
 Las métricas se registran en Weights & Biases (wandb).
 """
 
-from numpy import sqrt
-import pandas as pd
-import wandb
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from src.utils.config import popularity
 from src.utils.files import read_file
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+import wandb
+
+from numpy import sqrt
+import pandas as pd
 
 def create_popularity_median_baseline():
     run = wandb.init(

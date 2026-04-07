@@ -1,13 +1,12 @@
 import pandas as pd
 import numpy as np
 import optuna
-import math
 import warnings
 
 from src.utils.config import prices, load_env_file
 from src.utils.files import read_file
 
-from utils_modelo_precios.preprocesamiento import get_metrics
+from utils.utils import get_metrics
 
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate, GridSearchCV
 from sklearn.decomposition import PCA
@@ -18,9 +17,6 @@ from sklearn.compose import ColumnTransformer
 from sklearn.exceptions import ConvergenceWarning
 
 from umap import UMAP
-
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 load_env_file()
 df = read_file(prices, minio={"minio_write": True, "minio_read": True})

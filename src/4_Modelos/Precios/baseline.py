@@ -6,10 +6,11 @@ realizar las predicciones.
 Las métricas se registran en Weights & Biases (wandb).
 """
 
-from utils_modelo_precios.preprocesamiento import get_metrics, read_prices, train_val_test_split
-from pandas import DataFrame, concat
+from utils.utils import get_metrics, read_prices, train_val_test_split
 
 import wandb
+
+from pandas import DataFrame, concat
 
 def create_price_mode_baseline():
     

@@ -1,15 +1,17 @@
+from utils.utils import read_prices, train_val_test_split, class_weights, get_metrics, combine_train_val
+from utils.utils import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings,save_model
 
-from .utils_modelo_precios.preprocesamiento import read_prices, train_val_test_split, class_weights, get_metrics, combine_train_val
-from .utils_modelo_precios.preprocesamiento import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings
 from sklearn.preprocessing import LabelEncoder
-import xgboost as xgb
 from sklearn.metrics import f1_score
-import optuna
-import wandb
-import pandas as pd
-from catboost import CatBoostClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score
+from catboost import CatBoostClassifier
+import xgboost as xgb
+import optuna
+
+import wandb
+
+import pandas as pd
 
 def model_noimg(df, modelName='XGBoost-Base NoImg'):
     """
@@ -188,6 +190,8 @@ def catModel(df, modelName='XGBoost Clustered'):
     y_pred = final_model.predict(X_test)
     metrics_dict = get_metrics(y_test, y_pred)
     
+    save_model(output_file='catboostClustered.pkl', final_model=final_model)
+
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
@@ -208,9 +212,9 @@ def model_umap(df, modelName=None):
     y = df['price_range']
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
-    sample_weights = class_weights(y_train)
     X_train, X_val, X_test = umap_embeddings(X_train, X_val, X_test, emb_col='v_clip')
     X_train, y_train =  combine_train_val(X_train, X_val, y_train, y_val)
+    sample_weights = class_weights(y_train)
 
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -245,7 +249,8 @@ def model_umap(df, modelName=None):
     y_pred = final_model.predict(X_test)
 
     metrics_dict = get_metrics(y_test, y_pred)
-    
+    save_model(output_file='xgboostumap.pkl', final_model=final_model)
+
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()

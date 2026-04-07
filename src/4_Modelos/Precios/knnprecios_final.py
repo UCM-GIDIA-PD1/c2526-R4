@@ -1,11 +1,13 @@
-from .utils_modelo_precios.preprocesamiento import get_metrics, read_prices, train_val_test_split,normalize_train_test, pca_train_test,cluster_embedings, read_prices_reduced, combine_train_val
+from utils.utils import get_metrics, read_prices, train_val_test_split,normalize_train_test, pca_train_test,cluster_embedings, read_prices_reduced, combine_train_val, save_model
+
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import LabelEncoder
-import wandb
-import pandas as pd
 from imblearn.over_sampling import SMOTE
 
+import wandb
+
+import pandas as pd
 
 def _complete_model(df, modelName= 'K-NN Complete Clusters'):
     """
@@ -56,6 +58,7 @@ def _complete_model(df, modelName= 'K-NN Complete Clusters'):
     y_pred = knn.predict(X_test)
 
     metrics_dict = get_metrics(y_test, y_pred)
+    save_model(output_file='knncompleteclusters.pkl', final_model=knn)
 
     run.config.update(best_params)
     run.log(metrics_dict)

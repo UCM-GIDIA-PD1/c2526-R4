@@ -10,8 +10,11 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split    
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
-from pandas import Series
+
 from umap import UMAP
+import os
+import joblib
+
 from numpy import vstack
 from pandas import concat
 
@@ -190,3 +193,9 @@ def get_metrics(y_test, y_pred, classes=None):
     print(cm)
 
     return {'accuracy': acc, 'precision': prec, 'recall': rec, 'f1-score': f1 }
+
+
+def save_model(output_file, final_model ):
+    os.makedirs('data/models', exist_ok=True)
+    joblib.dump(final_model, f"data/models/{output_file}")
+    print(f"Modelo guardado en data/models/{output_file}")
