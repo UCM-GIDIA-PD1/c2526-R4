@@ -10,7 +10,7 @@ import wandb
 
 from src.utils.config import prices
 from src.utils.files import read_file
-from utils.utils import get_metrics
+from utils.utils import get_metrics, save_model
 
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
@@ -130,10 +130,8 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
 
     run.save(cm_path)
 
-    os.makedirs('models/precios', exist_ok=True)
-    model_path = "models/precios/logistic_regression_precios.pkl"
-    joblib.dump(final_pipeline, model_path)
-    print(f"Modelo guardado exitosamente en {model_path}")
+    model_name = "logistic_regression_precios.pkl"
+    save_model(model_name, final_pipeline)
 
     run.finish()
 
