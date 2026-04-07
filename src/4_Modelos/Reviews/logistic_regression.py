@@ -178,10 +178,10 @@ def train_optuna():
     })
     run.finish()
     
-    os.makedirs('data/models', exist_ok=True)
+    os.makedirs('models/reviews', exist_ok=True)
     model_name = "logistic_regression_optuna.pkl" 
-    joblib.dump(best_logistic_model, f"data/models/{model_name}")
-    print(f"Modelo guardado en data/models/{model_name}")
+    joblib.dump(best_logistic_model, f"models/reviews/{model_name}")
+    print(f"Modelo guardado en models/reviews/{model_name}")
     
     
     print(f"Valor de accuracy: {accuracy}")
@@ -259,10 +259,10 @@ def train_gridsearch():
     })
     run.finish()
     
-    os.makedirs('models', exist_ok=True)
+    os.makedirs('models/reviews', exist_ok=True)
     model_name = "logistic_regression_gridsearch.pkl" 
-    joblib.dump(grid, f"models/{model_name}")
-    print(f"Modelo guardado en models/{model_name}")
+    joblib.dump(grid, f"models/reviews/{model_name}")
+    print(f"Modelo guardado en models/reviews/{model_name}")
     
     print(f"Valor de accuracy: {accuracy}")
     print(f"Valor de f1: {f1}")

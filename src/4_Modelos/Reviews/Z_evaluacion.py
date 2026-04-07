@@ -60,7 +60,7 @@ def evaluate_models():
     X_train_val = np.concatenate([X_train, X_val])
     y_train_val = np.concatenate([y_train, y_val])
     
-    model_path_optuna = "data/models/logistic_regression_optuna.pkl"
+    model_path_optuna = "models/reviews/logistic_regression_optuna.pkl"
     
     if os.path.exists(model_path_optuna):
         best_logistic_model = joblib.load(model_path_optuna)
@@ -76,7 +76,7 @@ def evaluate_models():
 
         table.add_data("logistic_regression_optuna", accuracy, f1, balanced_accuracy, recall, precision)
         
-    model_path_gridsearch = "data/models/logistic_regression_gridsearch.pkl"
+    model_path_gridsearch = "models/reviews/logistic_regression_gridsearch.pkl"
     
     if os.path.exists(model_path_gridsearch):
         best_logistic_model = joblib.load(model_path_gridsearch)
