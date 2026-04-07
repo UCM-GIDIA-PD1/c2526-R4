@@ -135,7 +135,7 @@ def calcular_metricas(y_true, y_pred):
 
 # run.finish()
 
-def _gridsearch():
+def _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test):
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Reviews", 
@@ -143,16 +143,7 @@ def _gridsearch():
         job_type='naive-bayes-cv'
     )
 
-    df = read_reviews()
-    reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
-    labels = df["is_positive"].to_list()
-
-    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
-    
-    X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
-    
     modelo, mejores_params = entrenar_modelo_con_gridsearch(X_train, X_val, y_train, y_val)
-    
     y_pred = modelo.predict(X_test)
     accuracy, balanced_accuracy, precision, recall, f1 = calcular_metricas(y_test, y_pred)
 
@@ -166,21 +157,13 @@ def _gridsearch():
     })
     run.finish()
 
-def _optuna():
+def _optuna(X_train, X_val, X_test, y_train, y_val, y_test):
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Reviews", 
         name= "naive-bayes-cv-optuna",
         job_type='naive-bayes-cv'
     )
-
-    df = read_reviews()
-    reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
-    labels = df["is_positive"].to_list()
-
-    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
-    
-    X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
     
     modelo, mejores_params = entrenar_modelo_con_optuna(X_train, X_val, y_train, y_val)
     
@@ -225,8 +208,16 @@ if __name__ == "__main__":
     response = handle_input(optuna_message, lambda x: x.lower() in ["y", "n"])
     do_optuna = response.lower() == "y"
 
+    if do_gridsearch or do_optuna:
+        df = read_reviews()
+        reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
+        labels = df["is_positive"].to_list()
+
+        X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
+        X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
+
     if do_gridsearch:
-        _gridsearch()
+        _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test)
     
     if do_optuna:
-        _optuna()
+        _optuna(X_train, X_val, X_test, y_train, y_val, y_test)
