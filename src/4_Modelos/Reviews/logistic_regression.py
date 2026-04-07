@@ -23,7 +23,7 @@ from nltk.corpus import stopwords
 
 from tqdm import tqdm
 
-from utils_modelo_reviews.preprocesamiento import clean_text, train_val_test_split
+from utils_modelo_reviews.preprocesamiento import clean_text_lemma, train_val_test_split
 
 def preprocess(df):
     '''
@@ -37,11 +37,9 @@ def preprocess(df):
         
         - y (pd.Series) : Contiene la variable respuesta que puede tomar 2 valores: 0 (negativo), 1 (positivo).
     '''
-    stop_words = set(stopwords.words("english"))
-    ps = PorterStemmer()
 
     y = df["is_positive"]
-    X = df["text"].progress_apply(lambda x : clean_text(x,ps,stop_words))
+    X = df["text"].progress_apply(lambda x : clean_text_lemma(x))
     
     return X, y
 
