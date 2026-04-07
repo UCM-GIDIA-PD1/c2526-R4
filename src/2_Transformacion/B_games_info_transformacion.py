@@ -100,6 +100,10 @@ def _number_publishers(x, publishers_dict):
     nGames = publishers_dict.get(strX)
     return nGames if nGames else 0
 
+def _get_info_reviews(df, author):
+    df_
+    return total_reviews, average_reviews
+
 def trans_general(df, minio):
     df = df.join(df["appdetails"].apply(pd.Series))
 
@@ -116,9 +120,15 @@ def trans_general(df, minio):
 
     publishers_dict = dict(read_file(steam_publishers_count, minio))
     df['total_games_by_publisher'] = df['publishers'].apply(lambda x: _number_publishers(x,publishers_dict))
+    total_reviews_by_publisher, average_reviews_by_publisher = _get_info_reviews(df, 'publisher')
+    df['total_reviews_by_publisher'] = total_reviews_by_publisher
+    df['average_reviews_by_publisher'] = average_reviews_by_publisher
 
     developers_dict = dict(read_file(steam_developers_count, minio))
     df['total_games_by_developer'] = df['developers'].apply(lambda x: _number_publishers(x,developers_dict))
+    total_reviews_by_developer, average_reviews_by_developer = _get_info_reviews(df, 'developer')
+    df['total_reviews_by_developer'] = total_reviews_by_developer
+    df['average_reviews_by_developer'] = average_reviews_by_developer
 
     df = categories_and_genres(df) # Aplicamos a categorías y géneros one hot encoding
 
@@ -165,11 +175,11 @@ def trans_prices(df, minio):
 
 def trans_popularity(df, minio):
     df["recomendaciones_positivas"] = df["appreviewhistogram"].apply(
-        lambda x: x.get("rollups").get("recommendations_up") if isinstance(x, dict) & 
+        lambda x: x.get("rollups").get("recommendations_up_per_day") if isinstance(x, dict) & 
         isinstance(x.get("rollups"), dict) else None)
     
     df["recomendaciones_negativas"] = df["appreviewhistogram"].apply(
-        lambda x: x.get("rollups").get("recommendations_down") if isinstance(x, dict) & 
+        lambda x: x.get("rollups").get("recommendations_down_per_day") if isinstance(x, dict) & 
         isinstance(x.get("rollups"), dict) else None)
     
     # Eliminamos nulos
