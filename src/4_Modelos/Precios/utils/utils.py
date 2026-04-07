@@ -164,7 +164,7 @@ def combine_train_val(X_train, X_val, y_train, y_val):
 
     return X_train, y_train
 
-def get_metrics(y_test, y_pred, classes=None, img_path=None):
+def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=False):
     """Calcula y muestra las métricas de rendimiento para un modelo de clasificación.
 
     Args:
@@ -194,10 +194,11 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None):
     cm = confusion_matrix(y_test, y_pred)
     print(cm)
 
-    if classes and img_path:
+    if classes and img_path and download_images:
         fig, ax = plt.subplots(figsize=(10,6))
         disp = ConfusionMatrixDisplay.from_predictions(
-            y_test, y_pred, 
+            y_test, y_pred,
+            labels=classes, 
             display_labels=classes,
             cmap='Blues',
             ax=ax,

@@ -6,6 +6,8 @@ y las registra en W&B en un único run y en una tabla comparativa.
 
 from src.utils.config import popularity
 from src.utils.files import read_file
+from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, popularidad_mlp_file
+from src.utils.config import popularidad_linear_regression_file, popularidad_linear_regression_log_file, popularidad_knn_log_file
 
 from linear_regresion_log import transform_for_linear_regresion
 from xgboost_popularidad import _transform_for_xgboost
@@ -59,11 +61,11 @@ def evaluate_models():
     train_df_lr, test_df_lr = train_test_split(df_lr, test_size=0.20, random_state=42)
 
     for use_log, model_path, model_name in [
-        (False, "models/popularidad/linear_regression_model.pkl", "Linear Regression (Normal)"),
-        (True, "models/popularidad/linear_regression_model_log.pkl", "Linear Regression (Log)")
+        (False, popularidad_linear_regression_file, "Linear Regression (Normal)"),
+        (True, popularidad_linear_regression_log_file, "Linear Regression (Log)")
     ]:
-        if os.path.exists(model_path):
-            lr_data = joblib.load(model_path)
+        lr_data = read_file(model_path, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+        if lr_data:
             lr_model = lr_data["model"]
             lr_vars = lr_data["selected_variables"]
             
@@ -92,11 +94,11 @@ def evaluate_models():
     train_df_xgb, test_df_xgb = train_test_split(df_xgb, test_size=0.20, random_state=42)
 
     for use_log, model_path, model_name in [
-        (False, "models/popularidad/xgboost_model.pkl", "XGBoost (Normal)"),
-        (True, "models/popularidad/xgboost_model_log.pkl", "XGBoost (Log)")
+        (False, popularidad_xgboost_file, "XGBoost (Normal)"),
+        (True, popularidad_xgboost_log_file, "XGBoost (Log)")
     ]:
-        if os.path.exists(model_path):
-            xgb_model = joblib.load(model_path)
+        xgb_model = read_file(model_path, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+        if xgb_model:
             xgb_vars = [c for c in train_df_xgb.columns if c != y_variable]
             
             X_test_xgb = test_df_xgb[xgb_vars]
@@ -121,8 +123,8 @@ def evaluate_models():
             table.add_data(model_name, mae_xgb, rmse_xgb, r2_xgb)
 
     # Evaluación de MLP (Red Neuronal)
-    if os.path.exists("models/popularidad/mlp_model_popularidad.pkl"):
-        mlp_data = joblib.load("models/popularidad/mlp_model_popularidad.pkl")
+    mlp_data = read_file(popularidad_mlp_file, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+    if mlp_data:
         mlp_model = mlp_data["model"]
         transformers_dict = mlp_data["transformers"]
         y_min = mlp_data["y_train_min"]
@@ -148,8 +150,8 @@ def evaluate_models():
         table.add_data("MLP", mae_mlp, rmse_mlp, r2_mlp)
 
     # Evaluación de KNN
-    if os.path.exists("models/popularidad/knn_model_log.pkl"):
-        knn_model = joblib.load("models/knn_model_log.pkl")
+    knn_model = read_file(popularidad_knn_log_file, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+    if knn_model:
         df_knn = _transform_for_knn(df_raw)
         
         y_knn = df_knn['recomendaciones_totales']
@@ -181,5 +183,9 @@ def evaluate_models():
 
     run.finish()
 
-if __name__ == "__main__":
+
+def main():
     evaluate_models()
+
+if __name__ == "__main__":
+    main()

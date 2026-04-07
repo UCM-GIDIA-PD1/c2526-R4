@@ -6,6 +6,7 @@ import json
 import gzip
 from pandas import DataFrame, read_parquet
 from os import remove, path
+import joblib
 
 from .config import steam_log_file
 from .minio_server import upload_to_minio, download_from_minio, erase_from_minio, file_exists_minio
@@ -48,6 +49,9 @@ def _save_txt(data, filepath):
     with open(filepath, "wt", encoding = "utf-8") as f:
         f.write(str(data))
 
+def _save_pkl(data, filepath):
+    joblib.dump(data, filepath)
+
 def _save_figure(fig, filepath):
     """Guarda un objeto Figure de Matplotlib y lo cierra."""
     fig.savefig(filepath, bbox_inches='tight')
@@ -83,6 +87,9 @@ def _read_txt(filepath):
     with open(filepath, "rt", encoding="utf-8") as f:
         data = f.read()
         return data
+    
+def _read_pkl(filepath):
+    return joblib.load(filepath)
 
 # ------- FUNCIONES PÚBLICAS -------
 
@@ -124,6 +131,8 @@ def write_to_file(data, filepath, minio = {"minio_write": False, "minio_read": F
             _save_parquet(data, filepath)
         elif filepath.suffix == ".txt":
             _save_txt(data, filepath)
+        elif filepath.suffix == ".pkl":
+            _save_pkl(data, filepath)
         elif isinstance(data, Figure):
             _save_figure(data, filepath)
         else:
@@ -173,6 +182,8 @@ def read_file(filepath, minio = {"minio_write": False, "minio_read": False}, def
             return _read_parquet(filepath)
         elif filepath.suffix == ".txt":
             return _read_txt(filepath)
+        elif filepath.suffix == ".pkl":
+            return _read_pkl(filepath)
         else:
             print(f"File extension not supported: {filepath.name}")
         return datos

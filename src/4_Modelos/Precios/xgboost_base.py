@@ -568,5 +568,9 @@ def xgboost_base():
     else:
         return
 
-if __name__ == '__main__':
+
+def main():
     xgboost_base()
+
+if __name__ == "__main__":
+    main()

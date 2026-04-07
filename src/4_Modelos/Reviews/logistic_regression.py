@@ -269,20 +269,24 @@ def train_gridsearch():
     print(f"Valor de precision: {precision}")
     
 
-if __name__ == "__main__":
+
+def main():
     tqdm.pandas(desc="Limpiando texto")
     print("Leyendo Datos")
     df = read_file(reviews)
-    
+
     print("Preprocesado de los datos")
     X, y = preprocess(df)
-    
+
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
-    
+
     use_optuna = True
-    
+
     if use_optuna:
         train_optuna()
     else:
         train_gridsearch()
-    
+
+
+if __name__ == "__main__":
+    main()
