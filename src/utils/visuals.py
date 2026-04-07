@@ -61,8 +61,12 @@ def draw_files_section(scripts_info, keys, minio_info):
     all_files = []
     all_paths = []
     for k in keys:
-        salida = scripts_info[k]["salida"]
-        path = scripts_info[k]["path"]
+        salida = scripts_info[k].get("salida")
+        path = scripts_info[k].get("path")
+        
+        if salida is None or path is None:
+            continue
+            
         if not isinstance(salida, list):
             salida = [salida]
             path = [path]
@@ -113,20 +117,22 @@ def draw_files_section(scripts_info, keys, minio_info):
     show_footer()
 
 def draw_pagination(current_page):
-    nombres = {0: "menú", 1: "extracción", 2: "transformacion"}
+    nombres = {0: "menú", 1: "extracción", 2: "transformacion", 3: "modelos"}
     izq = f"<< {current_page - 1} [{nombres[current_page - 1]}]" if current_page > 0 else ""
-    der = f"[{nombres[current_page + 1]}] {current_page + 1} >>" if current_page < 2 else ""
+    der = f"[{nombres[current_page + 1]}] {current_page + 1} >>" if current_page < 3 else ""
     print(f"{izq.ljust(48)}{der.rjust(48)}")
 
 def draw_main_menu():
     draw_ascii_title()
     show_header(" Selecciona página ")
 
-    col1 = "[1] Extracción".center(settings["centered"] - 2)
-    col2 = "[2] Transformación".center(settings["total_lenght"] - settings["centered"] - 2)
+    third = (settings["total_lenght"] - 2) // 3
+    col1 = "[1] Extracción".center(third)
+    col2 = "[2] Transformación".center(third)
+    col3 = "[3] Modelos".center(third)
     
     print(format_line_two_columns("", ""))
-    print(f"║ {col1}{col2} ║")
+    print(f"║ {col1}{col2}{col3} ║")
     print(format_line_two_columns("", ""))
     show_footer()
 
@@ -149,7 +155,7 @@ def show_menu(scripts_info, page, minio_info):
         draw_main_menu()
     else:
         keys = sorted(scripts_info.keys())
-        title = ["Extracción", "Transformación"]
+        title = ["Extracción", "Transformación", "Modelos"]
         draw_scripts_section(scripts_info, keys, title[page-1])
         draw_files_section(scripts_info, keys, minio_info)
         draw_pagination(page)

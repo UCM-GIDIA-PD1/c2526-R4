@@ -6,7 +6,7 @@ import os
 import sys
 import importlib
 
-from src.utils.main_config import main_transformacion_info, main_extraccion_info
+from src.utils.main_config import main_transformacion_info, main_extraccion_info, main_modelos_info
 from src.utils.visuals import show_menu
 from src.utils.dependences import minio_dependence
 
@@ -17,6 +17,7 @@ sys.path.append(os.path.join(BASE_DIR, "1_Extraccion"))
 def ejecutar_scripts(scripts_info, minio_info, page):
     if page == 1: sys.path.append(os.path.join(BASE_DIR, "1_Extraccion"))
     elif page == 2: sys.path.append(os.path.join(BASE_DIR, "2_Transformacion"))
+    elif page == 3: sys.path.append(os.path.join(BASE_DIR, "4_Modelos"))
 
     print("\n--- INICIANDO EJECUCIÓN ---")
 
@@ -33,8 +34,8 @@ def ejecutar_scripts(scripts_info, minio_info, page):
 
 def main():
     minio_info = {"minio_write": False, "minio_read": False}
-    scripts_info = [main_extraccion_info, main_transformacion_info]
-    page = 0 # 0 --> generico | 1 --> extracción | 2 --> transformacion
+    scripts_info = [main_extraccion_info, main_transformacion_info, main_modelos_info]
+    page = 0 # 0 --> generico | 1 --> extracción | 2 --> transformacion | 3 --> modelos
 
     ejecutando = True
     try:
@@ -46,7 +47,7 @@ def main():
             if opcion == "EXIT":
                 ejecutando = False
 
-            elif opcion in ["0", "1", "2"]:
+            elif opcion in ["0", "1", "2", "3"]:
                 page = int(opcion) 
 
             elif page != 0:
