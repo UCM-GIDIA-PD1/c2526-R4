@@ -211,3 +211,20 @@ def save_model(output_file, final_model):
     os.makedirs('models/precios', exist_ok=True)
     joblib.dump(final_model, f"models/precios/{output_file}")
     print(f"Modelo guardado en models/precios/{output_file}")
+
+def save_confusion_matrix(y_test, y_pred, classes, img_path='models/media/confusionmatrix.png', encoder=None):
+    if encoder:
+        y_test= encoder.inverse_transform(y_test)
+        y_preds= encoder.inverse_transform(y_pred)
+        
+    fig, ax = plt.subplots(figsize=(10,6))
+    disp = ConfusionMatrixDisplay.from_predictions(
+        y_test, y_pred, 
+        display_labels=classes,
+        cmap='Blues',
+        ax=ax,
+        xticks_rotation=45
+    )
+    write_to_file(data=disp.figure_, filepath=img_path)
+
+

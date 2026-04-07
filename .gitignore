@@ -22,7 +22,9 @@ catboost_info
 *.Rhistory
 *.exe
 *.pkl
+*.png
 
 # Archivos concretos
 test.py
 test.ipynb
+xgboost_final.py
