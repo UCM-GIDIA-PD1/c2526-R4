@@ -14,24 +14,12 @@ import joblib
 import json
 nltk.download('stopwords')
 tqdm.pandas(desc="Limpiando texto")
-# run = wandb.init(
-#         entity="pd1-c2526-team4",
-#         project="Reviews", 
-#         name="reviews-naivebayes-cv",
-#         job_type="model"
-#     )
-
 
 def preprocesar_texto(X_train, X_val, X_test):
     X_train = [clean_text_lemma(review) for review in tqdm(X_train, desc = "Preprocesando entrenamiento")]
     X_val = [clean_text_lemma(review) for review in tqdm(X_val, desc = "Preprocesando validacion")]
     X_test = [clean_text_lemma(review) for review in tqdm(X_test, desc = "Preprocesando prueba")]
     return X_train, X_val, X_test
-
-def entrenar_modelo(X_train, y_train):
-    classifier = ComplementNB()
-    classifier.fit(X_train, y_train)
-    return classifier
 
 def entrenar_modelo_con_gridsearch(X_train, X_val, y_train, y_val):
     X_train_full = X_train + X_val
@@ -75,7 +63,7 @@ def entrenar_modelo_con_gridsearch(X_train, X_val, y_train, y_val):
     return final_model, grid_search.best_params_
 
 
-def entrenar_modelo_con_optuna(X_train, X_val, y_train, y_val, n_trials=30):
+def entrenar_modelo_con_optuna(X_train, X_val, y_train, y_val, n_trials=50):
     X_train_full = X_train + X_val
     y_train_full = y_train + y_val
     def objective(trial):
@@ -138,33 +126,21 @@ def calcular_metricas(y_true, y_pred):
     print("F1-score:", f1)
     return accuracy, balanced_accuracy, precision, recall, f1
 
-# wandb.log({
-#         "Accuracy": accuracy,
-#         "Balanced accuracy": balanced_accuracy,
-#         "Precision": precision,
-#         "Recall": recall,
-#         "F1-score": f1
-#     })
-
-# run.finish()
-def handle_input(initial_message, isResponseValid = lambda x: True):
-    """
-    Función que maneja la entrada. Por defecto la función siempre devuelve True.
-
-    Args:
-        initial_mensagge (str): mensaje inicial. 
-        isResponseValid (function): función que verifica la validez de un input dado.
-
-    Returns:
-        bool: True si el input es correcto, False en caso contrario.
-    """
-    respuesta = input(initial_message).strip()
-
-    # Hasta que no se dé una respuesta válida no se puede salir del bucle
-    while not isResponseValid(respuesta):
-        respuesta = input("Opción no válida, prueba de nuevo: ").strip()
-    
-    return respuesta
+def best_standard_params(score_grid, params_grid,score_optuna, params_optuna):
+    if score_grid > score_optuna:
+        best_params = params_grid.copy()
+        best_params["ngram_range"] = best_params.pop("vect__ngram_range")
+        best_params["min_df"] = best_params.pop("vect__min_df")
+        best_params["max_df"] = best_params.pop("vect__max_df")
+        best_params["alpha"] = best_params.pop("clf__alpha")
+        best_params["sublinear_tf"] = best_params.pop("vect__sublinear_tf")
+        best_params["norm"] = best_params.pop("vect__norm")
+    else:
+        best_params = params_optuna.copy()
+        ngram_range = (1, 1) if best_params["ngram_max"] == 1 else (1,2)
+        best_params.pop("ngram_max")
+        best_params["ngram_range"] = ngram_range
+    return best_params
 
 def _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test):
     run = wandb.init(
@@ -188,12 +164,7 @@ def _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test):
     })
     run.finish()
 
-    os.makedirs('models/reviews', exist_ok=True)
-    model_filename = "models/reviews/naivebayes_tfidf_gridsearch.pkl"
-    joblib.dump(modelo, model_filename)
-
-    with open("models/reviews/naivebayes_tfidf_gridsearch_hyperparameters.json", "w") as f:
-        json.dump(mejores_params, f, indent=4)
+    return balanced_accuracy, mejores_params
 
 def _optuna(X_train, X_val, X_test, y_train, y_val, y_test):
     run = wandb.init(
@@ -218,32 +189,43 @@ def _optuna(X_train, X_val, X_test, y_train, y_val, y_test):
 
     run.finish()
 
-    os.makedirs('models/reviews', exist_ok=True)
-    model_filename = "models/reviews/naivebayes_tfidf_optuna.pkl"
-    joblib.dump(modelo, model_filename)
+    return balanced_accuracy, mejores_params
 
-    with open("models/reviews/naivebayes_tfidf_optuna_hyperparameters.json", "w") as f:
-        json.dump(mejores_params, f, indent=4)
+def train_best_model(X_train, y_train):
+    path = "models/reviews/naivebayes_tfidf_hyperparameters.json"
+    with open(path, "r") as f:
+        model_params = json.load(f)
+        
+    final_model = Pipeline([
+        ('vect', TfidfVectorizer(
+            ngram_range=tuple(model_params["ngram_range"]),
+            min_df=model_params['min_df'],
+            max_df=model_params['max_df'],
+            sublinear_tf=model_params['sublinear_tf'],
+            norm=model_params['norm']
+        )),
+        ('clf', ComplementNB(alpha=model_params['alpha']))
+    ])
+    
+    final_model.fit(X_train, y_train)
+    return final_model
+
 
 if __name__ == "__main__":
-    gridsearch_message = "Ejecutar gridsearch [Y/N]: "
-    response = handle_input(gridsearch_message, lambda x: x.lower() in ["y", "n"])
-    do_gridsearch = response.lower() == "y"
+    df = read_reviews()
+    reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
+    labels = df["is_positive"].to_list()
 
-    optuna_message = "Ejecutar optuna [Y/N]: "
-    response = handle_input(optuna_message, lambda x: x.lower() in ["y", "n"])
-    do_optuna = response.lower() == "y"
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
+    X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
 
-    if do_gridsearch or do_optuna:
-        df = read_reviews()
-        reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
-        labels = df["is_positive"].to_list()
 
-        X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
-        X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
-
-    if do_gridsearch:
-        _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test)
+    score_grid, params_grid = _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test)
+    score_optuna, params_optuna = _optuna(X_train, X_val, X_test, y_train, y_val, y_test)
     
-    if do_optuna:
-        _optuna(X_train, X_val, X_test, y_train, y_val, y_test)
+    best_params = best_standard_params(score_grid, params_grid,score_optuna, params_optuna)
+
+
+    os.makedirs('models/reviews', exist_ok=True)
+    with open("models/reviews/naivebayes_tfidf_hyperparameters.json", "w") as f:
+        json.dump(best_params, f, indent=4)
