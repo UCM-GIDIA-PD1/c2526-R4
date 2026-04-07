@@ -11,18 +11,19 @@ Dependencias:
 
 from utils.utils import read_prices, train_val_test_split, class_weights, get_metrics
 from utils.utils import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings, save_model
-
+from sklearn.preprocessing import LabelEncoder
+import xgboost as xgb
+from sklearn.metrics import f1_score
+import optuna
+import wandb
+import pandas as pd
+from catboost import CatBoostClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score
 from sklearn.model_selection import RandomizedSearchCV
-from sklearn.preprocessing import LabelEncoder
-from catboost import CatBoostClassifier
-import xgboost as xgb
-import optuna
-
-import wandb
-
-import pandas as pd
+import joblib
+import os
+from imblearn.over_sampling import SMOTE
 
 def model_noimg(df, modelName='XGBoost-Base NoImg'):
     """
@@ -311,9 +312,12 @@ def model_umap(df, modelName=None):
     X = df.drop(columns=['price_range'])
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
 
-    sample_weights = class_weights(y_train)
+    # sample_weights = class_weights(y_train)
     
     X_train, X_val, X_test = umap_embeddings(X_train, X_val, X_test, emb_col='v_clip')
+
+    smote = SMOTE(random_state=42)
+    X_train, y_train = smote.fit_resample(X_train, y_train)
 
     def objective(trial):
         param = {
@@ -333,7 +337,7 @@ def model_umap(df, modelName=None):
         model = xgb.XGBClassifier(**param)
         model.fit(
             X_train, y_train,
-            sample_weight=sample_weights,
+            #sample_weight=sample_weights,
             eval_set=[(X_val, y_val)],
             verbose=False
         )
@@ -364,14 +368,14 @@ def model_umap(df, modelName=None):
     
     final_model.fit(
         X_train, y_train, 
-        sample_weight=sample_weights,
+        #sample_weight=sample_weights,
         verbose=False
     )
 
     y_pred = final_model.predict(X_test)
 
     metrics_dict = get_metrics(y_test, y_pred)
-    save_model(output_file='xgboostumap.pkl', final_model=final_model)
+    save_model(output_file='xgboostumapOS.pkl', final_model=final_model)
 
 
     run.config.update(best_params)
