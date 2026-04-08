@@ -111,49 +111,49 @@ main_modelos_info = {
            "path": popularidad_xgboost_file, 
            "ejecutable": "main1", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.popularity_dependence]
     },
     "A2": {"fichero": "Popularidad.xgboost_popularidad", 
            "salida": popularidad_xgboost_log_file.name, 
            "path": popularidad_xgboost_log_file, 
            "ejecutable": "main2", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.popularity_dependence]
     },
     "A3": {"fichero": "Popularidad.mlp_popularidad", 
            "salida": popularidad_mlp_file.name, 
            "path": popularidad_mlp_file, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.popularity_dependence]
     },
     "A4": {"fichero": "Popularidad.linear_regression_log", 
            "salida": popularidad_linear_regression_file.name, 
            "path": popularidad_linear_regression_file, 
            "ejecutable": "main1", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.popularity_dependence]
     },
     "A5": {"fichero": "Popularidad.linear_regression_log", 
            "salida": popularidad_linear_regression_log_file.name, 
            "path": popularidad_linear_regression_log_file, 
            "ejecutable": "main2", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.popularity_dependence]
     },
     "A6": {"fichero": "Popularidad.knn_log", 
            "salida": popularidad_knn_log_file.name, 
            "path": popularidad_knn_log_file, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.popularity_dependence]
     },
     "A": {"fichero": "Popularidad.Z_evaluacion", 
            "salida": None, 
            "path": None, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.popularity_dependence]
     },
 
 
@@ -162,42 +162,42 @@ main_modelos_info = {
            "path": precios_xgboostumap_file, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.prices_dependence]
     },
     "B2": {"fichero": "Precios.mlp_precios", 
            "salida": precios_mlp_file.name, 
            "path": precios_mlp_file, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.prices_dependence]
     },
     "B3": {"fichero": "Precios.knn_clusters", 
            "salida": precios_knncompleteclusters_file.name, 
            "path": precios_knncompleteclusters_file, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.prices_dependence]
     },
     "B4": {"fichero": "Precios.catboost_clustered", 
            "salida": precios_catboostClustered_file.name, 
            "path": precios_catboostClustered_file, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.prices_dependence]
     },
     "B5": {"fichero": "Precios.logistic_regression", 
            "salida": precios_logistic_regression_file.name, 
            "path": precios_logistic_regression_file, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.prices_dependence]
     },
     "B": {"fichero": "Precios.Z_evaluacion", 
            "salida": None, 
            "path": None, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.prices_dependence]
     },
 
     "C1": {"fichero": "Reviews.logistic_regression_optuna", 
@@ -205,20 +205,20 @@ main_modelos_info = {
            "path": reviews_logistic_regression_optuna_file, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.reviews_dependence]
     },
     "C2": {"fichero": "Reviews.logistic_regression_gridsearch", 
            "salida": reviews_logistic_regression_gridsearch_file.name, 
            "path": reviews_logistic_regression_gridsearch_file, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.reviews_dependence]
     },
     "C": {"fichero": "Reviews.Z_evaluacion", 
            "salida": None, 
            "path": None, 
            "ejecutable": "main", 
            "usar": False, 
-           "dependences": []
+           "dependences": [dep.reviews_dependence]
     }
 }
