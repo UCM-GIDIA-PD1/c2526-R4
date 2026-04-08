@@ -1,4 +1,4 @@
-from utils_modelo_reviews.preprocesamiento import read_reviews, train_val_test_split, clean_text_lemma
+from utils.preprocesamiento import read_reviews, train_val_test_split, clean_text_lemma
 from tqdm import tqdm
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import ComplementNB
@@ -10,10 +10,8 @@ import optuna
 import nltk
 import wandb
 import os
-import joblib
 import json
-
-from utils_modelo_reviews.utils import get_metrics
+from utils.utils import get_metrics
 
 class_names = ["Negativo", "Positivo"]
 
@@ -143,7 +141,6 @@ def _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test):
 
     return balanced_accuracy, mejores_params
 
-
 def _optuna(X_train, X_val, X_test, y_train, y_val, y_test):
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -207,7 +204,6 @@ def main():
 
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
     X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
-
 
     score_grid, params_grid = _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test)
     score_optuna, params_optuna = _optuna(X_train, X_val, X_test, y_train, y_val, y_test)

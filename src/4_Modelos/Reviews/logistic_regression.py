@@ -7,26 +7,26 @@ import pandas as pd
 import wandb
 import optuna
 import numpy as np
-import joblib
 import os
 
 from src.utils.config import reviews
-from src.utils.files import read_file
+from src.utils.files import read_file, write_to_file
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score,f1_score
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from src.utils.config import reviews_logistic_regression_gridsearch_file, reviews_logistic_regression_optuna_file, models_reviews_path
 
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 
 from tqdm import tqdm
 
-from utils_modelo_reviews.preprocesamiento import clean_text_stem, train_val_test_split
+from utils.preprocesamiento import clean_text_stem, train_val_test_split
 from src.utils.config import seed
 
-from utils_modelo_reviews.utils import get_metrics
+from utils.utils import get_metrics
 
 class_names = ["Negativo", "Positivo"]
 
@@ -47,7 +47,6 @@ def preprocess(df):
     X = df["text"].progress_apply(lambda x : clean_text_stem(x))
     
     return X, y
-
 
 def build_objective(X_train, y_train, X_val, y_val):
     '''
@@ -99,7 +98,6 @@ def build_objective(X_train, y_train, X_val, y_val):
         return score
 
     return objective
-
 
 def best_model_optuna(best_params):
     '''
@@ -180,12 +178,10 @@ def train_optuna():
         "F1-score": f1
     })
     run.finish()
-    
-    os.makedirs('models/reviews', exist_ok=True)
-    model_name = "logistic_regression_optuna.pkl" 
-    joblib.dump(best_logistic_model, f"models/reviews/{model_name}")
-    print(f"Modelo guardado en models/reviews/{model_name}")
-    
+
+    os.makedirs(models_reviews_path(), exist_ok=True)
+    write_to_file(best_logistic_model, reviews_logistic_regression_optuna_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    print(f"Modelo guardado en {reviews_logistic_regression_optuna_file}")
     
     print(f"Valor de accuracy: {accuracy}")
     print(f"Valor de f1: {f1}")
@@ -193,7 +189,6 @@ def train_optuna():
     print(f"Valor de recall: {recall}")
     print(f"Valor de precision: {precision}")
     
-
 def train_gridsearch():
     '''
     Función para el entrenamiento del modelo usando GridSearchCV para la
@@ -261,11 +256,10 @@ def train_gridsearch():
         "F1-score": f1
     })
     run.finish()
-    
-    os.makedirs('models/reviews', exist_ok=True)
-    model_name = "logistic_regression_gridsearch.pkl" 
-    joblib.dump(grid, f"models/reviews/{model_name}")
-    print(f"Modelo guardado en models/reviews/{model_name}")
+
+    os.makedirs(models_reviews_path(), exist_ok=True)
+    write_to_file(grid, reviews_logistic_regression_gridsearch_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    print(f"Modelo guardado en {reviews_logistic_regression_gridsearch_file}")
     
     print(f"Valor de accuracy: {accuracy}")
     print(f"Valor de f1: {f1}")
@@ -273,7 +267,6 @@ def train_gridsearch():
     print(f"Valor de recall: {recall}")
     print(f"Valor de precision: {precision}")
     
-
 
 def main():
     tqdm.pandas(desc="Limpiando texto")
@@ -292,7 +285,6 @@ def main():
         train_optuna()
     else:
         train_gridsearch()
-
 
 if __name__ == "__main__":
     main()

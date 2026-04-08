@@ -2,17 +2,16 @@
 Script unificado para evaluar los modelos del problema de reviews de predecir si
 una valoración es positiva o negativa.
 """
-import os
+
 import numpy as np
 import pandas as pd
 import wandb
-import joblib
 import nltk
 
 from src.utils.files import read_file
 from src.utils.config import reviews_logistic_regression_gridsearch_file, reviews_logistic_regression_optuna_file
 from src.utils.config import reviews
-from utils_modelo_reviews.preprocesamiento import train_val_test_split, read_reviews
+from utils.preprocesamiento import train_val_test_split, read_reviews
 from logistic_regression import preprocess
 
 import wandb
@@ -124,8 +123,6 @@ def evaluate_models():
 
     run.finish()
     
-    
-
 def main():
     evaluate_models()
 

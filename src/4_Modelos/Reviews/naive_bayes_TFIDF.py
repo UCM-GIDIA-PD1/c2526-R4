@@ -1,4 +1,4 @@
-from utils_modelo_reviews.preprocesamiento import read_reviews, train_val_test_split, clean_text_lemma
+from utils.preprocesamiento import read_reviews, train_val_test_split, clean_text_lemma
 from tqdm import tqdm
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import ComplementNB
@@ -10,10 +10,8 @@ import optuna
 import nltk
 import wandb
 import os
-import joblib
 import json
-
-from utils_modelo_reviews.utils import get_metrics
+from utils.utils import get_metrics
 
 class_names = ["Negativo", "Positivo"]
 
@@ -66,7 +64,6 @@ def entrenar_modelo_con_gridsearch(X_train, X_val, y_train, y_val):
     
     final_model.fit(X_train, y_train)
     return final_model, grid_search.best_params_
-
 
 def entrenar_modelo_con_optuna(X_train, X_val, y_train, y_val, n_trials=50):
     X_train_full = X_train + X_val
@@ -214,7 +211,6 @@ def train_best_model(X_train, y_train):
     
     final_model.fit(X_train, y_train)
     return final_model
-
 
 
 def main():
