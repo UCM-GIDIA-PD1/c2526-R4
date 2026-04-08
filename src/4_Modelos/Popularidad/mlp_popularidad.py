@@ -185,7 +185,7 @@ def _best_params_mlp_optuna(X_train, Y_train):
 
     return params_mejor_modelo
 
-def _mlp(X_train, y_train, best_params, model_name, transformers):
+def _mlp(X_train, y_train, best_params, model_name, transformers, minio):
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Popularidad", 
@@ -207,17 +207,17 @@ def _mlp(X_train, y_train, best_params, model_name, transformers):
         'y_train_min': y_train.values.min(),
         'y_train_max': y_train.values.max()
     }
-    write_to_file(data, popularidad_mlp_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(data, popularidad_mlp_file, minio)
     print(f"Modelo guardado en {popularidad_mlp_file}")
     
     run.finish()
 
 
 
-def main():
+def main(minio = {"minio_write": False, "minio_read": False}):
     # Lectura y división de datos
     print('Leyendo y preprocesando datos...')
-    df = read_file(popularity)
+    df = read_file(popularity, minio)
     df_train, df_test = train_test_split(df, test_size=0.2, random_state=seed)
 
     # Preprocesamiento
@@ -228,7 +228,7 @@ def main():
     best_params = _best_params_mlp(X_train_base, y_train)
 
     print('Creando mejor modelo MLP con imágenes...')
-    _mlp(X_train_base, y_train, best_params, 'mlp-umap-img', transformers)
+    _mlp(X_train_base, y_train, best_params, 'mlp-umap-img', transformers, minio)
 
 
 if __name__ == "__main__":

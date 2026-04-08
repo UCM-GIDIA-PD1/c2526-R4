@@ -17,7 +17,7 @@ from numpy import sqrt
 import pandas as pd
 from src.utils.config import seed
 
-def create_popularity_median_baseline():
+def create_popularity_median_baseline(minio):
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Popularidad", 
@@ -25,7 +25,7 @@ def create_popularity_median_baseline():
         job_type="baseline"
     )
 
-    df = read_file(popularity)
+    df = read_file(popularity, minio)
     y_column = "recomendaciones_totales"
 
     train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
@@ -51,7 +51,7 @@ def create_popularity_median_baseline():
     
     run.finish()
 
-def create_popularity_mean_baseline():
+def create_popularity_mean_baseline(minio):
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Popularidad", 
@@ -59,7 +59,7 @@ def create_popularity_mean_baseline():
         job_type="baseline"
     )
 
-    df = read_file(popularity)
+    df = read_file(popularity, minio)
     y_column = "recomendaciones_totales"
 
     train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
@@ -85,9 +85,9 @@ def create_popularity_mean_baseline():
     
     run.finish()
 
-def main():
-    create_popularity_mean_baseline()
-    create_popularity_median_baseline()
+def main(minio = {"minio_write": False, "minio_read": False}):
+    create_popularity_mean_baseline(minio)
+    create_popularity_median_baseline(minio)
 
 if __name__ == "__main__":
     main()

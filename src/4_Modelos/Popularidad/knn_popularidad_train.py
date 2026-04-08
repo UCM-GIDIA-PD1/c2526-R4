@@ -1,5 +1,5 @@
 from src.utils.config import popularity, load_env_file
-from src.utils.files import read_file
+from src.utils.files import read_file, seed
 
 from sklearn.decomposition import PCA
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_squared_log_error
@@ -18,10 +18,6 @@ import xgboost as xgb
 from umap import UMAP
 
 import matplotlib.pyplot as plt
-from src.utils.config import seed
-
-load_env_file()
-df = read_file(popularity, minio={"minio_write": False, "minio_read": False})
 
 def get_metrics(y_test, y_pred):
     '''
@@ -84,7 +80,7 @@ def _preprocess(df, image_col='v_clip', use_images=True):
 
     return df_clean
 
-def _xgb_variable_selection():
+def _xgb_variable_selection(df):
     # Silenciar específicamente los avisos para que la salida sea limpia
     warnings.filterwarnings("ignore")
     optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -248,7 +244,7 @@ def _xgb_variable_selection():
     
     return top_tabular_variables
 
-def _train_knn(top_tabular_variables):
+def _train_knn(top_tabular_variables, df):
     df_prepared = _preprocess(df, use_images=True)
     X = df_prepared.drop(columns=['recomendaciones_totales'])
     y = df_prepared['recomendaciones_totales']
@@ -426,9 +422,12 @@ def _train_knn(top_tabular_variables):
     print("\nMEJORES PARÁMETROS")
     print(mejores_parametros)
 
-def main():
-    top_tabular_variables = _xgb_variable_selection()
-    _train_knn(top_tabular_variables)
+def main(minio = {"minio_write": False, "minio_read": False}):
+    load_env_file()
+
+    df = read_file(popularity, minio)
+    top_tabular_variables = _xgb_variable_selection(df)
+    _train_knn(top_tabular_variables, df)
 
 if __name__ == "__main__":
     main()

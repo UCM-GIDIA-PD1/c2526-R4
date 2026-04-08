@@ -48,7 +48,7 @@ def _transform_for_knn(df):
 
     return df_clean
 
-def create_knn_model_popularity():
+def create_knn_model_popularity(minio):
     """
     Orquesta el entrenamiento del mejor modelo KNN (solo tabular) y su subida a wandb.
     """
@@ -122,14 +122,14 @@ def create_knn_model_popularity():
     })
 
     os.makedirs(models_popularidad_path(), exist_ok=True)
-    write_to_file(final_model, popularidad_knn_log_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(final_model, popularidad_knn_log_file, minio)
     print(f"Modelo guardado en {popularidad_knn_log_file}")
 
     run.finish()
 
 
-def main():
-    create_knn_model_popularity()
+def main(minio = {"minio_write": False, "minio_read": False}):
+    create_knn_model_popularity(minio)
 
 if __name__ == "__main__":
     main()
