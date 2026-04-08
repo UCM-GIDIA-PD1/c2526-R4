@@ -126,19 +126,14 @@ def create_linear_model_popularity(minio, selection_method, use_log):
 
 
 
-def main(minio = {"minio_write": False, "minio_read": False}):
+def main1(minio = {"minio_write": False, "minio_read": False}):
     # Con AIC Normal
     create_linear_model_popularity(minio, selection_method="AIC", use_log=False)
 
+def main2(minio = {"minio_write": False, "minio_read": False}):
     # Con AIC Logarítmico
     create_linear_model_popularity(minio, selection_method="AIC", use_log=True)
 
-    # Parece que en este caso AIC y BIC hacen lo mismo así que nos quedamos solo con AIC
-
-    # Con BIC Normal
-    #create_linear_model_popularity(selection_method="BIC", use_log=False)
-    # Con BIC Logarítmico
-    #create_linear_model_popularity(selection_method="BIC", use_log=True)
-
 if __name__ == "__main__":
-    main()
+    main1()
+    main2()

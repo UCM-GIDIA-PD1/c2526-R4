@@ -109,14 +109,14 @@ main_modelos_info = {
     "A1": {"fichero": "Popularidad.xgboost_popularidad", 
            "salida": popularidad_xgboost_file.name, 
            "path": popularidad_xgboost_file, 
-           "ejecutable": "main", 
+           "ejecutable": "main1", 
            "usar": False, 
            "dependences": []
     },
-    "A2": {"fichero": "Popularidad.xgboost_log", 
+    "A2": {"fichero": "Popularidad.xgboost_popularidad", 
            "salida": popularidad_xgboost_log_file.name, 
            "path": popularidad_xgboost_log_file, 
-           "ejecutable": "main", 
+           "ejecutable": "main2", 
            "usar": False, 
            "dependences": []
     },
@@ -127,17 +127,17 @@ main_modelos_info = {
            "usar": False, 
            "dependences": []
     },
-    "A4": {"fichero": "Popularidad.linear_regression", 
+    "A4": {"fichero": "Popularidad.linear_regression_log", 
            "salida": popularidad_linear_regression_file.name, 
            "path": popularidad_linear_regression_file, 
-           "ejecutable": "main", 
+           "ejecutable": "main1", 
            "usar": False, 
            "dependences": []
     },
     "A5": {"fichero": "Popularidad.linear_regression_log", 
            "salida": popularidad_linear_regression_log_file.name, 
            "path": popularidad_linear_regression_log_file, 
-           "ejecutable": "main", 
+           "ejecutable": "main2", 
            "usar": False, 
            "dependences": []
     },

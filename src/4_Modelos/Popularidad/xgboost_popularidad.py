@@ -208,9 +208,12 @@ def create_xgboost_model_popularity(use_log, minio):
     run.finish()
 
 
-def main(minio = {"minio_write": False, "minio_read": False}):
+def main1(minio = {"minio_write": False, "minio_read": False}):
     create_xgboost_model_popularity(False, minio)
+    
+def main2(minio = {"minio_write": False, "minio_read": False}):
     create_xgboost_model_popularity(True, minio)
 
 if __name__ == "__main__":
-    main()
+    main1()
+    main2()
