@@ -4,7 +4,7 @@ Calcula métricas para Baseline, Regresión Lineal y XGBoost en el test_df aisla
 y las registra en W&B en un único run y en una tabla comparativa.
 """
 
-from src.utils.config import popularity
+from src.utils.config import popularity, seed
 from src.utils.files import read_file
 from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, popularidad_mlp_file
 from src.utils.config import popularidad_linear_regression_file, popularidad_linear_regression_log_file, popularidad_knn_log_file
@@ -16,8 +16,6 @@ from knn_popularidad import _transform_for_knn, VARIABLES_GANADORAS
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-import os
-import joblib
 import statsmodels.api as sm
 
 import wandb
@@ -25,9 +23,8 @@ import wandb
 import numpy as np
 import pandas as pd
 from math import sqrt
-from src.utils.config import seed
 
-def evaluate_models():
+def evaluate_models(minio):
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Popularidad",
@@ -35,7 +32,7 @@ def evaluate_models():
         job_type="evaluation"
     )
 
-    df_raw = read_file(popularity)
+    df_raw = read_file(popularity, minio)
     y_variable = "recomendaciones_totales"
 
     # Modelo base (Baseline)
@@ -65,7 +62,7 @@ def evaluate_models():
         (False, popularidad_linear_regression_file, "Linear Regression (Normal)"),
         (True, popularidad_linear_regression_log_file, "Linear Regression (Log)")
     ]:
-        lr_data = read_file(model_path, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+        lr_data = read_file(model_path, minio) 
         if lr_data:
             lr_model = lr_data["model"]
             lr_vars = lr_data["selected_variables"]
@@ -98,7 +95,7 @@ def evaluate_models():
         (False, popularidad_xgboost_file, "XGBoost (Normal)"),
         (True, popularidad_xgboost_log_file, "XGBoost (Log)")
     ]:
-        xgb_model = read_file(model_path, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+        xgb_model = read_file(model_path, minio)
         if xgb_model:
             xgb_vars = [c for c in train_df_xgb.columns if c != y_variable]
             
@@ -124,7 +121,7 @@ def evaluate_models():
             table.add_data(model_name, mae_xgb, rmse_xgb, r2_xgb)
 
     # Evaluación de MLP (Red Neuronal)
-    mlp_data = read_file(popularidad_mlp_file, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+    mlp_data = read_file(popularidad_mlp_file, minio) 
     if mlp_data:
         mlp_model = mlp_data["model"]
         transformers_dict = mlp_data["transformers"]
@@ -151,7 +148,7 @@ def evaluate_models():
         table.add_data("MLP", mae_mlp, rmse_mlp, r2_mlp)
 
     # Evaluación de KNN
-    knn_model = read_file(popularidad_knn_log_file, {"minio_write": False, "minio_read": False}) # CAMBIAR MINIO
+    knn_model = read_file(popularidad_knn_log_file, minio)
     if knn_model:
         df_knn = _transform_for_knn(df_raw)
         
@@ -185,8 +182,8 @@ def evaluate_models():
     run.finish()
 
 
-def main():
-    evaluate_models()
+def main(minio = {"minio_write": False, "minio_read": False}):
+    evaluate_models(minio)
 
 if __name__ == "__main__":
     main()

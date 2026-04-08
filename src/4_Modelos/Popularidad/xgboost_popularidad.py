@@ -4,7 +4,7 @@ Aplica transformaciones a los datos, optimización de hiperparámetros
 con Optuna y registro de métricas con Weights & Biases (wandb).
 """
 
-from src.utils.config import popularity
+from src.utils.config import popularity, seed
 from src.utils.files import read_file, write_to_file
 from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, models_popularidad_path
 
@@ -16,10 +16,8 @@ import xgboost as xgb
 import umap
 import os
 
-import math
 import numpy as np
 import pandas as pd
-from src.utils.config import seed
 
 def _transform_for_xgboost(df):
     """
@@ -123,7 +121,7 @@ def _get_best_xgboost_params(X_train_full, y_train_target_full, use_log):
     return study.best_params
 
 
-def _train_xgboost(train_df, test_df, y_variable, use_log=False):
+def _train_xgboost(train_df, test_df, y_variable, minio, use_log=False):
     """
     Realiza el ciclo completo de entrenamiento y evaluación del modelo XGBoost:
     obtención de mejores parámetros, ajuste del modelo final e inferencia sobre el conjunto de test.
@@ -160,7 +158,7 @@ def _train_xgboost(train_df, test_df, y_variable, use_log=False):
 
     os.makedirs(models_popularidad_path(), exist_ok=True)
     model_name = popularidad_xgboost_log_file if use_log else popularidad_xgboost_file
-    write_to_file(final_model, model_name, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(final_model, model_name, minio) # CAMBIO MINIO
     print(f"Modelo guardado en {model_name}")
 
     df_importances = pd.DataFrame({
@@ -173,7 +171,7 @@ def _train_xgboost(train_df, test_df, y_variable, use_log=False):
     
     return importances
 
-def create_xgboost_model_popularity(use_log):
+def create_xgboost_model_popularity(use_log, minio):
     """
     Función principal que orquesta el entrenamiento del modelo XGBoost para la predicción de popularidad.
     Se encarga de inicializar wandb, leer los datos, procesarlos, dividirlos en train/test, 
@@ -194,14 +192,14 @@ def create_xgboost_model_popularity(use_log):
         job_type="model-training"
     )
 
-    df = read_file(popularity)
+    df = read_file(popularity, minio)
     y_variable = "recomendaciones_totales"
     
     df = _transform_for_xgboost(df)
 
     train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
 
-    importances = _train_xgboost(train_df, test_df, y_variable, use_log)
+    importances = _train_xgboost(train_df, test_df, y_variable, minio, use_log)
 
     print("10 variables más importantes:")
     for var_name, var_importance in importances[:10]:
@@ -210,9 +208,9 @@ def create_xgboost_model_popularity(use_log):
     run.finish()
 
 
-def main():
-    create_xgboost_model_popularity(use_log=False)
-    create_xgboost_model_popularity(use_log=True)
+def main(minio = {"minio_write": False, "minio_read": False}):
+    create_xgboost_model_popularity(False, minio)
+    create_xgboost_model_popularity(True, minio)
 
 if __name__ == "__main__":
     main()

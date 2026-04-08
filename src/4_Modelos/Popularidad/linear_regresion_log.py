@@ -52,7 +52,7 @@ def transform_for_linear_regresion(df):
 
     return df_clean
 
-def forward_selection(train_df, test_df, y_variable, selection_method="AIC", use_log=False):
+def forward_selection(train_df, test_df, y_variable, selection_method, use_log, minio):
     initial_variables = [c for c in train_df.columns if c != y_variable]
     selected_variables = []
     
@@ -100,10 +100,10 @@ def forward_selection(train_df, test_df, y_variable, selection_method="AIC", use
     os.makedirs(models_popularidad_path(), exist_ok=True)
     model_name = popularidad_linear_regression_log_file if use_log else popularidad_linear_regression_file
     data = {"model": final_model, "selected_variables": selected_variables}
-    write_to_file(data, model_name, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(data, model_name, minio) 
     print(f"Modelo guardado en {model_name}")
     
-def create_linear_model_popularity(selection_method, use_log):
+def create_linear_model_popularity(minio, selection_method, use_log):
     run_name = f"linear-regression-log-{selection_method.lower()}" if use_log else f"linear-regression-{selection_method.lower()}"
     
     run = wandb.init(
@@ -113,25 +113,25 @@ def create_linear_model_popularity(selection_method, use_log):
         job_type="model-training"
     )
 
-    df = read_file(popularity)
+    df = read_file(popularity, minio)
     y_variable = "recomendaciones_totales"
     
     df = transform_for_linear_regresion(df)
 
     train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
 
-    forward_selection(train_df, test_df, y_variable, selection_method, use_log)
+    forward_selection(train_df, test_df, y_variable, selection_method, use_log, minio)
 
     run.finish()
 
 
 
-def main():
+def main(minio = {"minio_write": False, "minio_read": False}):
     # Con AIC Normal
-    create_linear_model_popularity(selection_method="AIC", use_log=False)
+    create_linear_model_popularity(minio, selection_method="AIC", use_log=False)
 
     # Con AIC Logarítmico
-    create_linear_model_popularity(selection_method="AIC", use_log=True)
+    create_linear_model_popularity(minio, selection_method="AIC", use_log=True)
 
     # Parece que en este caso AIC y BIC hacen lo mismo así que nos quedamos solo con AIC
 
