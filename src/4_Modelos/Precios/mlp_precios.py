@@ -5,6 +5,7 @@ de precio se sitúa un juego según sus características.
 
 from utils.utils import get_metrics, read_prices, train_val_test_split
 from src.utils.config import precios_mlp_file, models_precios_path
+from src.utils.files import write_to_file
 
 from sklearn.preprocessing import StandardScaler, PowerTransformer, OrdinalEncoder, MinMaxScaler, OneHotEncoder
 from sklearn.model_selection import GridSearchCV
@@ -13,7 +14,6 @@ from sklearn.cluster import KMeans
 from sklearn.model_selection import cross_val_score
 from umap import UMAP
 import optuna
-import joblib
 import os
 
 import wandb
@@ -206,13 +206,12 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers
 
     run.log(metricas)
 
-    
     os.makedirs(models_precios_path(), exist_ok=True)
     data = {
         'model': best_mlp,
         'transformers': transformers
     }
-    joblib.dump(data, precios_mlp_file)
+    write_to_file(data, precios_mlp_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
     print(f"Modelo guardado en {precios_mlp_file}")
 
     run.finish()

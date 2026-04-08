@@ -5,7 +5,6 @@ import warnings
 
 from src.utils.config import prices, load_env_file
 from src.utils.files import read_file
-
 from utils.utils import get_metrics
 
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate, GridSearchCV

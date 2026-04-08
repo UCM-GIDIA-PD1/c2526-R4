@@ -6,11 +6,13 @@ Utiliza hiperparámetros previamente calculados en el notebook.
 
 import pandas as pd
 import numpy as np
+import os
 import wandb
 
 from src.utils.config import prices
-from src.utils.files import read_file
-from utils.utils import get_metrics, save_model
+from src.utils.files import read_file, write_to_file
+from src.utils.config import precios_logistic_regression_file, models_precios_path
+from utils.utils import get_metrics
 
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
@@ -18,9 +20,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler, PowerTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-
-import os
-import joblib
 
 orden_precios = {
     '[0.01,4.99]': 0,
@@ -130,8 +129,9 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
 
     run.save(cm_path)
 
-    model_name = "logistic_regression_precios.pkl"
-    save_model(model_name, final_pipeline)
+    os.makedirs(models_precios_path(), exist_ok=True)
+    write_to_file(final_pipeline, precios_logistic_regression_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    print(f"Modelo guardado en {precios_logistic_regression_file}")
 
     run.finish()
 

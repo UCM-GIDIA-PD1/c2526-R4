@@ -9,8 +9,10 @@ Dependencias:
     - precios.parquet
 """
 
+from src.utils.config import precios_xgboostumap_file, precios_catboostClustered_file, models_precios_path
+from src.utils.files import write_to_file
 from utils.utils import read_prices, train_val_test_split, class_weights, get_metrics
-from utils.utils import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings, save_model
+from utils.utils import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings
 from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb
 from sklearn.metrics import f1_score
@@ -21,7 +23,6 @@ from catboost import CatBoostClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score
 from sklearn.model_selection import RandomizedSearchCV
-import joblib
 import os
 from imblearn.over_sampling import SMOTE
 
@@ -276,17 +277,19 @@ def catModel(df, modelName='XGBoost Clustered'):
     final_model = CatBoostClassifier(**best_params)
     final_model.fit(
                 X_train,
-                    y_train,
-                    cat_features=cat_cols,
-                    eval_set=(X_val, y_val),
-                    early_stopping_rounds=50,
-                    verbose=False
+                y_train,
+                cat_features=cat_cols,
+                eval_set=(X_val, y_val),
+                early_stopping_rounds=50,
+                verbose=False
             )
 
     y_pred = final_model.predict(X_test)
     metrics_dict = get_metrics(y_test, y_pred)
-    
-    save_model(output_file='catboostClustered.pkl', final_model=final_model)
+
+    os.makedirs(models_precios_path(), exist_ok=True)
+    write_to_file(final_model, precios_catboostClustered_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    print(f"Modelo guardado en {precios_catboostClustered_file}")
 
     run.config.update(best_params)
     run.log(metrics_dict)
@@ -375,8 +378,10 @@ def model_umap(df, modelName=None):
     y_pred = final_model.predict(X_test)
 
     metrics_dict = get_metrics(y_test, y_pred)
-    save_model(output_file='xgboostumapOS.pkl', final_model=final_model)
-
+    
+    os.makedirs(models_precios_path(), exist_ok=True)
+    write_to_file(final_model, precios_xgboostumap_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    print(f"Modelo guardado en {precios_xgboostumap_file}")
 
     run.config.update(best_params)
     run.log(metrics_dict)
