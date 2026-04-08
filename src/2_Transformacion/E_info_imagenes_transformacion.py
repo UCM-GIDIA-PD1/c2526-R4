@@ -10,6 +10,7 @@ from sklearn.manifold import TSNE
 from src.utils.files import read_file, write_to_file, erase_file
 from src.utils.minio_server import upload_to_minio
 from src.utils.config import banners_file, gamelist_file, P_banners_file, popularity
+from src.utils.config import seed
 
 def join_B_and_E(minio):
     """
@@ -60,7 +61,7 @@ def dim_reduction(df, mod, matrix, dimensions = 2, fast = False):
         pca_pre = PCA(n_components=50)
         matrix = pca_pre.fit_transform(matrix)
     
-    tsne = TSNE(n_components=dimensions, perplexity=30, random_state=42, init='pca')
+    tsne = TSNE(n_components=dimensions, perplexity=30, random_state=seed, init='pca')
     coords_tsne = tsne.fit_transform(matrix)
     
     for i in range(dimensions):

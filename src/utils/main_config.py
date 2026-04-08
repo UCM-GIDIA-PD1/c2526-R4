@@ -7,6 +7,11 @@ from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_fil
 from src.utils.config import steam_reviews_file, banners_file, steam_reviews_top100_file, steam_reviews_rest_file
 from src.utils.config import steam_games_parquet_file, yt_stats_parquet_file
 from src.utils.config import steam_reviews_parquet_file, popularity, prices
+from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, popularidad_mlp_file
+from src.utils.config import popularidad_linear_regression_file, popularidad_linear_regression_log_file, popularidad_knn_log_file
+from src.utils.config import precios_xgboostumap_file, precios_mlp_file, precios_knncompleteclusters_file
+from src.utils.config import precios_catboostClustered_file, precios_logistic_regression_file
+from src.utils.config import reviews_logistic_regression_optuna_file, reviews_logistic_regression_gridsearch_file
 
 main_extraccion_info = {
         "A": {"fichero": "A_lista_juegos", 
@@ -97,5 +102,123 @@ main_transformacion_info = {
               "usar": False, 
               "dependences" : [dep.steam_games_parquet_file_popularity_dependence, dep.banners_file_popularity_dependence, 
                                dep.yt_stats_parquet_file_dependence, dep.steam_games_parquet_file_prices_dependence, dep.banners_file_prices_dependence]
-        },
+      },
+}
+
+main_modelos_info = {
+    "A1": {"fichero": "Popularidad.xgboost_popularidad", 
+           "salida": popularidad_xgboost_file.name, 
+           "path": popularidad_xgboost_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "A2": {"fichero": "Popularidad.xgboost_log", 
+           "salida": popularidad_xgboost_log_file.name, 
+           "path": popularidad_xgboost_log_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "A3": {"fichero": "Popularidad.mlp_popularidad", 
+           "salida": popularidad_mlp_file.name, 
+           "path": popularidad_mlp_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "A4": {"fichero": "Popularidad.linear_regression", 
+           "salida": popularidad_linear_regression_file.name, 
+           "path": popularidad_linear_regression_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "A5": {"fichero": "Popularidad.linear_regression_log", 
+           "salida": popularidad_linear_regression_log_file.name, 
+           "path": popularidad_linear_regression_log_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "A6": {"fichero": "Popularidad.knn_log", 
+           "salida": popularidad_knn_log_file.name, 
+           "path": popularidad_knn_log_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "A": {"fichero": "Popularidad.Z_evaluacion", 
+           "salida": None, 
+           "path": None, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+
+
+    "B1": {"fichero": "Precios.xgboost_umap", 
+           "salida": precios_xgboostumap_file.name, 
+           "path": precios_xgboostumap_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "B2": {"fichero": "Precios.mlp_precios", 
+           "salida": precios_mlp_file.name, 
+           "path": precios_mlp_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "B3": {"fichero": "Precios.knn_clusters", 
+           "salida": precios_knncompleteclusters_file.name, 
+           "path": precios_knncompleteclusters_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "B4": {"fichero": "Precios.catboost_clustered", 
+           "salida": precios_catboostClustered_file.name, 
+           "path": precios_catboostClustered_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "B5": {"fichero": "Precios.logistic_regression", 
+           "salida": precios_logistic_regression_file.name, 
+           "path": precios_logistic_regression_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "B": {"fichero": "Precios.Z_evaluacion", 
+           "salida": None, 
+           "path": None, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+
+    "C1": {"fichero": "Reviews.logistic_regression_optuna", 
+           "salida": reviews_logistic_regression_optuna_file.name, 
+           "path": reviews_logistic_regression_optuna_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "C2": {"fichero": "Reviews.logistic_regression_gridsearch", 
+           "salida": reviews_logistic_regression_gridsearch_file.name, 
+           "path": reviews_logistic_regression_gridsearch_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
+    },
+    "C": {"fichero": "Reviews.Z_evaluacion", 
+           "salida": None, 
+           "path": None, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": []
     }
+}

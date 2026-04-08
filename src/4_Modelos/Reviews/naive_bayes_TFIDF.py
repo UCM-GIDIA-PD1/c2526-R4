@@ -12,6 +12,11 @@ import wandb
 import os
 import joblib
 import json
+
+from utils_modelo_reviews.utils import get_metrics
+
+class_names = ["Negativo", "Positivo"]
+
 nltk.download('stopwords')
 tqdm.pandas(desc="Limpiando texto")
 
@@ -211,7 +216,8 @@ def train_best_model(X_train, y_train):
     return final_model
 
 
-if __name__ == "__main__":
+
+def main():
     df = read_reviews()
     reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
     labels = df["is_positive"].to_list()
@@ -222,10 +228,13 @@ if __name__ == "__main__":
 
     score_grid, params_grid = _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test)
     score_optuna, params_optuna = _optuna(X_train, X_val, X_test, y_train, y_val, y_test)
-    
+
     best_params = best_standard_params(score_grid, params_grid,score_optuna, params_optuna)
 
 
     os.makedirs('models/reviews', exist_ok=True)
     with open("models/reviews/naivebayes_tfidf_hyperparameters.json", "w") as f:
         json.dump(best_params, f, indent=4)
+
+if __name__ == "__main__":
+    main()

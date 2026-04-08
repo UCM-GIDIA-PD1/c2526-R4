@@ -25,6 +25,7 @@ import wandb
 import numpy as np
 import pandas as pd
 from math import sqrt
+from src.utils.config import seed
 
 def evaluate_models():
     run = wandb.init(
@@ -38,7 +39,7 @@ def evaluate_models():
     y_variable = "recomendaciones_totales"
 
     # Modelo base (Baseline)
-    train_df_raw, test_df_raw = train_test_split(df_raw, test_size=0.20, random_state=42)
+    train_df_raw, test_df_raw = train_test_split(df_raw, test_size=0.20, random_state=seed)
     mediana_train = train_df_raw[y_variable].median()
     y_test_real = test_df_raw[y_variable]
     y_pred_baseline = np.full_like(y_test_real, mediana_train, dtype=float)
@@ -58,7 +59,7 @@ def evaluate_models():
 
     # Evaluación de la Regresión Lineal
     df_lr = transform_for_linear_regresion(df_raw)
-    train_df_lr, test_df_lr = train_test_split(df_lr, test_size=0.20, random_state=42)
+    train_df_lr, test_df_lr = train_test_split(df_lr, test_size=0.20, random_state=seed)
 
     for use_log, model_path, model_name in [
         (False, popularidad_linear_regression_file, "Linear Regression (Normal)"),
@@ -91,7 +92,7 @@ def evaluate_models():
 
     # Evaluación de XGBoost
     df_xgb = _transform_for_xgboost(df_raw)
-    train_df_xgb, test_df_xgb = train_test_split(df_xgb, test_size=0.20, random_state=42)
+    train_df_xgb, test_df_xgb = train_test_split(df_xgb, test_size=0.20, random_state=seed)
 
     for use_log, model_path, model_name in [
         (False, popularidad_xgboost_file, "XGBoost (Normal)"),
@@ -158,7 +159,7 @@ def evaluate_models():
         bins_strat = [-1, 10, 100, 1000, 10000, float('inf')]
         y_binned = pd.cut(y_knn, bins=bins_strat, labels=False)
         
-        _, test_df_knn = train_test_split(df_knn, test_size=0.20, random_state=42, stratify=y_binned)
+        _, test_df_knn = train_test_split(df_knn, test_size=0.20, random_state=seed, stratify=y_binned)
         
         X_test_knn = test_df_knn[VARIABLES_GANADORAS]
         y_test_real_knn = test_df_knn['recomendaciones_totales']
@@ -183,5 +184,9 @@ def evaluate_models():
 
     run.finish()
 
-if __name__ == "__main__":
+
+def main():
     evaluate_models()
+
+if __name__ == "__main__":
+    main()

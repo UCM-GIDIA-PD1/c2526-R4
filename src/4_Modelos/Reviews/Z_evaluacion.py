@@ -27,6 +27,7 @@ from naive_bayes_CV import calcular_metricas
 from naive_bayes_CV import train_best_model  as train_naivebayes_cv
 from naive_bayes_TFIDF import preprocesar_texto as preprocesar_tfidf
 from naive_bayes_TFIDF import train_best_model  as train_naivebayes_tfidf
+from src.utils.config import seed
 
 def evaluate_models():
     run = wandb.init(
@@ -41,7 +42,7 @@ def evaluate_models():
     # Modelo baseline (moda)
     y_column = "is_positive"
 
-    train_df, test_df = train_test_split(df, test_size=0.30, random_state=42)
+    train_df, test_df = train_test_split(df, test_size=0.30, random_state=seed)
 
     mayority = train_df[y_column].value_counts().idxmax()
 
@@ -124,5 +125,9 @@ def evaluate_models():
     run.finish()
     
     
-if __name__ == "__main__":
+
+def main():
     evaluate_models()
+
+if __name__ == "__main__":
+    main()

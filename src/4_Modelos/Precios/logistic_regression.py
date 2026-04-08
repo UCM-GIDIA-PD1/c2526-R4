@@ -20,6 +20,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler, PowerTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
+from src.utils.config import seed
 
 orden_precios = {
     '[0.01,4.99]': 0,
@@ -81,7 +82,7 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
 
     best_model = LogisticRegression(
         C=C, solver=solver, l1_ratio=l1_ratio,
-        max_iter=1500, random_state=42, class_weight='balanced'
+        max_iter=1500, random_state=seed, class_weight='balanced'
     )
 
     cols_sesgadas = ['num_languages', 'total_games_by_publisher', 'total_games_by_developer']
@@ -95,7 +96,7 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
         ('binarias', 'passthrough', cols_binarias)
     ]
 
-    final_reducer = PCA(n_components=10, random_state=42)
+    final_reducer = PCA(n_components=10, random_state=seed)
 
     final_transformers.append(('img_reducer', final_reducer, img_cols))
     final_preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
@@ -116,18 +117,10 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
     metricas = get_metrics(
         y_test_labels, y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
-        img_path=cm_path
+        img_path=cm_path, download_images=True
     )
 
-    run.log({
-        'accuracy': metricas['accuracy'],
-        'precision': metricas['precision'],
-        'recall': metricas['recall'],
-        'f1-score': metricas['f1-score'],
-        'confusion_matrix': wandb.Image(cm_path)
-    })
-
-    run.save(cm_path)
+    run.log(metricas)
 
     os.makedirs(models_precios_path(), exist_ok=True)
     write_to_file(final_pipeline, precios_logistic_regression_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
@@ -135,14 +128,15 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
 
     run.finish()
 
-if __name__ == '__main__':
+
+def main():
     print('Leyendo datos...')
     df = read_file(prices)
 
     print('Preprocesando los datos...')
     X, y = _preprocess(df)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed, stratify=y)
 
     best_params = {
         'C': 0.041948246911196446,
@@ -152,3 +146,6 @@ if __name__ == '__main__':
 
     print('Creando modelo...')
     _create_lr_model(X_train, X_test, y_train, y_test, best_params)
+
+if __name__ == "__main__":
+    main()
