@@ -3,7 +3,9 @@ Dado precios.parquet crea un modelo de knn para predecir en que rango de precio 
 según sus características. Realiza lo mismo con un PCA del 0.9 de varianza total.
 """
 
-from utils.utils import get_metrics, read_prices, train_val_test_split,normalize_train_test, pca_train_test,cluster_embedings, read_prices_reduced, save_model
+from utils.utils import get_metrics, read_prices, train_val_test_split,normalize_train_test, pca_train_test,cluster_embedings, read_prices_reduced
+from src.utils.config import precios_knncompleteclusters_file, models_precios_path
+from src.utils.files import write_to_file
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import f1_score
@@ -11,6 +13,7 @@ from sklearn.preprocessing import LabelEncoder
 from imblearn.over_sampling import SMOTE
 
 import wandb
+import os
 
 import pandas as pd
 from src.utils.config import seed
@@ -124,7 +127,9 @@ def _complete_model(df, modelName= 'K-NN Complete Clusters'):
         img_path=cm_path, download_images=True
     )
 
-    save_model(output_file='knncompleteclusters.pkl', final_model=knn)
+    os.makedirs(models_precios_path(), exist_ok=True)
+    write_to_file(knn, precios_knncompleteclusters_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    print(f"Modelo guardado en {precios_knncompleteclusters_file}")
 
     run.config.update(best_params)
     run.log(metrics_dict)
