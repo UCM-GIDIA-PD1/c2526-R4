@@ -66,7 +66,7 @@ def price_range(x):
 def _calcular_target_30_dias(df):
     '''
     Calcula la estimación de reseñas a 30 días interpolando/extrapolando
-    mediante una curva logarítmica. Esta será la variable a predecir.
+    mediante una curva logarítmica. Sobrescribe la columna original para mantener compatibilidad.
     '''
     df['dias_extraccion'] = df['appreviewhistogram'].apply(
         lambda x: x.get('rollups', {}).get('dias', np.nan) if isinstance(x, dict) and isinstance(x.get('rollups'), dict) else np.nan
@@ -75,7 +75,8 @@ def _calcular_target_30_dias(df):
     mask = df['dias_extraccion'].notna() & df['recomendaciones_totales'].notna()
     factor = np.log1p(30) / np.log1p(df.loc[mask, 'dias_extraccion'])
     
-    df.loc[mask, 'estimacion_reviews_30d'] = np.floor(df.loc[mask, 'recomendaciones_totales'] * factor).astype(int)
+    # Sobrescribimos la variable original en lugar de crear 'estimacion_reviews_30d'
+    df.loc[mask, 'recomendaciones_totales'] = np.floor(df.loc[mask, 'recomendaciones_totales'] * factor).astype(int)
     
     df.drop(columns=['dias_extraccion'], inplace=True, errors='ignore')
     return df
@@ -84,16 +85,8 @@ def _calcular_historial_entidad(df, entidad, col_objetivo, prefijo_tipo):
     '''
     Calcula el historial de una entidad.
     Usa la Media Móvil Exponencial (EMA) para dar peso a lo reciente y 
-    el máximo histórico para medir el techo de la entidad
-
-    Args:
-        df (pd.DataFrame): DataFrame ordenado cronológicamente.
-        entidad (str): 'developers' o 'publishers'.
-        col_objetivo (str): Columna a usar ('estimacion_reviews_30d' o 'price_overview')
-        prefijo_tipo (str): Prefijo para nombres ('reviews' o 'precio')
-    
-    Returns:
-        pd.DataFrame: DataFrame con las información histórica relevante
+    el máximo histórico para medir el techo de la entidad.
+    Incluye One-Hot Encoding para las categorías de éxito.
     '''
     col_juegos_previos = f'juegos_previos_{entidad}'
     df[col_juegos_previos] = df.groupby(entidad).cumcount()
@@ -116,7 +109,7 @@ def _calcular_historial_entidad(df, entidad, col_objetivo, prefijo_tipo):
             lambda x: x.expanding().max().shift(1)
         ).fillna(0)
         
-        # Variable categórica de nivel de éxito
+        # Variable categórica de nivel de éxito (Solo para popularidad)
         if prefijo_tipo == 'reviews':
             col_ema = f'ema_{prefijo_tipo}_{entidad}'
             condiciones = [
@@ -126,13 +119,19 @@ def _calcular_historial_entidad(df, entidad, col_objetivo, prefijo_tipo):
                 (df[col_ema] >= 100) & (df[col_ema] <= 1000),
                 (df[col_ema] > 1000)
             ]
-            df[f'categoria_exito_{entidad}'] = np.select(condiciones, [0, 1, 2, 3, 4], default=0)
+            col_categoria = f'categoria_exito_{entidad}'
+            df[col_categoria] = np.select(condiciones, [0, 1, 2, 3, 4], default=0)
+            
+            # One-Hot Encoding
+            dummies = pd.get_dummies(df[col_categoria], prefix=col_categoria, dtype=int)
+            df = pd.concat([df, dummies], axis=1)
+            df.drop(columns=[col_categoria], inplace=True)
         
         df.drop(columns=[col_temp], inplace=True)
             
     return df
 
-def trans_general(df, minio):
+def trans_general(df):
     df["name"] = df["appdetails"].apply(lambda x : _get_name(x))
     df["categories"] = df["appdetails"].apply(lambda x: _get_categories(x))
     df["genres"] = df["appdetails"].apply(lambda x: _get_genres(x))
@@ -218,13 +217,13 @@ def trans_popularity(df, minio):
     df['release_date_dt'] = pd.to_datetime(df['release_date'], errors='coerce')
     df = df.sort_values(by=['release_date_dt', 'name']).reset_index(drop=True)
     
-    df = _calcular_historial_entidad(df, 'developers', 'estimacion_reviews_30d', 'reviews')
-    df = _calcular_historial_entidad(df, 'publishers', 'estimacion_reviews_30d', 'reviews')
+    df = _calcular_historial_entidad(df, 'developers', 'recomendaciones_totales', 'reviews')
+    df = _calcular_historial_entidad(df, 'publishers', 'recomendaciones_totales', 'reviews')
 
     columnas_basura = [
         "release_date", "release_date_dt", "price_range", "price_overview",
         "recomendaciones_positivas", "recomendaciones_negativas", 
-        'publishers', 'appreviewhistogram', 'developers', 'recomendaciones_totales'
+        'publishers', 'appreviewhistogram', 'developers'
     ]
     df.drop(columns=columnas_basura, inplace=True, errors="ignore")
     
