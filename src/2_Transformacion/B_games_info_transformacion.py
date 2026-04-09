@@ -7,42 +7,27 @@ Archivos necesarios:
     - publisher_dict.json
     - games_info_sample_precios.jsonl.gz
     - games_info_sample_popularidad.gz
+    - game_list_file (Catálogo completo para cálculo histórico)
 '''
 
 import pandas as pd
+import numpy as np
 from sklearn.preprocessing import MultiLabelBinarizer
 from src.utils.date import get_year
 from src.utils.files import read_file, erase_file
 from src.utils.minio_server import upload_to_minio
 from src.utils.config import steam_games_parquet_file_popularity, steam_games_parquet_file_prices
-from src.utils.config import raw_game_info_popularity, raw_game_info_prices, steam_publishers_count, steam_developers_count
+from src.utils.config import raw_game_info_popularity, raw_game_info_prices, gamelist_file
 
 def _get_name(x):
-    '''
-    Dado un diccionario devuelve el valor del campo name.
-
-    Args:
-        x (dict): Diccionario de appdetails.
-    
-    Returns:
-        str: String del valor del campo 'name' del diccionario.
-    '''
+    '''Dado un diccionario devuelve el valor del campo name.'''
     if isinstance(x,dict):
         return x.get("name")
     else:
         return None
 
 def _get_genres(x):
-    '''
-    Dado un diccionario itera por el campo 'genres' que contiene a su vez una lista de diccionarios, cada uno con 
-    los campos 'id' y 'description', para obtener una lista de géneros.
-
-    Args:
-        x (dict): Diccionario de appdetails.
-    
-    Returns:
-        list: Lista de strings de géneros de un juego
-    '''
+    '''Obtiene una lista de géneros desde el diccionario.'''
     if not isinstance(x, dict):
         return []
     genres = x.get('genres', [])
@@ -51,16 +36,7 @@ def _get_genres(x):
     return [g.get('description') for g in genres if isinstance(g, dict)]
 
 def _get_categories(x):
-    '''
-    Dado un diccionario itera por el campo 'categories' que contiene a su vez una lista de diccionarios, cada uno con 
-    los campos 'id' y 'description', para obtener una lista de categorías.
-
-    Args:
-        x (dict): Diccionario de appdetails.
-    
-    Returns:
-        list: Lista de strings de categorías de un juego
-    '''
+    '''Obtiene una lista de categorías desde el diccionario.'''
     if not isinstance(x,dict):
         return []
     categories = x.get("categories", [])
@@ -69,15 +45,7 @@ def _get_categories(x):
     return [c.get("description") for c in categories if isinstance(c, dict)]
 
 def price_range(x):
-    '''
-    Dado el precio de un juego devuelve el rango de precio en el que se encuentra.
-
-    Args:
-        x (float): Precio de un juego
-    
-    Returns:
-        str: String que representa el rango de precio.
-    '''
+    '''Dado el precio devuelve el rango en string.'''
     if x == 0:
         return 'Free'
     elif x > 0 and x < 5:
@@ -95,60 +63,117 @@ def price_range(x):
     elif x >= 40:
         return '>40'
 
-def _number_publishers(x, publishers_dict):
-    strX = str(x)
-    nGames = publishers_dict.get(strX)
-    return nGames if nGames else 0
+def _calcular_target_30_dias(df):
+    '''
+    Calcula la estimación de reseñas a 30 días interpolando/extrapolando
+    mediante una curva logarítmica. Sobrescribe la columna original para mantener compatibilidad.
+    '''
+    df['dias_extraccion'] = df['appreviewhistogram'].apply(
+        lambda x: x.get('rollups', {}).get('dias', np.nan) if isinstance(x, dict) and isinstance(x.get('rollups'), dict) else np.nan
+    )
+    
+    mask = df['dias_extraccion'].notna() & df['recomendaciones_totales'].notna()
+    factor = np.log1p(30) / np.log1p(df.loc[mask, 'dias_extraccion'])
+    
+    # Sobrescribimos la variable original en lugar de crear 'estimacion_reviews_30d'
+    df.loc[mask, 'recomendaciones_totales'] = np.floor(df.loc[mask, 'recomendaciones_totales'] * factor).astype(int)
+    
+    df.drop(columns=['dias_extraccion'], inplace=True, errors='ignore')
+    return df
+
+def _calcular_historial_entidad(df, entidad, col_objetivo, prefijo_tipo):
+    '''
+    Calcula el historial de una entidad.
+    Usa la Media Móvil Exponencial (EMA) para dar peso a lo reciente y 
+    el máximo histórico para medir el techo de la entidad.
+    '''
+    col_juegos_previos = f'num_juegos_previos_{entidad}'
+    df[col_juegos_previos] = df.groupby(entidad).cumcount().astype(int)
+    
+    df[f'es_primer_juego_{entidad}'] = (df[col_juegos_previos] == 0).astype(int)
+    
+    if col_objetivo in df.columns:
+        col_temp = f'{col_objetivo}_temp'
+        df[col_temp] = df[col_objetivo].fillna(0)
+        
+        grupo = df.groupby(entidad)[col_temp]
+        
+        # Media Móvil Exponencial
+        df[f'ema_{prefijo_tipo}_{entidad}'] = grupo.transform(
+            lambda x: x.ewm(alpha=0.5, adjust=False).mean().shift(1)
+        ).fillna(0)
+        
+        # Máximo histórico
+        df[f'max_historico_{prefijo_tipo}_{entidad}'] = grupo.transform(
+            lambda x: x.expanding().max().shift(1)
+        ).fillna(0)
+        
+        # Variable categórica de nivel de éxito (Solo para popularidad)
+        if prefijo_tipo == 'reviews':
+            col_ema = f'ema_{prefijo_tipo}_{entidad}'
+            condiciones = [
+                (df[f'es_primer_juego_{entidad}'] == 1),
+                (df[col_ema] < 10),
+                (df[col_ema] >= 10) & (df[col_ema] <= 100),
+                (df[col_ema] >= 100) & (df[col_ema] <= 1000),
+                (df[col_ema] > 1000)
+            ]
+            col_categoria = f'categoria_exito_{entidad}'
+            df[col_categoria] = np.select(condiciones, [0, 1, 2, 3, 4], default=0)
+            
+            # One-Hot Encoding
+            dummies = pd.get_dummies(df[col_categoria], prefix=col_categoria, dtype=int)
+            df = pd.concat([df, dummies], axis=1)
+            df.drop(columns=[col_categoria], inplace=True)
+        
+        df.drop(columns=[col_temp], inplace=True)
+            
+    return df
 
 def trans_general(df, minio):
-    df = df.join(df["appdetails"].apply(pd.Series))
-
+    df["name"] = df["appdetails"].apply(lambda x : _get_name(x))
     df["categories"] = df["appdetails"].apply(lambda x: _get_categories(x))
     df["genres"] = df["appdetails"].apply(lambda x: _get_genres(x))
+    df["short_description"] = df["appdetails"].apply(lambda x: x.get("short_description", "") if isinstance(x, dict) else "")
     df["description_len"] = df["short_description"].apply(lambda x : len(x))
-    df["name"] = df["appdetails"].apply(lambda x : _get_name(x))
-    df['price_overview'] = df['price_overview'].apply(lambda x: x.get('initial')/100)
+    
+    df['price_overview_dict'] = df['appdetails'].apply(lambda x: x.get('price_overview', {}) if isinstance(x, dict) else {})
+    df['price_overview'] = df['price_overview_dict'].apply(lambda x: x.get('initial', 0)/100 if isinstance(x, dict) else 0)
     df['price_range'] = df['price_overview'].apply(lambda x: price_range(x))
-    df['publishers'] = df['publishers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
-    df['developers'] = df['developers'].apply(lambda x: x[0] if x else None) # Nos quedamos con la primera
+    
+    df['supported_languages'] = df['appdetails'].apply(lambda x: x.get("supported_languages", []) if isinstance(x, dict) else [])
     df['num_languages'] = df['supported_languages'].apply(lambda x: len(x))
-    df["release_year"] = df ["release_date"].apply(lambda x: get_year(x))
+    
+    df['publishers_list'] = df['appdetails'].apply(lambda x: x.get("publishers", []) if isinstance(x, dict) else [])
+    df['publishers'] = df['publishers_list'].apply(lambda x: x[0] if x and len(x)>0 else None)
+    
+    df['developers_list'] = df['appdetails'].apply(lambda x: x.get("developers", []) if isinstance(x, dict) else [])
+    df['developers'] = df['developers_list'].apply(lambda x: x[0] if x and len(x)>0 else None)
+    
+    df['release_date'] = df['appdetails'].apply(lambda x: x.get("release_date") if isinstance(x, dict) else None)
+    df["release_year"] = df["release_date"].apply(lambda x: get_year(x))
 
-    publishers_dict = dict(read_file(steam_publishers_count, minio))
-    df['total_games_by_publisher'] = df['publishers'].apply(lambda x: _number_publishers(x,publishers_dict))
+    df = categories_and_genres(df)
 
-    developers_dict = dict(read_file(steam_developers_count, minio))
-    df['total_games_by_developer'] = df['developers'].apply(lambda x: _number_publishers(x,developers_dict))
-
-    df = categories_and_genres(df) # Aplicamos a categorías y géneros one hot encoding
-
-    # Eliminamos columnas sin usar
-    df.drop(columns=["appdetails", 'appreviewhistogram', 'header_url', 'capsule_img', 'metacritic', "publishers", "developers", 
-                    'required_age', "short_description", "release_date", "supported_languages", "genres", "categories"]
-                    , inplace=True,errors="ignore")
+    columnas_basura = [
+        "appdetails", 'header_url', 'capsule_img', 'metacritic', 'required_age', 
+        "short_description", "supported_languages", "genres", "categories",
+        "price_overview_dict", "publishers_list", "developers_list"
+    ]
+    df.drop(columns=columnas_basura, inplace=True, errors="ignore")
     
     return df
 
 def categories_and_genres(df):
     mlb_genres = MultiLabelBinarizer()
-
-    df_genres = pd.DataFrame(
-        mlb_genres.fit_transform(df['genres']),
-        columns=mlb_genres.classes_,
-        index=df.index
-    )
-
+    df_genres = pd.DataFrame(mlb_genres.fit_transform(df['genres']), columns=mlb_genres.classes_, index=df.index)
+    
     threshold_genres = len(df_genres) * 0.05
     cols_to_keep_genres = df_genres.columns[df_genres.sum() >= threshold_genres]
     df_genres = df_genres[cols_to_keep_genres]
 
     mlb_categories = MultiLabelBinarizer()
-
-    df_categories = pd.DataFrame(
-        mlb_categories.fit_transform(df['categories']),
-        columns=mlb_categories.classes_,
-        index=df.index
-    )
+    df_categories = pd.DataFrame(mlb_categories.fit_transform(df['categories']), columns=mlb_categories.classes_, index=df.index)
 
     threshold_categories = len(df_categories) * 0.05
     cols_to_keep_categories = df_categories.columns[df_categories.sum() >= threshold_categories]
@@ -159,9 +184,19 @@ def categories_and_genres(df):
 
     return df_final
 
-
 def trans_prices(df, minio):
-    return trans_general(df, minio)
+    df_prices = trans_general(df, minio)
+    
+    df_prices['release_date_dt'] = pd.to_datetime(df_prices['release_date'], errors='coerce')
+    df_prices = df_prices.sort_values(by=['release_date_dt', 'name']).reset_index(drop=True)
+    
+    df_prices = _calcular_historial_entidad(df_prices, 'developers', 'price_overview', 'precio')
+    df_prices = _calcular_historial_entidad(df_prices, 'publishers', 'price_overview', 'precio')
+    
+    columnas_basura = ['release_date', 'release_date_dt', 'publishers', 'appreviewhistogram', 'developers']
+    df_prices.drop(columns=columnas_basura, inplace=True, errors='ignore')
+    
+    return df_prices
 
 def trans_popularity(df, minio):
     df["recomendaciones_positivas"] = df["appreviewhistogram"].apply(
@@ -172,12 +207,25 @@ def trans_popularity(df, minio):
         lambda x: x.get("rollups").get("recommendations_down") if isinstance(x, dict) & 
         isinstance(x.get("rollups"), dict) else None)
     
-    # Eliminamos nulos
-    df.dropna(subset=["recomendaciones_positivas","recomendaciones_negativas"],inplace = True)
+    df.dropna(subset=["recomendaciones_positivas","recomendaciones_negativas"], inplace=True)
     df["recomendaciones_totales"] = df["recomendaciones_positivas"] + df["recomendaciones_negativas"]
 
     df = trans_general(df, minio)
-    df.drop(columns=["prince_range", "recomendaciones_positivas", "recomendaciones_negativas"], inplace=True,errors="ignore")
+    df = _calcular_target_30_dias(df)
+    
+    df['release_date_dt'] = pd.to_datetime(df['release_date'], errors='coerce')
+    df = df.sort_values(by=['release_date_dt', 'name']).reset_index(drop=True)
+    
+    df = _calcular_historial_entidad(df, 'developers', 'recomendaciones_totales', 'reviews')
+    df = _calcular_historial_entidad(df, 'publishers', 'recomendaciones_totales', 'reviews')
+
+    columnas_basura = [
+        "release_date", "release_date_dt", "price_range", "price_overview",
+        "recomendaciones_positivas", "recomendaciones_negativas", 
+        'publishers', 'appreviewhistogram', 'developers'
+    ]
+    df.drop(columns=columnas_basura, inplace=True, errors="ignore")
+    
     return df
 
 def B_games_info_transformacion(minio):
@@ -187,13 +235,25 @@ def B_games_info_transformacion(minio):
     }
 
     for f_input, (transform_func, f_output) in config.items():
-        print(f'Procesando {f_input.name}...')
+        print(f'Procesando muestra: {f_input.name}...')
         
-        data = read_file(f_input, minio)
-        df = transform_func(pd.DataFrame(data), minio)
-        df.to_parquet(f_output)
+        # Leemos el sample y guardamos la lista de ids
+        sample_data = read_file(f_input, minio)
+        sample_df = pd.DataFrame(sample_data)
+        ids_a_guardar = sample_df['id']
+        
+        # Leemos el catálogo entero de juegos
+        full_data = read_file(gamelist_file, minio)
+        full_df = pd.DataFrame(full_data)
+        
+        processed_full_df = transform_func(full_df, minio)
+        
+        # Dejamos solo las filas del dataframe que estaban en el sample
+        df_final = processed_full_df[processed_full_df['id'].isin(ids_a_guardar)].reset_index(drop=True)
+        
+        df_final.to_parquet(f_output)
 
-        if minio["minio_write"]:
+        if minio.get("minio_write", False):
             if upload_to_minio(f_output):
                 erase_file(f_output)
 
