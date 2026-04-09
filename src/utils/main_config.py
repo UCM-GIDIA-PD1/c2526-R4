@@ -72,7 +72,7 @@ main_transformacion_info = {
               "path": yt_stats_parquet_file, 
               "ejecutable": "C_estadisticas_youtube", 
               "usar": False, 
-              "dependences" : [dep.yt_statslist_file_dependence]
+              "dependences" : [dep.yt_statslist_file_dependence, dep.raw_game_info_popularity_dependence]
         },
         "D1": {"fichero": "D1_games_reviews_filter", 
               "salida": [steam_reviews_top100_file.name, steam_reviews_rest_file.name], 

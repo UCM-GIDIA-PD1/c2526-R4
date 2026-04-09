@@ -11,6 +11,7 @@ import numpy as np
 from src.utils.config import yt_statslist_file, yt_stats_parquet_file
 from src.utils.files import read_file, erase_file
 from src.utils.minio_server import upload_to_minio
+from utils.filtrado_youtube_llm import filtrado_por_clasificacion
 
 def _flatten_dict(d, prefix):
     '''
@@ -134,9 +135,11 @@ def C_estadisticas_youtube(minio):
     print('Obteniendo archivo')
     data = read_file(yt_statslist_file, minio)
     assert data, 'No se ha podido leer el archivo'
+
+    data_filtrado = filtrado_por_clasificacion(data, minio)
     
     print('Transformando a dataframe')
-    df = _transform_to_dataframe(data)
+    df = _transform_to_dataframe(data_filtrado)
 
     # Para la métrica de YT
     df_metrica = procesar_impacto_youtube(df)

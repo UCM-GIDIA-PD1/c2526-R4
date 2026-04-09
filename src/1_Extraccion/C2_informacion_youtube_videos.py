@@ -62,7 +62,9 @@ def _request_youtube(youtube_service, video_id_list):
             stats_list.append(
                 {
                     'id' : item['id'],
-                    'video_statistics' : item['statistics']    
+                    'video_statistics' : item['statistics'],
+                    'video_title': item['snippet']['title'],
+                    'channel': item['snippet']['channelTitle']
                 }
             )
     return stats_list
