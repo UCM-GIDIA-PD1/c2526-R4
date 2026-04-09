@@ -12,7 +12,7 @@ from .config import steam_reviews_top100_file, steam_reviews_rest_file, yt_stats
 from .config import steam_reviews_file, steam_games_parquet_file_popularity, banners_file_popularity
 from .config import yt_stats_parquet_file, steam_log_file, raw_game_info_popularity, raw_game_info_prices
 from .config import banners_file_prices, steam_games_parquet_file, steam_games_parquet_file_prices
-from .config import steam_publishers_count, steam_developers_count, steam_reviews_parquet_file
+from .config import steam_reviews_parquet_file
 from .config import P_banners_file, popularity, prices, reviews
 
 # ------------ DEPENDENCIAS DE API ------------
@@ -220,24 +220,6 @@ class steam_games_parquet_file_prices_dependence():
     @staticmethod
     def check(minio = None):
         return file_exists(steam_games_parquet_file_prices, minio)
-
-class steam_publishers_count_dependence():
-    @staticmethod
-    def get_info():
-        return f"Fichero {steam_publishers_count.name}"
-    
-    @staticmethod
-    def check(minio = None):
-        return file_exists(steam_publishers_count, minio)
-
-class steam_developers_count_dependence():
-    @staticmethod
-    def get_info():
-        return f"Fichero {steam_developers_count.name}"
-    
-    @staticmethod
-    def check(minio = None):
-        return file_exists(steam_developers_count, minio)
 
 class steam_reviews_parquet_file_dependence():
     @staticmethod

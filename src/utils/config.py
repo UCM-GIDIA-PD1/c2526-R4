@@ -152,8 +152,6 @@ banners_file_prices = raw_data_path() / "info_imagenes_precios.jsonl.gz"
 steam_games_parquet_file = processed_data_path() / "games_info.parquet"
 steam_games_parquet_file_popularity = processed_data_path() / "games_info_popularity.parquet"
 steam_games_parquet_file_prices = processed_data_path() / "games_info_prices.parquet"
-steam_publishers_count = raw_data_path() / "publisher_dict.json"
-steam_developers_count = raw_data_path() / "developer_dict.json"
 
 # Script C
 yt_stats_parquet_file = processed_data_path() / "yt_stats.parquet"

@@ -17,7 +17,7 @@ from src.utils.date import get_year
 from src.utils.files import read_file, erase_file
 from src.utils.minio_server import upload_to_minio
 from src.utils.config import steam_games_parquet_file_popularity, steam_games_parquet_file_prices
-from src.utils.config import raw_game_info_popularity, raw_game_info_prices, game_list_file
+from src.utils.config import raw_game_info_popularity, raw_game_info_prices, gamelist_file
 
 def _get_name(x):
     '''Dado un diccionario devuelve el valor del campo name.'''
@@ -86,10 +86,9 @@ def _calcular_historial_entidad(df, entidad, col_objetivo, prefijo_tipo):
     Calcula el historial de una entidad.
     Usa la Media Móvil Exponencial (EMA) para dar peso a lo reciente y 
     el máximo histórico para medir el techo de la entidad.
-    Incluye One-Hot Encoding para las categorías de éxito.
     '''
-    col_juegos_previos = f'juegos_previos_{entidad}'
-    df[col_juegos_previos] = df.groupby(entidad).cumcount()
+    col_juegos_previos = f'num_juegos_previos_{entidad}'
+    df[col_juegos_previos] = df.groupby(entidad).cumcount().astype(int)
     
     df[f'es_primer_juego_{entidad}'] = (df[col_juegos_previos] == 0).astype(int)
     
@@ -131,7 +130,7 @@ def _calcular_historial_entidad(df, entidad, col_objetivo, prefijo_tipo):
             
     return df
 
-def trans_general(df):
+def trans_general(df, minio):
     df["name"] = df["appdetails"].apply(lambda x : _get_name(x))
     df["categories"] = df["appdetails"].apply(lambda x: _get_categories(x))
     df["genres"] = df["appdetails"].apply(lambda x: _get_genres(x))
@@ -241,11 +240,10 @@ def B_games_info_transformacion(minio):
         # Leemos el sample y guardamos la lista de ids
         sample_data = read_file(f_input, minio)
         sample_df = pd.DataFrame(sample_data)
-        ids_a_guardar = sample_df['id'].unique()
+        ids_a_guardar = sample_df['id']
         
         # Leemos el catálogo entero de juegos
-        print(f'Procesando catálogo histórico completo para {f_input.name}...')
-        full_data = read_file(game_list_file, minio)
+        full_data = read_file(gamelist_file, minio)
         full_df = pd.DataFrame(full_data)
         
         processed_full_df = transform_func(full_df, minio)
