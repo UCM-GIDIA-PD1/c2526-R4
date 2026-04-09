@@ -11,7 +11,7 @@ import numpy as np
 from src.utils.config import yt_statslist_file, yt_stats_parquet_file
 from src.utils.files import read_file, erase_file
 from src.utils.minio_server import upload_to_minio
-from utils.filtrado_youtube_llm import filtrado_por_clasificacion
+from filtrado_youtube_llm import filtrado_por_clasificacion
 
 def _flatten_dict(d, prefix):
     '''

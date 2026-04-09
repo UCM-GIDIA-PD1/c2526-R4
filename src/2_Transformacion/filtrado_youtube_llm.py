@@ -8,8 +8,25 @@ from src.utils.config import yt_statslist_file, raw_game_info_popularity
 from src.utils.files import read_file, write_to_file
 from tqdm import tqdm
 
+MODELO = 'qwen2.5:3b'
+
+"""
+Explain prompt:
+
+1. Respond with 1 if the video is directly related to the content ecosystem of the video game '{game_name}' (e.g., gameplays, reviews, official trailers, original soundtrack, lore, analysis, tournaments).
+2. If the video is NOT related, respond with a very short, concise sentence explaining why it is not correlated, even if the title contains keywords (e.g., it is a different game, a sequel not requested, or generic news).
+3. Return ONLY the digit 1 if the video is correlated. Do not add any extra text, markdown, or conversational filler in either case.
+"""
+
+def descargar_modelo():
+    try:
+        ollama.show(MODELO)
+    except Exception:
+        print(f"Descargando el modelo {MODELO}. Esto puede tardar unos minutos...")
+        ollama.pull(MODELO)
+
 def clasificacion_ollama(game_name, steam_description, video_title, views, channel):
-    modelo = 'qwen2.5:3b'
+    
     prompt = f"""
 Act as a binary data classifier. Determine if the following YouTube video belongs to the content ecosystem of the video game '{game_name}'. The game is from Steam and the videos are already filtered by the gaming category.
 
@@ -28,7 +45,7 @@ Classification Rules:
     """
 
     try:
-        respuesta = ollama.chat(model=modelo, messages=[
+        respuesta = ollama.chat(model=MODELO, messages=[
             {'role': 'user', 'content': prompt}
         ], options={'temperature': 0.0})
         
@@ -42,6 +59,8 @@ def filtrado_por_clasificacion(data, minio):
                                         "name": item['appdetails'].get("name", "No name")} 
                                         for item in raw_steam_info}
     data_filtrado = []
+    
+    descargar_modelo()
 
     print('Comenzando filtrado\n')
     try:
@@ -57,7 +76,7 @@ def filtrado_por_clasificacion(data, minio):
                     video_title = video.get('video_title', 'No title')
                     views = video.get('video_statistics', {}).get('viewCount', 0)
                     channel = video.get('channel', 'No channel')
-                    if clasificacion_ollama(game_name, short_description, video_title, views, channel) == 1:
+                    if clasificacion_ollama(game_name, short_description, video_title, views, channel) == '1':
                         new_video_data = video.copy()
                         new_video_data.pop('video_title')
                         new_video_data.pop('channel')
