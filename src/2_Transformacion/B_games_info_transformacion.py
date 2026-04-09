@@ -4,7 +4,6 @@ eliminando columnas innecesarias.
 
 Archivos necesarios:
 
-    - publisher_dict.json
     - games_info_sample_precios.jsonl.gz
     - games_info_sample_popularidad.gz
     - game_list_file (Catálogo completo para cálculo histórico)
@@ -88,7 +87,7 @@ def _calcular_historial_entidad(df, entidad, col_objetivo, prefijo_tipo):
     el máximo histórico para medir el techo de la entidad.
     '''
     col_juegos_previos = f'num_juegos_previos_{entidad}'
-    df[col_juegos_previos] = df.groupby(entidad).cumcount().astype(int)
+    df[col_juegos_previos] = df.groupby(entidad).cumcount()
     
     df[f'es_primer_juego_{entidad}'] = (df[col_juegos_previos] == 0).astype(int)
     

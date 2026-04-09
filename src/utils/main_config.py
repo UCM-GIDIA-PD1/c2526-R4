@@ -64,7 +64,8 @@ main_transformacion_info = {
               "path": steam_games_parquet_file, 
               "ejecutable": "B_games_info_transformacion", 
               "usar": False, 
-              "dependences" : [dep.raw_game_info_popularity_dependence, dep.raw_game_info_prices_dependence]
+              "dependences" : [dep.raw_game_info_popularity_dependence, dep.raw_game_info_prices_dependence,
+                               dep.gamelist_file_dependence]
         },
         "C": {"fichero": "C_estadisticas_youtube", 
               "salida": yt_stats_parquet_file.name, 
