@@ -107,24 +107,6 @@ def _calcular_historial_entidad(df, entidad, col_objetivo, prefijo_tipo):
             lambda x: x.expanding().max().shift(1)
         ).fillna(0)
         
-        # Variable categórica de nivel de éxito (Solo para popularidad)
-        if prefijo_tipo == 'reviews':
-            col_ema = f'ema_{prefijo_tipo}_{entidad}'
-            condiciones = [
-                (df[f'es_primer_juego_{entidad}'] == 1),
-                (df[col_ema] < 10),
-                (df[col_ema] >= 10) & (df[col_ema] <= 100),
-                (df[col_ema] >= 100) & (df[col_ema] <= 1000),
-                (df[col_ema] > 1000)
-            ]
-            col_categoria = f'categoria_exito_{entidad}'
-            df[col_categoria] = np.select(condiciones, [0, 1, 2, 3, 4], default=0)
-            
-            # One-Hot Encoding
-            dummies = pd.get_dummies(df[col_categoria], prefix=col_categoria, dtype=int)
-            df = pd.concat([df, dummies], axis=1)
-            df.drop(columns=[col_categoria], inplace=True)
-        
         df.drop(columns=[col_temp], inplace=True)
             
     return df
