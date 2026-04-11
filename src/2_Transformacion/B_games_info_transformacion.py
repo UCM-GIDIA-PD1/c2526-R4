@@ -201,7 +201,7 @@ def trans_popularity(df, minio):
     df = _calcular_historial_entidad(df, 'publishers', 'recomendaciones_totales', 'reviews')
 
     columnas_basura = [
-        "release_date", "release_date_dt", "price_range", "price_overview",
+        "release_date", "release_date_dt", "price_range",
         "recomendaciones_positivas", "recomendaciones_negativas", 
         'publishers', 'appreviewhistogram', 'developers'
     ]
