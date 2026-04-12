@@ -28,18 +28,17 @@
 ├── .python-version
 ├── README.md
 ├── src/
-│   ├── 1_Extraccion/
-│   ├── 2_Transformacion/
-│   ├── 3_Analisis/
-│   ├── 4_Modelos/
+│   ├── A_Extraccion/
+│   ├── B_Transformacion/
+│   ├── C_Analisis/
+│   ├── D_Modelos/
 │   ├── main.py
 │   └── utils/
 └── uv.lock
 ```
 
 ---
-
-## Inicialización del entorno de trabajo
+## Uso del programa
 ### Introducción
 1. **Clonar el repositorio**:
 ``` shell
@@ -47,62 +46,47 @@ git clone https://github.com/UCM-GIDIA-PD1/c2526-R4.git
 cd c2526-R4
 ```
 
-2. **Sincronizar las librerías y versión de Python** de manera automática con el [entorno virtual UV](https://docs.astral.sh/uv/), el cual deberemos tener descargado con anterioridad. Ejecuta el siguiente comando para sincronizar el entorno:
-``` shell
-uv sync
-```
-Este entorno virtual funciona gracias a los archivos ``pyproject.tolm`` y ``uv.lock``, que se encuentran dentro del repositorio. Teniendo esto instalado ya puedes ejecutar *scripts* desde nuestro menú ejecutando:
+2. **Ejecutar el menú**. La primera vez tardará un poco al tener que sincronizar el [entorno virtual UV](https://docs.astral.sh/uv/):
 ```shell
-uv run -m src.main
+uv run src/main.py
 ```
 
-3. **Obtener los datos**. Para ello, existen dos opciones:
-	1. Descargar los datos directamente desde el servidor de [MinIO](https://minio.fdi.ucm.es/minio-console/login).
-	2. Extraer los datos de forma manual, explicado posteriormente.
+Desde el menú prodrás seleccionar cualquier fichero del proyecto para ejecutarlo: los de extracción de datos, transformación y entrenamiento de modelos.
+Además se puede seleccionar si usar los datos en local o los del servidor de [MinIO](https://minio.fdi.ucm.es/minio-console/login).
 
-### MinIO
-Para utilizar el servidor de MinIO hacen falta dos claves:
-- Clave de acceso del servidor de MinIO
-- Clave secreta del servidor de MinIO
-
-Una vez conseguidas, vamos a incluirlas como variables del sistema para que el código las detecte:
+Además, el apartado de análisis no se puede ejecutar desde el menú ya que no son ficheros sino notebooks. Estos ficheros se pueden encontrar en la carpeta de análisis y no necesitan configuraciones extra para poder ejecutarse.
+---
+## Configuraciones y dependencias
+Deberás tener ciertas variables de entorno, configurables de esta manera:
 
 En Windows:
 ```shell
 setx STEAM_API_KEY clave_api
 setx API_KEY_YT clave_api
+setx WANDB_API_KEY clave_api
 setx MINIO_ACCESS_KEY clave_de_acceso
 setx MINIO_SECRET_KEY clave_secreta
+setx PD1_ID identificador_grupo
 ```
 
 En Linux o MacOS hay que crear un archivo `.env` y añadir:
 ```bash
 export STEAM_API_KEY=clave_api
 export API_KEY_YT=clave_api
+export WANDB_API_KEY=clave_api
 export MINIO_ACCESS_KEY=clave_de_acceso
 export MINIO_SECRET_KEY=clave_secreta
-```
-
-Además para poder conectarse a MinIO hay que descargarse el [mc.exe](https://dl.min.io/client/mc/release/windows-amd64/mc.exe) y meterlo en la raiz del proyecto.
-### Extracción de datos
-Se debe tener en cuenta que la extracción manual de los datos tarda un tiempo largo, por lo que se recomienda descargar o usar los datos directamente del servidor de *MinIO*.
-
-Si se desea extraer la información en grupo de 6 personas, se debe crear una variable del sistema nueva llamada `PD1_ID`, que tendrá un valor de entre 1 y 6. Si no se crea esta variable se extraerá la información de manera completa.
-
-En Windows ejecutamos:
-```shell
-setx PD1_ID identificador_grupo
-```
-En Linux hay que crear un archivo .env y añadir:
-```bash
 export PD1_ID=identificador_grupo
 ```
 
-#### Dependencia: API externas
-Para realizar la extracción de la lista de juegos de Steam así como de las estadísticas individuales de los vídeos *scrapeados*, necesitamos antes conseguir acceso a varias APIs, a las que se adjuntan documentación del proceso de obtención:
-- La ``STEAM_API_KEY`` de [Steam](https://steamcommunity.com/dev/apikey).
-- La ``API_KEY_YT`` de [YouTube](https://developers.google.com/youtube/v3/getting-started?hl=es-419).
-#### Dependencia: TOR
+Definición de variables:
+- La ``STEAM_API_KEY`` de [Steam](https://steamcommunity.com/dev/apikey) para extraer información de Steam.
+- La ``API_KEY_YT`` de [YouTube](https://developers.google.com/youtube/v3/getting-started?hl=es-419) para extraer información de YouTube.
+- La ``WANDB_API_KEY`` de [Weight & Biases](https://wandb.ai/site/) para monitorizar el entrenamiento de los modelos.
+- Las ``MINIO_SECRET_KEY`` y ``MINIO_ACCESS_KEY``, claves secreta y de acceso del servidor de MinIO
+- El ``PD1_ID`` que determina que integrante del grupo eres, útil para repartir el trabajo al extraer información. No es obligatorio.
+
+### Dependencia: TOR
 Para Scrapear YouTube necesitamos tener tanto una versión de Google Chrome reciente, como TOR bundle descargado de la [página oficial de TOR](https://www.torproject.org/download/tor/).
 ##### En Windows
 Después de descargar TOR, ejecutad el archivo ``tor.exe`` que podéis encontrar dentro de la subcarpeta tor para que se creen los archivos por defecto para el correcto funcionamiento del mismo. Cuando el proceso de TOR llegue al 100%, cerradlo. Posteriormente, abrid las variables de entorno del sistema y clicad para abrir la variable PATH. Hecho eso, añadid la carpeta de tor (la que tiene como hija al archivo tor.exe) como nueva variable de entorno. El script C1 usará como configuración de TOR el archivo `torrc` que podéis encontrar en el repositorio, que sirve para que funcione correctamente la rotación de IP.

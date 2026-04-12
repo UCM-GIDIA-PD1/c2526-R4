@@ -4,18 +4,16 @@ Se crean dos modelos, uno que utiliza la media para
 predecir el número de reviews y otro que utiliza la mediana.
 Las métricas se registran en Weights & Biases (wandb).
 """
-
-from src.utils.config import popularity
-from src.utils.files import read_file
+import pandas as pd
+from src.utils.config import seed
+import wandb
+from numpy import sqrt
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-import wandb
-
-from numpy import sqrt
-import pandas as pd
-from src.utils.config import seed
+from src.utils.config import popularity
+from src.utils.files import read_file
 
 def transform_baseline(df):
     return df

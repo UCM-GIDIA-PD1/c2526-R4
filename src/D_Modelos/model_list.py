@@ -1,11 +1,11 @@
 from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, popularidad_mlp_file
 from src.utils.config import popularidad_linear_regression_file, popularidad_linear_regression_log_file, popularidad_knn_log_file
 
-from Popularidad.baseline import transform_baseline, predict_baseline_median, predict_baseline_mean
-from Popularidad.linear_regresion_log import transform_for_linear_regresion, predict_linear_regresion, predict_linear_regresion_log
-from Popularidad.xgboost_popularidad import transform_for_xgboost, predict_xgboost, predict_xgboost_log
-from Popularidad.mlp_popularidad import transform_mlp, predict_mlp
-from Popularidad.knn_popularidad import transform_for_knn, predict_knn
+from src.D_Modelos.Popularidad.baseline import transform_baseline, predict_baseline_median, predict_baseline_mean
+from src.D_Modelos.Popularidad.linear_regresion_log import transform_for_linear_regresion, predict_linear_regresion, predict_linear_regresion_log
+from src.D_Modelos.Popularidad.xgboost_popularidad import transform_for_xgboost, predict_xgboost, predict_xgboost_log
+from src.D_Modelos.Popularidad.mlp_popularidad import transform_mlp, predict_mlp
+from src.D_Modelos.Popularidad.knn_popularidad import transform_for_knn, predict_knn
 
 # POPULARIDAD
 models_popularidad = {
@@ -49,4 +49,14 @@ models_popularidad = {
             "model_path": popularidad_knn_log_file,
             "prediction_function": predict_knn,
         }
-    }
+}
+
+# PRECIOS
+models_precios = {
+        
+}
+
+# RESEÑAS
+models_reviews = {
+        
+}

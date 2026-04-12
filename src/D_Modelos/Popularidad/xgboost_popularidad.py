@@ -33,7 +33,7 @@ def transform_for_xgboost(df):
     df_clean = df.copy()
     
     # Eliminamos columnas que no aportan información al modelo
-    errase_columns = ['id', 'name', 'price_range', 'v_resnet', 'v_convnext']
+    errase_columns = ['id', 'name', 'v_resnet', 'v_convnext']
     df_clean = df_clean.drop(columns=[col for col in errase_columns if col in df_clean.columns])
 
     # Rellenamos los arrays vacíos o nulos en v_clip con ceros

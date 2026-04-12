@@ -1,10 +1,10 @@
 """
 Dado popularidad.parquet, ejecuta el modelo óptimo para predecir recomendaciones_totales
 """
-
-from src.utils.config import popularity
-from src.utils.files import read_file, write_to_file
-from src.utils.config import popularidad_knn_log_file, models_popularidad_path
+import numpy as np
+import pandas as pd
+import os
+import wandb
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_squared_log_error
 from sklearn.model_selection import train_test_split
@@ -12,12 +12,10 @@ from sklearn.preprocessing import StandardScaler, PowerTransformer
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
-import os
 
-import wandb
-
-import numpy as np
-import pandas as pd
+from src.utils.config import popularity
+from src.utils.files import read_file, write_to_file
+from src.utils.config import popularidad_knn_log_file, models_popularidad_path
 from src.utils.config import seed
 
 BEST_KNN_PARAMS = {

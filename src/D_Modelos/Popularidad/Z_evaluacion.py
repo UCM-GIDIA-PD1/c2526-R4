@@ -6,13 +6,14 @@ y las registra en W&B en un único run y en una tabla comparativa.
 import wandb
 import pandas as pd
 from math import sqrt
+import importlib
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from src.utils.config import popularity, seed
 from src.utils.files import read_file
-from model_list import models_popularidad
+from src.D_Modelos.model_list import models_popularidad
 
 def evaluate_models(minio):
     run = wandb.init(

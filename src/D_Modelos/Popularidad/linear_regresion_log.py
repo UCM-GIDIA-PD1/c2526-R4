@@ -1,22 +1,20 @@
-from src.utils.config import popularity
-from src.utils.files import read_file, write_to_file
-from src.utils.config import popularidad_linear_regression_log_file, popularidad_linear_regression_file, models_popularidad_path
+import pandas as pd
+import numpy as np
+import wandb
+import os
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import statsmodels.api as sm
-import os
 
-import wandb
-
-import pandas as pd
-import numpy as np
-from src.utils.config import seed
+from src.utils.config import popularity, seed
+from src.utils.files import read_file, write_to_file
+from src.utils.config import popularidad_linear_regression_log_file, popularidad_linear_regression_file, models_popularidad_path
 
 def transform_for_linear_regresion(df):
     df_clean = df.copy()
-    errase_columns = ['id', 'name', 'price_range', 'v_resnet', 'v_convnext']
+    errase_columns = ['id', 'name', 'v_resnet', 'v_convnext']
     df_clean = df_clean.drop(columns=[col for col in errase_columns if col in df_clean.columns])
 
     # PCA de vector de emmbedings
@@ -33,7 +31,6 @@ def transform_for_linear_regresion(df):
     for i in range(10):
         df_clean[f'clip_pca_{i}'] = clip_pca[:, i]
     
-    # Ya con el PCA la columna de CLIP no es necesaria
     df_clean = df_clean.drop(columns=['v_clip'])
 
     variables_to_scale = [col for col in df_clean.columns if col != 'recomendaciones_totales']
