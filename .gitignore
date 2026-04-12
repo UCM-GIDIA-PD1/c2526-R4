@@ -9,6 +9,7 @@ error_logs
 .env
 wandb
 catboost_info
+models
 
 # Extensiones de archivos
 *.csv
