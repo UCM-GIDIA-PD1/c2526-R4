@@ -19,7 +19,7 @@ import os
 import numpy as np
 import pandas as pd
 
-def _transform_for_xgboost(df):
+def transform_for_xgboost(df):
     """
     Realiza las transformaciones necesarias en el DataFrame para poder entrenar el modelo XGBoost.
     Elimina columnas innecesarias, aplica PCA a los embeddings de CLIP y transforma tipos de datos.
@@ -63,6 +63,19 @@ def _transform_for_xgboost(df):
 
     return df_clean
 
+
+def predict_xgboost(model_data, test_df, train_df):
+    xgb_vars = [c for c in train_df.columns if c != 'recomendaciones_totales']
+    X_test_xgb = test_df[xgb_vars]
+    y_pred_raw = model_data.predict(X_test_xgb)
+    return y_pred_raw
+
+def predict_xgboost_log(model_data, test_df, train_df):
+    xgb_vars = [c for c in train_df.columns if c != 'recomendaciones_totales']
+    X_test_xgb = test_df[xgb_vars]
+    y_pred_raw = model_data.predict(X_test_xgb)
+    y_pred_raw = np.maximum(y_pred_raw, 0)
+    return np.expm1(y_pred_raw)
 
 def _get_best_xgboost_params(X_train_full, y_train_target_full, use_log):
     """
@@ -195,7 +208,7 @@ def create_xgboost_model_popularity(use_log, minio):
     df = read_file(popularity, minio)
     y_variable = "recomendaciones_totales"
     
-    df = _transform_for_xgboost(df)
+    df = transform_for_xgboost(df)
 
     train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
 

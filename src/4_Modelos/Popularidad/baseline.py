@@ -17,6 +17,17 @@ from numpy import sqrt
 import pandas as pd
 from src.utils.config import seed
 
+def transform_baseline(df):
+    return df
+
+def predict_baseline_median(model_data, test_df, train_df):
+    mediana_train = train_df['recomendaciones_totales'].median()
+    return [mediana_train] * len(test_df)
+
+def predict_baseline_mean(model_data, test_df, train_df):
+    mean_train = train_df['recomendaciones_totales'].mean()
+    return [mean_train] * len(test_df)
+
 def create_popularity_median_baseline(minio):
     run = wandb.init(
         entity="pd1-c2526-team4",

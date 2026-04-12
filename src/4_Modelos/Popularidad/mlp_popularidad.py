@@ -18,7 +18,7 @@ import optuna
 import wandb
 
 from pandas import DataFrame, concat
-from numpy import vstack, log1p, expm1
+from numpy import vstack, log1p, expm1, clip
 import os
 from src.utils.config import seed
 
@@ -212,6 +212,21 @@ def _mlp(X_train, y_train, best_params, model_name, transformers, minio):
     
     run.finish()
 
+def transform_mlp(df):
+    return df.copy()
+
+def predict_mlp(model_data, test_df, train_df=None):
+    mlp_model = model_data["model"]
+    transformers_dict = model_data["transformers"]
+    y_min = model_data["y_train_min"]
+    y_max = model_data["y_train_max"]
+    
+    X_test_mlp, _ = _preprocess_test(test_df.copy(), transformers_dict)
+    y_pred_mlp = mlp_model.predict(X_test_mlp)
+    y_pred_clipped_mlp = clip(y_pred_mlp, y_min, y_max)
+    y_pred_real_mlp = transformers_dict['pt1'].inverse_transform(y_pred_clipped_mlp.reshape(-1, 1)).flatten()
+    
+    return y_pred_real_mlp
 
 
 def main(minio = {"minio_write": False, "minio_read": False}):
