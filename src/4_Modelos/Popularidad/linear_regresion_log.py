@@ -52,6 +52,20 @@ def transform_for_linear_regresion(df):
 
     return df_clean
 
+def predict_linear_regresion(model_data, test_df, train_df):
+    lr_model = model_data["model"]
+    lr_vars = model_data["selected_variables"]
+    X_test_lr = sm.add_constant(test_df[lr_vars], has_constant='add')
+    y_pred_raw_lr = lr_model.predict(X_test_lr)
+    return y_pred_raw_lr
+
+def predict_linear_regresion_log(model_data, test_df, train_df):
+    lr_model = model_data["model"]
+    lr_vars = model_data["selected_variables"]
+    X_test_lr = sm.add_constant(test_df[lr_vars], has_constant='add')
+    y_pred_raw_lr = lr_model.predict(X_test_lr)
+    return np.expm1(y_pred_raw_lr)
+
 def forward_selection(train_df, test_df, y_variable, selection_method, use_log, minio):
     initial_variables = [c for c in train_df.columns if c != y_variable]
     selected_variables = []

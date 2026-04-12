@@ -33,7 +33,7 @@ VARIABLES_GANADORAS = [
     'Multi-player', 'Shared/Split Screen', 'total_games_by_publisher'
 ]
 
-def _transform_for_knn(df):
+def transform_for_knn(df):
     """
     Preprocesamiento limpio y directo. Solo conserva las variables
     ganadoras y la variable objetivo, forzando los tipos numéricos.
@@ -47,6 +47,12 @@ def _transform_for_knn(df):
             df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce').fillna(0)
 
     return df_clean
+
+def predict_knn(model_data, test_df, train_df):
+    X_test_knn = test_df[VARIABLES_GANADORAS]
+    y_pred_knn = model_data.predict(X_test_knn)
+    y_pred_knn = np.clip(y_pred_knn, 0, None)
+    return y_pred_knn
 
 def create_knn_model_popularity(minio):
     """
@@ -66,7 +72,7 @@ def create_knn_model_popularity(minio):
 
     df_raw = read_file(popularity)
     print("Aplicando transformaciones a los datos...")
-    df_prepared = _transform_for_knn(df_raw)
+    df_prepared = transform_for_knn(df_raw)
     
     X = df_prepared[VARIABLES_GANADORAS]
     y = df_prepared['recomendaciones_totales']
