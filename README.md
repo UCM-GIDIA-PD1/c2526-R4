@@ -18,13 +18,11 @@
 ## Estructura del proyecto
 
 ```txt
-.
-├── c2425-R4.Rproj
 ├── config_files/
 │   └── torrc
 ├── .gitignore
-├── log.txt
 ├── pyproject.toml
+├── uv.lock
 ├── .python-version
 ├── README.md
 ├── src/
