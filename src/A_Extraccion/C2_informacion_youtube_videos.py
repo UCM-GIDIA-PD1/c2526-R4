@@ -137,6 +137,7 @@ def C2_informacion_youtube_videos(minio):
         youtube = build('youtube', 'v3', developerKey=API_KEY)
 
         print('Comenzando peticiones a la API de Youtube...\n')
+        cont = 0
         with tqdm(pending_games, unit="juegos") as pbar:
             for app in pbar:
                 jsonl = None
@@ -149,6 +150,9 @@ def C2_informacion_youtube_videos(minio):
                     if jsonl:
                         # Escribimos en el archivo destino
                         write_to_file(jsonl, yt_statslist_file)
+                    cont += 1
+                    if cont == 10000:
+                        break
 
     except KeyboardInterrupt:
         print("\n\nDetenido por el usuario. Guardando antes de salir...")

@@ -12,12 +12,12 @@ from src.utils.dependences import minio_dependence
 
 # Para que pueda usar los ficheros importados que están dentro de Scripts
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(BASE_DIR, "1_Extraccion"))
+sys.path.append(os.path.join(BASE_DIR, "A_Extraccion"))
 
 def ejecutar_scripts(scripts_info, minio_info, page):
-    if page == 1: sys.path.append(os.path.join(BASE_DIR, "1_Extraccion"))
-    elif page == 2: sys.path.append(os.path.join(BASE_DIR, "2_Transformacion"))
-    elif page == 3: sys.path.append(os.path.join(BASE_DIR, "4_Modelos"))
+    if page == 1: sys.path.append(os.path.join(BASE_DIR, "A_Extraccion"))
+    elif page == 2: sys.path.append(os.path.join(BASE_DIR, "B_Transformacion"))
+    elif page == 3: sys.path.append(os.path.join(BASE_DIR, "D_Modelos"))
 
     print("\n--- INICIANDO EJECUCIÓN ---")
 
