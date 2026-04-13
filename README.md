@@ -53,6 +53,7 @@ Desde el menú prodrás seleccionar cualquier fichero del proyecto para ejecutar
 Además se puede seleccionar si usar los datos en local o los del servidor de [MinIO](https://minio.fdi.ucm.es/minio-console/login).
 
 Además, el apartado de análisis no se puede ejecutar desde el menú ya que no son ficheros sino notebooks. Estos ficheros se pueden encontrar en la carpeta de análisis y no necesitan configuraciones extra para poder ejecutarse.
+
 ---
 ## Configuraciones y dependencias
 Deberás tener ciertas variables de entorno, configurables de esta manera:
