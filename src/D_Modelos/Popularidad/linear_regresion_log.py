@@ -135,8 +135,6 @@ def create_linear_model_popularity(minio, selection_method, use_log):
 
     run.finish()
 
-
-
 def main1(minio = {"minio_write": False, "minio_read": False}):
     # Con AIC Normal
     create_linear_model_popularity(minio, selection_method="AIC", use_log=False)

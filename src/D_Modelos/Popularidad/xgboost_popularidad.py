@@ -63,7 +63,6 @@ def transform_for_xgboost(df):
 
     return df_clean
 
-
 def predict_xgboost(model_data, test_df, train_df):
     xgb_vars = [c for c in train_df.columns if c != 'recomendaciones_totales']
     X_test_xgb = test_df[xgb_vars]
@@ -132,7 +131,6 @@ def _get_best_xgboost_params(X_train_full, y_train_target_full, use_log):
     study.optimize(objective, n_trials=35)
     
     return study.best_params
-
 
 def _train_xgboost(train_df, test_df, y_variable, minio, use_log=False):
     """
@@ -219,7 +217,6 @@ def create_xgboost_model_popularity(use_log, minio):
         print(f"- {var_name}: {var_importance:.4f}")
 
     run.finish()
-
 
 def main1(minio = {"minio_write": False, "minio_read": False}):
     create_xgboost_model_popularity(False, minio)

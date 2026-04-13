@@ -5,9 +5,10 @@ import numpy as np
 import pandas as pd
 import os
 import wandb
+import optuna
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_squared_log_error
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold, cross_validate
 from sklearn.preprocessing import StandardScaler, PowerTransformer
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
@@ -18,17 +19,12 @@ from src.utils.files import read_file, write_to_file
 from src.utils.config import popularidad_knn_log_file, models_popularidad_path
 from src.utils.config import seed
 
-BEST_KNN_PARAMS = {
-    "n_neighbors": 20,
-    "weights": "distance",
-    "p": 1
-}
-
+# HAY QUE PONER LAS VARIABLES QUE SALGAN EN XGBOOST
 VARIABLES_GANADORAS = [
     'Free To Play', 'yt_score', 'Steam Trading Cards', 'price_overview', 
     'Steam Cloud', 'num_languages', 'Steam Achievements', 'RPG', 
     'Custom Volume Controls', 'Simulation', 'release_year', 'Co-op', 
-    'Multi-player', 'Shared/Split Screen', 'total_games_by_publisher'
+    'Multi-player', 'Shared/Split Screen', 'ema_reviews_developers'
 ]
 
 def transform_for_knn(df):
@@ -52,9 +48,55 @@ def predict_knn(model_data, test_df, train_df):
     y_pred_knn = np.clip(y_pred_knn, 0, None)
     return y_pred_knn
 
+def _get_best_knn_params(X_train, y_train):
+    """
+    Busca los mejores hiperparámetros para el modelo KNN utilizando Optuna.
+    """
+    def objective(trial):
+        n_neighbors = trial.suggest_int('n_neighbors', 3, 50)
+        weights = trial.suggest_categorical('weights', ['uniform', 'distance'])
+        p = trial.suggest_int('p', 1, 2)
+
+        todas_sesgadas = ['price_overview', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer']
+        cols_sesgadas = [c for c in VARIABLES_GANADORAS if c in todas_sesgadas and c in X_train.columns]
+        cols_binarias = [c for c in VARIABLES_GANADORAS if c in X_train.columns and set(X_train[c].dropna().unique()).issubset({0, 1, 0.0, 1.0})]
+        cols_normales = [c for c in VARIABLES_GANADORAS if c in X_train.columns and c not in cols_sesgadas + cols_binarias]
+
+        preprocessor = ColumnTransformer(transformers=[
+            ('sesgadas', PowerTransformer(method='yeo-johnson'), cols_sesgadas),
+            ('normales', StandardScaler(), cols_normales),
+            ('binarias', 'passthrough', cols_binarias)
+        ], remainder='drop')
+
+        pipeline = Pipeline([
+            ('prep', preprocessor),
+            ('knn', KNeighborsRegressor(n_neighbors=n_neighbors, weights=weights, p=p, n_jobs=-1))
+        ])
+
+        final_model = TransformedTargetRegressor(
+            regressor=pipeline,
+            func=np.log1p,
+            inverse_func=np.expm1
+        )
+
+        cv = KFold(n_splits=5, shuffle=True, random_state=seed)
+        
+        scores = cross_validate(
+            final_model, X_train, y_train,
+            cv=cv,
+            scoring='neg_mean_absolute_error',
+            n_jobs=-1
+        )
+        return -scores['test_score'].mean()
+
+    study = optuna.create_study(direction="minimize")
+    study.optimize(objective, n_trials=30)
+    
+    return study.best_params
+
 def create_knn_model_popularity(minio):
     """
-    Orquesta el entrenamiento del mejor modelo KNN (solo tabular) y su subida a wandb.
+    Orquesta el entrenamiento del modelo KNN (solo tabular) y su subida a wandb.
     """
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -63,12 +105,11 @@ def create_knn_model_popularity(minio):
         job_type="knn-model-log",
         config={
             "modelo": "KNN_POPULARIDAD", 
-            "params": BEST_KNN_PARAMS, 
             "variables": VARIABLES_GANADORAS
         }
     )
 
-    df_raw = read_file(popularity)
+    df_raw = read_file(popularity, minio)
     print("Aplicando transformaciones a los datos...")
     df_prepared = transform_for_knn(df_raw)
     
@@ -82,10 +123,16 @@ def create_knn_model_popularity(minio):
         X, y, test_size=0.2, random_state=seed, stratify=y_binned
     )
 
-    todas_sesgadas = ['price_overview', 'num_languages', 'total_games_by_publisher']
-    cols_sesgadas = [c for c in VARIABLES_GANADORAS if c in todas_sesgadas]
-    cols_binarias = [c for c in VARIABLES_GANADORAS if set(X_train[c].dropna().unique()).issubset({0, 1, 0.0, 1.0})]
-    cols_normales = [c for c in VARIABLES_GANADORAS if c not in cols_sesgadas + cols_binarias]
+    print("Buscando los mejores parámetros para el modelo KNN...")
+    best_params = _get_best_knn_params(X_train, y_train)
+    print("Mejores parámetros encontrados:", best_params)
+    
+    wandb.config.update({"params": best_params})
+
+    todas_sesgadas = ['price_overview', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer']
+    cols_sesgadas = [c for c in VARIABLES_GANADORAS if c in todas_sesgadas and c in X_train.columns]
+    cols_binarias = [c for c in VARIABLES_GANADORAS if c in X_train.columns and set(X_train[c].dropna().unique()).issubset({0, 1, 0.0, 1.0})]
+    cols_normales = [c for c in VARIABLES_GANADORAS if c in X_train.columns and c not in cols_sesgadas + cols_binarias]
 
     preprocessor = ColumnTransformer(transformers=[
         ('sesgadas', PowerTransformer(method='yeo-johnson'), cols_sesgadas),
@@ -96,7 +143,7 @@ def create_knn_model_popularity(minio):
     final_model = TransformedTargetRegressor(
         regressor=Pipeline([
             ('prep', preprocessor),
-            ('knn', KNeighborsRegressor(**BEST_KNN_PARAMS, n_jobs=-1))
+            ('knn', KNeighborsRegressor(**best_params, n_jobs=-1))
         ]),
         func=np.log1p,
         inverse_func=np.expm1

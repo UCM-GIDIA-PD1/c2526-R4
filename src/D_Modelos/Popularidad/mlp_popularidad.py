@@ -163,7 +163,6 @@ def _best_params_mlp(X_train, Y_train):
 
     return params_mejor_modelo
 
-
 def _best_params_mlp_optuna(X_train, Y_train):
     def objective(trial):
         params = {
@@ -228,7 +227,6 @@ def predict_mlp(model_data, test_df, train_df=None):
     
     return y_pred_real_mlp
 
-
 def main(minio = {"minio_write": False, "minio_read": False}):
     # Lectura y división de datos
     print('Leyendo y preprocesando datos...')
@@ -244,7 +242,6 @@ def main(minio = {"minio_write": False, "minio_read": False}):
 
     print('Creando mejor modelo MLP con imágenes...')
     _mlp(X_train_base, y_train, best_params, 'mlp-umap-img', transformers, minio)
-
 
 if __name__ == "__main__":
     main()
