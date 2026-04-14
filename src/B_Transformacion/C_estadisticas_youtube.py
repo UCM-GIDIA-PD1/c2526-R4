@@ -55,7 +55,7 @@ def _transform_to_dataframe(data):
     df.drop('video_statistics', axis=1, inplace=True)
 
     # Procesamos los diccionarios para transformarlos en columnas
-    video_cols = [0, 1, 2, 3]
+    video_cols = [col for col in [0, 1, 2, 3] if col in df.columns]
     dfs = []
     for col in video_cols:
         flattened = df[col].apply(lambda x: _flatten_dict(x, f"video_{col}"))
@@ -63,10 +63,13 @@ def _transform_to_dataframe(data):
     df_final = pd.concat([df] + dfs, axis=1)
 
     # Eliminamos las columnas ya procesadas y las columnas de ID de vídeos generadas durante el procesamiento.
-    df_final.drop([0,1,2,3, 'video_0_id', 'video_1_id', 'video_2_id', 'video_3_id'], axis=1,inplace=True)
+    df_final.drop([0,1,2,3, 'video_0_id', 'video_1_id', 'video_2_id', 'video_3_id'], axis=1,inplace=True,errors='ignore')
     
     # Rellenamos nulos
     df_final = df_final.fillna(0)
+
+    # Drop de duplicados
+    df_final = df_final.drop_duplicates(subset=['id'], keep='first')
 
     # Lista de columnas que vamos a transformar a un tipo numérico
     cols_transform = [ c for c in df_final.columns if "video_statistics" in c ]
@@ -137,6 +140,10 @@ def C_estadisticas_youtube(minio):
     assert data, 'No se ha podido leer el archivo'
 
     data_filtrado = filtrado_por_clasificacion(data, minio)
+
+    print(data)
+    print()
+    print(data_filtrado)
     
     print('Transformando a dataframe')
     df = _transform_to_dataframe(data_filtrado)

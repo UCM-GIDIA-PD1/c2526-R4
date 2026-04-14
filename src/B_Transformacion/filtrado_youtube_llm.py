@@ -10,14 +10,6 @@ from tqdm import tqdm
 
 MODELO = 'qwen2.5:3b'
 
-"""
-Explain prompt:
-
-1. Respond with 1 if the video is directly related to the content ecosystem of the video game '{game_name}' (e.g., gameplays, reviews, official trailers, original soundtrack, lore, analysis, tournaments).
-2. If the video is NOT related, respond with a very short, concise sentence explaining why it is not correlated, even if the title contains keywords (e.g., it is a different game, a sequel not requested, or generic news).
-3. Return ONLY the digit 1 if the video is correlated. Do not add any extra text, markdown, or conversational filler in either case.
-"""
-
 def descargar_modelo():
     try:
         ollama.show(MODELO)
@@ -54,7 +46,7 @@ Classification Rules:
         return f"Error: {str(e)}"
     
 def filtrado_por_clasificacion(data, minio):
-    raw_steam_info = read_file(raw_game_info_popularity, {'minio_write':False, 'minio_read':True})
+    raw_steam_info = read_file(raw_game_info_popularity, minio)
     dict_id_description = {str(item["id"]): {"short_description": item['appdetails'].get("short_description", "No description"), 
                                         "name": item['appdetails'].get("name", "No name")} 
                                         for item in raw_steam_info}
@@ -68,9 +60,9 @@ def filtrado_por_clasificacion(data, minio):
             for juego in pbar:
                 appid = str(juego['id'])
                 pbar.set_description(f"Procesando appid {appid}")
-                game_filtered_info = {'id':appid, 'video_statistics':[]}
-                short_description = dict_id_description[appid]['short_description']
                 game_name = dict_id_description[appid]['name']
+                game_filtered_info = {'id':int(appid), 'name':game_name, 'video_statistics':[]}
+                short_description = dict_id_description[appid]['short_description']
 
                 for video in juego['video_statistics']:
                     video_title = video.get('video_title', 'No title')
