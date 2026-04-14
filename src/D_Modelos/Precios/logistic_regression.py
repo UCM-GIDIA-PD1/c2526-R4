@@ -64,7 +64,7 @@ def _preprocess(df):
 
     return X, y
 
-def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
+def _create_lr_model(X_train, X_test, y_train, y_test, best_params, minio):
     """
     Crea el pipeline del modelo, evalúa y sube las métricas a Weights & Biases.
     """
@@ -123,17 +123,14 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params):
     run.log(metricas)
 
     os.makedirs(models_precios_path(), exist_ok=True)
-    write_to_file(final_pipeline, precios_logistic_regression_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(final_pipeline, precios_logistic_regression_file, minio)
     print(f"Modelo guardado en {precios_logistic_regression_file}")
 
     run.finish()
 
 
-def main():
-    print('Leyendo datos...')
-    df = read_file(prices)
-
-    print('Preprocesando los datos...')
+def main(minio = {"minio_write": False, "minio_read": False}):
+    df = read_file(prices, minio)
     X, y = _preprocess(df)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed, stratify=y)
@@ -144,8 +141,7 @@ def main():
         'l1_ratio': 0.0
     }
 
-    print('Creando modelo...')
-    _create_lr_model(X_train, X_test, y_train, y_test, best_params)
+    _create_lr_model(X_train, X_test, y_train, y_test, best_params, minio)
 
 if __name__ == "__main__":
     main()

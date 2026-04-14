@@ -4,7 +4,7 @@ según sus características. Realiza lo mismo con un PCA del 0.9 de varianza tot
 """
 
 from utils.utils import get_metrics, read_prices, train_val_test_split,normalize_train_test, pca_train_test,cluster_embedings, read_prices_reduced
-from src.utils.config import precios_knncompleteclusters_file, models_precios_path
+from src.utils.config import precios_knncompleteclusters_file, precios_knncompleteclusters_pca_file, precios_knnreduced_file, precios_knnreduced_oversampled_file, models_precios_path
 from src.utils.files import write_to_file
 
 from sklearn.neighbors import KNeighborsClassifier
@@ -73,7 +73,7 @@ def objective(trial, X_train, X_val, y_train, y_val):
     
     return score
 
-def _complete_model(df, modelName= 'K-NN Complete Clusters'):
+def _complete_model(df, minio, modelName= 'K-NN Complete Clusters', ):
     """
     Modelo completo de K-NN usando clusters de los embeddings.
 
@@ -128,14 +128,14 @@ def _complete_model(df, modelName= 'K-NN Complete Clusters'):
     )
 
     os.makedirs(models_precios_path(), exist_ok=True)
-    write_to_file(knn, precios_knncompleteclusters_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(knn, precios_knncompleteclusters_file, minio)
     print(f"Modelo guardado en {precios_knncompleteclusters_file}")
 
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
 
-def _complete_pca_mode(df, modelName= 'K-NN Complete Clusters PCA'):
+def _complete_pca_mode(df, minio, modelName= 'K-NN Complete Clusters PCA'):
     """
         Modelo completo de K-NN usando clusters de los embeddings y realizando un PCA para reducir dimensionalidad.
 
@@ -191,11 +191,15 @@ def _complete_pca_mode(df, modelName= 'K-NN Complete Clusters PCA'):
         img_path=cm_path, download_images=True
     )
 
+    os.makedirs(models_precios_path(), exist_ok=True)
+    write_to_file(knn, precios_knncompleteclusters_pca_file, minio)
+    print(f"Modelo guardado en {precios_knncompleteclusters_pca_file}")
+
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
 
-def _reduced_model(df, modelName= 'K-NN Reduced'):
+def _reduced_model(df, minio, modelName= 'K-NN Reduced'):
     """
         Modelo completo de K-NN usando el conjunto de datos reducido.
 
@@ -251,11 +255,15 @@ def _reduced_model(df, modelName= 'K-NN Reduced'):
         img_path=cm_path, download_images=True
     )
 
+    os.makedirs(models_precios_path(), exist_ok=True)
+    write_to_file(knn, precios_knnreduced_file, minio)
+    print(f"Modelo guardado en {precios_knnreduced_file}")
+
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
 
-def _oversampled_reduced(df, modelName= 'K-NN Reduced Oversampled'):
+def _oversampled_reduced(df, minio, modelName= 'K-NN Reduced Oversampled'):
     """
     Modelo completo de K-NN usando el conjunto de datos reducido y haciendo oversampling para tratar de paliar el desbalance.
 
@@ -311,13 +319,18 @@ def _oversampled_reduced(df, modelName= 'K-NN Reduced Oversampled'):
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
         img_path=cm_path, download_images=True
     )
+    
+    os.makedirs(models_precios_path(), exist_ok=True)
+    write_to_file(knn, precios_knnreduced_oversampled_file, minio)
+    print(f"Modelo guardado en {precios_knnreduced_oversampled_file}")
+
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
 
-def knnprecios():
-    df = read_prices()
-    df_reduced = read_prices_reduced()
+def knnprecios(minio):
+    df = read_prices(minio)
+    df_reduced = read_prices_reduced(minio)
 
     print('Selecciona qué modelo quieres entrenar:')
     print('1. K-NN Complete Clusters')
@@ -329,27 +342,27 @@ def knnprecios():
     opcion = input('Ingresa el número de la opción: ')
 
     if opcion == '1':
-        _complete_model(df.copy(), modelName='K-NN Complete Clusters')
+        _complete_model(df.copy(), minio, modelName='K-NN Complete Clusters')
     elif opcion == '2':
-        _complete_pca_mode(df.copy(), modelName='K-NN Complete Clusters PCA')
+        _complete_pca_mode(df.copy(), minio, modelName='K-NN Complete Clusters PCA')
     elif opcion == '3':
-        _reduced_model(df_reduced.copy(), modelName='K-NN Reduced')
+        _reduced_model(df_reduced.copy(), minio, modelName='K-NN Reduced')
     elif opcion == '4':
-        _oversampled_reduced(df_reduced.copy(), modelName='K-NN Reduced Oversampled')
+        _oversampled_reduced(df_reduced.copy(), minio, modelName='K-NN Reduced Oversampled')
     elif opcion == '0':
         return
     elif opcion == '5':
         df_bestv = df.copy()
         df_bestv = df_bestv[['Indie', 'Family Sharing', 'Casual', 'Online PvP', 'Single-player', 'Steam Cloud', 'Custom Volume Controls',
                               'total_games_by_publisher', 'num_languages', 'v_clip', 'PvP', 'price_range']]
-        _complete_model(df_bestv, modelName='K-NN Best Variables')
+        _complete_model(df_bestv, minio, modelName='K-NN Best Variables')
     else:
         print('Opción no válida')
         return
     
 
-def main():
-    knnprecios()
+def main(minio = {"minio_write": False, "minio_read": False}):
+    knnprecios(minio)
 
 if __name__ == "__main__":
     main()

@@ -188,7 +188,7 @@ def _best_params_mlp_optuna(X_train, Y_train):
 
     return params_mejor_modelo
 
-def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers):
+def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers, minio):
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Precios", 
@@ -221,16 +221,14 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers
         'model': best_mlp,
         'transformers': transformers
     }
-    write_to_file(data, precios_mlp_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(data, precios_mlp_file, minio)
     print(f"Modelo guardado en {precios_mlp_file}")
 
     run.finish()
 
 
-def main():
-    # Preprocesado de datos
-    print('Leyendo y preprocesando datos...')
-    df = read_prices()
+def main(minio = {"minio_write": False, "minio_read": False}):
+    df = read_prices(minio)
 
     y_all = DataFrame(df['price_range'])
     X_all = df.drop(columns=['price_range'])
@@ -309,7 +307,7 @@ def main():
     best_params_umap = _best_params_mlp(X_train_umap, Y_train)
 
     print('Creando mejor modelo MLP con imágenes con UMAP...')
-    _mlp(X_train_umap, X_test_umap, Y_train, Y_test, best_params_umap, 'mlp-umap-img', transformers)
+    _mlp(X_train_umap, X_test_umap, Y_train, Y_test, best_params_umap, 'mlp-umap-img', transformers, minio)
 
 
 if __name__ == "__main__":

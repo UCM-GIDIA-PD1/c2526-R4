@@ -23,13 +23,12 @@ import matplotlib.pyplot as plt
 import wandb
 from src.utils.config import seed
 
-def read_prices(minio={"minio_write": False, "minio_read": False}):
+def read_prices(minio = {"minio_write": False, "minio_read": False}):
     """Lee y limpia el dataset de precios desde un archivo Parquet.
 
     Args:
         minio (dict): Configuración de acceso a MinIO. 
             Diccionario con llaves 'minio_write' y 'minio_read' (bool).
-            Por defecto: {"minio_write": False, "minio_read": False}.
 
     Returns:
         pd.DataFrame: Conjunto de datos procesado.
@@ -45,7 +44,7 @@ def read_prices(minio={"minio_write": False, "minio_read": False}):
 
     return df
 
-def read_prices_reduced(minio={"minio_write": False, "minio_read": False}):
+def read_prices_reduced(minio = {"minio_write": False, "minio_read": False}):
     df = read_file(filepath=reduced_prices, minio=minio)
     assert df is not None, 'Error archivo precios_reducido.parquet no encontrado'
     return df

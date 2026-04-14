@@ -592,7 +592,7 @@ def model_search(df, modelName=None):
     run.log(metrics_dict)
     run.finish()
 
-def xgboost_base():
+def xgboost_base(minio):
     print('Selecciona qué modelo quieres entrenar:')
     print('1. XGBoost Base sin imágenes')
     print('2. XGBoost Base con imágenes (PCA 50)')
@@ -603,7 +603,7 @@ def xgboost_base():
     print('0. Salir')
 
     opcion = input('Ingresa el número de la opción: ')
-    df = read_prices()
+    df = read_prices(minio)
     if opcion == '1':
         df_noimg = df.drop(columns=['brillo', 'v_clip'])
         model_noimg(df_noimg, modelName='XGBoost-Base NoImg')
@@ -626,8 +626,8 @@ def xgboost_base():
         return
 
 
-def main():
-    xgboost_base()
+def main(minio = {"minio_write": False, "minio_read": False}):
+    xgboost_base(minio)
 
 if __name__ == "__main__":
     main()
