@@ -11,9 +11,11 @@ Dependencias:
 
 from src.utils.config import precios_xgboostumap_file, precios_catboostClustered_file, models_precios_path
 from src.utils.files import write_to_file
-from utils.utils import read_prices, train_val_test_split, class_weights, get_metrics
+from utils.utils import read_prices, train_val_test_split, class_weights, get_metrics,get_train_test
 from utils.utils import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings
-from sklearn.preprocessing import LabelEncoder
+from src.utils.config import seed
+
+from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 import xgboost as xgb
 from sklearn.metrics import f1_score
 import optuna
@@ -22,10 +24,44 @@ import pandas as pd
 from catboost import CatBoostClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV, cross_validate
 import os
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 from imblearn.over_sampling import SMOTE
-from src.utils.config import seed
+import numpy as np
+from sklearn.preprocessing import FunctionTransformer
+from umap import UMAP
+
+def _optimize_params_xgboost(X_train, y_train):
+    def objective(trial):
+        params = {
+            'verbosity': 0,
+            'objective': 'multi:softprob',
+            'num_class': len(set(y_train)),
+            'n_estimators': trial.suggest_int('n_estimators', 100, 1000),
+            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
+            'max_depth': trial.suggest_int('max_depth', 3, 10),
+            'subsample': trial.suggest_float('subsample', 0.5, 1.0),
+            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1.0),
+            'gamma': trial.suggest_float('gamma', 1e-8, 1.0, log=True),
+            'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
+            'random_state': 42,
+            'device': 'cuda' if False else 'cpu',
+        }
+        model = xgb.XGBClassifier(**params)
+        score = cross_validate(model, X_train, y_train, cv=5, scoring='f1_weighted', n_jobs=-1)
+        return score['test_score'].mean()
+    
+    print("Iniciando optimización de hiperparámetros")
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=50)
+    
+    print(f"Mejor F1-Score: {study.best_value}")
+    print(f"Mejores parámetros: {study.best_params}")
+    best_params = study.best_params
+    
+    return best_params
 
 def model_noimg(df, modelName='XGBoost-Base NoImg'):
     """
@@ -298,7 +334,7 @@ def catModel(df, modelName='XGBoost Clustered'):
                 X_train,
                 y_train,
                 cat_features=cat_cols,
-                eval_set=(X_val, y_val),
+                eval_set=(X_vaprecios_xgboostumap_filel, y_val),
                 early_stopping_rounds=50,
                 verbose=False
             )
@@ -331,48 +367,30 @@ def model_umap(df, modelName=None):
         Returns:
             None
     """     
-
-    # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
-    le = LabelEncoder()
+    # Transformación de variable objetivo
+    le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
     df['price_range'] = le.fit_transform(df['price_range'])
 
-    # División Train, Validation, Test
-    y = df['price_range']
-    X = df.drop(columns=['price_range'])
-    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    # División train/test
+    X_train, X_test, y_train, y_test = get_train_test(df)
 
-    # sample_weights = class_weights(y_train)
+    # Definimos un pipeline que transforma los vectores a columnas y realiza el UMAP (Necesario para añadirlo a ColumnTransformer)
+    def stack_embeddings(X):
+        return np.vstack(X.ravel())
+    embedding_pipeline = Pipeline([
+        ('stacker', FunctionTransformer(stack_embeddings)),
+        ('umap', UMAP(n_components=16, random_state=42))
+    ])
+
+    # Definimos el preprocesador para añadirlo al pipeline final
+    preprocessor = ColumnTransformer([
+    ('clip_umap', embedding_pipeline, ['v_clip'])
+    ], remainder='passthrough')
+
+    X_train = preprocessor.fit_transform(X_train)
+    X_test = preprocessor.transform(X_test)
     
-    X_train, X_val, X_test = umap_embeddings(X_train, X_val, X_test, emb_col='v_clip')
-
-    smote = SMOTE(random_state=seed)
-    X_train, y_train = smote.fit_resample(X_train, y_train)
-
-    def objective(trial):
-        param = {
-            'verbosity': 0,
-            'objective': 'multi:softprob',
-            'num_class': len(set(y_train)),
-            'n_estimators': trial.suggest_int('n_estimators', 100, 1000),
-            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-            'max_depth': trial.suggest_int('max_depth', 3, 10),
-            'subsample': trial.suggest_float('subsample', 0.5, 1.0),
-            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1.0),
-            'gamma': trial.suggest_float('gamma', 1e-8, 1.0, log=True),
-            'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
-            'random_state': 42,
-            'device': 'cuda' if False else 'cpu',
-        }
-        model = xgb.XGBClassifier(**param)
-        model.fit(
-            X_train, y_train,
-            #sample_weight=sample_weights,
-            eval_set=[(X_val, y_val)],
-            verbose=False
-        )
-        preds = model.predict(X_val)
-        score = f1_score(y_val, preds, average='weighted')        
-        return score
+    sample_weights = class_weights(y_train)
 
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -381,31 +399,25 @@ def model_umap(df, modelName=None):
         job_type='xgboost'
     )
 
-    study = optuna.create_study(direction='maximize')
-    study.optimize(objective, n_trials=50)
-    
-    print(f"Mejor F1-Score: {study.best_value}")
-    print(f"Mejores parámetros: {study.best_params}")
-    best_params = study.best_params
+    # Optimización de hiperparámetros
+    best_params = _optimize_params_xgboost(X_train, y_train)
 
-    final_model = xgb.XGBClassifier(
-        **best_params,
-        objective='multi:softprob',
-        num_class=len(le.classes_),
-        random_state=seed
-    )
-    
-    final_model.fit(
-        X_train, y_train, 
-        #sample_weight=sample_weights,
-        verbose=False
-    )
+    # Pipeline del modelo
+    pipeline = Pipeline([
+        ('preprocessor', preprocessor),
+        ('classifier', xgb.XGBClassifier(
+            **best_params, 
+            objective='multi:softprob', 
+            num_class=len(le.classes_), 
+            random_state=42
+        ))
+    ])
 
-    y_pred = final_model.predict(X_test)
+    pipeline.fit(X_train, y_train, classifier__sample_weight=sample_weights)
 
+    y_pred = pipeline.predict(X_test)
     y_test_labels = le.inverse_transform(y_test)
     y_pred_labels = le.inverse_transform(y_pred)
-
     cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
 
     metrics_dict = get_metrics(
@@ -415,7 +427,7 @@ def model_umap(df, modelName=None):
     )
 
     os.makedirs(models_precios_path(), exist_ok=True)
-    write_to_file(final_model, precios_xgboostumap_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(pipeline, precios_xgboostumap_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
     print(f"Modelo guardado en {precios_xgboostumap_file}")
 
     run.config.update(best_params)

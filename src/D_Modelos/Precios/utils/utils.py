@@ -49,6 +49,23 @@ def read_prices_reduced(minio = {"minio_write": False, "minio_read": False}):
     assert df is not None, 'Error archivo precios_reducido.parquet no encontrado'
     return df
 
+def get_train_test(df):
+    """Divide los datos en los conjuntos de entrenamiento (80%) y prueva (20%)
+    
+    Args:
+        X (pd.DataFrame): Matriz de características.
+        y (pd.Series): Vector de etiquetas.
+
+    Returns:
+        tuple: Una tupla conteniendo elementos en este orden:
+            X_train, X_test, y_train, y_test.
+    """ 
+    y = df['price_range']
+    X = df.drop(columns=['price_range'])
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed, stratify=y)
+    return X_train, X_test, y_train, y_test
+
+
 def train_val_test_split(X, y):
     """Divide los datos en conjuntos de entrenamiento (70%), validación (15%) y prueba (15%).
 
