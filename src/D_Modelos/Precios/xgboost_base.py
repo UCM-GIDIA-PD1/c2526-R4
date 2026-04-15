@@ -334,7 +334,7 @@ def catModel(df, modelName='XGBoost Clustered'):
                 X_train,
                 y_train,
                 cat_features=cat_cols,
-                eval_set=(X_vaprecios_xgboostumap_filel, y_val),
+                eval_set=(X_val, y_val),
                 early_stopping_rounds=50,
                 verbose=False
             )
@@ -387,9 +387,7 @@ def model_umap(df, modelName=None):
     ('clip_umap', embedding_pipeline, ['v_clip'])
     ], remainder='passthrough')
 
-    X_train = preprocessor.fit_transform(X_train)
-    X_test = preprocessor.transform(X_test)
-    
+    # Obtenemos los pesos
     sample_weights = class_weights(y_train)
 
     run = wandb.init(
