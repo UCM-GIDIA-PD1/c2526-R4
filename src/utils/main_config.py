@@ -157,7 +157,7 @@ main_modelos_info = {
     },
 
 
-    "B1": {"fichero": "Precios.xgboost_umap", 
+    "B1": {"fichero": "Precios.xgboost_base", 
            "salida": precios_xgboostumap_file.name, 
            "path": precios_xgboostumap_file, 
            "ejecutable": "main", 
@@ -171,7 +171,7 @@ main_modelos_info = {
            "usar": False, 
            "dependences": [dep.prices_dependence]
     },
-    "B3": {"fichero": "Precios.knn_clusters", 
+    "B3": {"fichero": "Precios.knnprecios", 
            "salida": precios_knncompleteclusters_file.name, 
            "path": precios_knncompleteclusters_file, 
            "ejecutable": "main", 
