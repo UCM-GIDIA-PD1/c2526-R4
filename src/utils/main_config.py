@@ -106,42 +106,42 @@ main_transformacion_info = {
 }
 
 main_modelos_info = {
-    "A1": {"fichero": "Popularidad.xgboost_popularidad", 
+    "A1": {"fichero": "Popularidad.xgboost", 
            "salida": popularidad_xgboost_file.name, 
            "path": popularidad_xgboost_file, 
            "ejecutable": "main1", 
            "usar": False, 
            "dependences": [dep.popularity_dependence]
     },
-    "A2": {"fichero": "Popularidad.xgboost_popularidad", 
+    "A2": {"fichero": "Popularidad.xgboost", 
            "salida": popularidad_xgboost_log_file.name, 
            "path": popularidad_xgboost_log_file, 
            "ejecutable": "main2", 
            "usar": False, 
            "dependences": [dep.popularity_dependence]
     },
-    "A3": {"fichero": "Popularidad.mlp_popularidad", 
+    "A3": {"fichero": "Popularidad.mlp", 
            "salida": popularidad_mlp_file.name, 
            "path": popularidad_mlp_file, 
            "ejecutable": "main", 
            "usar": False, 
            "dependences": [dep.popularity_dependence]
     },
-    "A4": {"fichero": "Popularidad.linear_regression_log", 
+    "A4": {"fichero": "Popularidad.linear_regression", 
            "salida": popularidad_linear_regression_file.name, 
            "path": popularidad_linear_regression_file, 
            "ejecutable": "main1", 
            "usar": False, 
            "dependences": [dep.popularity_dependence]
     },
-    "A5": {"fichero": "Popularidad.linear_regression_log", 
+    "A5": {"fichero": "Popularidad.linear_regression", 
            "salida": popularidad_linear_regression_log_file.name, 
            "path": popularidad_linear_regression_log_file, 
            "ejecutable": "main2", 
            "usar": False, 
            "dependences": [dep.popularity_dependence]
     },
-    "A6": {"fichero": "Popularidad.knn_log", 
+    "A6": {"fichero": "Popularidad.knn", 
            "salida": popularidad_knn_log_file.name, 
            "path": popularidad_knn_log_file, 
            "ejecutable": "main", 
@@ -157,28 +157,28 @@ main_modelos_info = {
     },
 
 
-    "B1": {"fichero": "Precios.xgboost_base", 
+    "B1": {"fichero": "Precios.xgboost", 
            "salida": precios_xgboostumap_file.name, 
            "path": precios_xgboostumap_file, 
            "ejecutable": "main", 
            "usar": False, 
            "dependences": [dep.prices_dependence]
     },
-    "B2": {"fichero": "Precios.mlp_precios", 
+    "B2": {"fichero": "Precios.mlp", 
            "salida": precios_mlp_file.name, 
            "path": precios_mlp_file, 
            "ejecutable": "main", 
            "usar": False, 
            "dependences": [dep.prices_dependence]
     },
-    "B3": {"fichero": "Precios.knnprecios", 
+    "B3": {"fichero": "Precios.knn", 
            "salida": precios_knncompleteclusters_file.name, 
            "path": precios_knncompleteclusters_file, 
            "ejecutable": "main", 
            "usar": False, 
            "dependences": [dep.prices_dependence]
     },
-    "B4": {"fichero": "Precios.catboost_clustered", 
+    "B4": {"fichero": "Precios.xgboost", 
            "salida": precios_catboostClustered_file.name, 
            "path": precios_catboostClustered_file, 
            "ejecutable": "main", 
@@ -200,7 +200,7 @@ main_modelos_info = {
            "dependences": [dep.prices_dependence]
     },
 
-    "C1": {"fichero": "Reviews.logistic_regression_optuna", 
+    "C1": {"fichero": "Reviews.logistic_regression", 
            "salida": reviews_logistic_regression_optuna_file.name, 
            "path": reviews_logistic_regression_optuna_file, 
            "ejecutable": "main", 
