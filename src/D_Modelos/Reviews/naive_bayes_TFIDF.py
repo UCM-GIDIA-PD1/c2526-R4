@@ -213,8 +213,8 @@ def train_best_model(X_train, y_train):
     return final_model
 
 
-def main():
-    df = read_reviews()
+def main(minio = {"minio_write": False, "minio_read": False}):
+    df = read_reviews(minio)
     reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
     labels = df["is_positive"].to_list()
 

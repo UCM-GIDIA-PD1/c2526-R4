@@ -3,7 +3,6 @@ Dado resenyas.parquet crea un modelo de Regresión Logística para predecir
 si la review es positiva o negativa en base al texto de esta. Utiliza TF-IDF
 para la transformación de texto a vectores numéricos.
 """
-import pandas as pd
 import wandb
 import optuna
 import numpy as np
@@ -134,7 +133,7 @@ def best_model_optuna(best_params):
     
     return Pipeline([("tfidf", tfidf),("clf", clf)])
 
-def train_optuna():
+def train_optuna(minio):
     '''
     Función para el entrenamiento del modelo usando Optuna para la
     búsqueda de los mejores hiperparámetros.
@@ -180,7 +179,7 @@ def train_optuna():
     run.finish()
 
     os.makedirs(models_reviews_path(), exist_ok=True)
-    write_to_file(best_logistic_model, reviews_logistic_regression_optuna_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(best_logistic_model, reviews_logistic_regression_optuna_file, minio)
     print(f"Modelo guardado en {reviews_logistic_regression_optuna_file}")
     
     print(f"Valor de accuracy: {accuracy}")
@@ -189,7 +188,7 @@ def train_optuna():
     print(f"Valor de recall: {recall}")
     print(f"Valor de precision: {precision}")
     
-def train_gridsearch():
+def train_gridsearch(minio):
     '''
     Función para el entrenamiento del modelo usando GridSearchCV para la
     búsqueda de los mejores hiperparámetros.
@@ -258,7 +257,7 @@ def train_gridsearch():
     run.finish()
 
     os.makedirs(models_reviews_path(), exist_ok=True)
-    write_to_file(grid, reviews_logistic_regression_gridsearch_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(grid, reviews_logistic_regression_gridsearch_file, minio)
     print(f"Modelo guardado en {reviews_logistic_regression_gridsearch_file}")
     
     print(f"Valor de accuracy: {accuracy}")
@@ -268,10 +267,10 @@ def train_gridsearch():
     print(f"Valor de precision: {precision}")
     
 
-def main():
+def main(minio = {"minio_write": False, "minio_read": False}):
     tqdm.pandas(desc="Limpiando texto")
     print("Leyendo Datos")
-    df = read_file(reviews)
+    df = read_file(reviews, minio)
 
     print("Preprocesado de los datos")
     X, y = preprocess(df)
@@ -282,9 +281,9 @@ def main():
     use_optuna = True
 
     if use_optuna:
-        train_optuna()
+        train_optuna(minio)
     else:
-        train_gridsearch()
+        train_gridsearch(minio)
 
 if __name__ == "__main__":
     main()

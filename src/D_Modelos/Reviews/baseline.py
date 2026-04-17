@@ -10,12 +10,11 @@ import wandb
 from src.utils.config import reviews, seed
 from src.utils.files import read_file
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score,f1_score
 from utils_modelo_reviews.utils import get_metrics
 
 class_names = ["Negativo", "Positivo"]
 
-def create_reviews_baseline():
+def create_reviews_baseline(minio):
 
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -24,7 +23,7 @@ def create_reviews_baseline():
         job_type="baseline"
     )
     
-    df = read_file(reviews)
+    df = read_file(reviews, minio)
     y_column = "is_positive"
 
     train_df, test_df = train_test_split(df, test_size=0.30, random_state=seed)
@@ -49,8 +48,8 @@ def create_reviews_baseline():
 
 
 
-def main():
-    create_reviews_baseline()
+def main(minio = {"minio_write": False, "minio_read": False}):
+    create_reviews_baseline(minio)
 
 if __name__ == "__main__":
     main()
