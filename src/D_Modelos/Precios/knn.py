@@ -97,7 +97,7 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
     preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
 
     X_train_transformed = preprocessor.fit_transform(X_train)
-    X_test_transformed = preprocessor.transform(X_test) # Lo guardamos ya transformado para el predict final
+    X_test_transformed = preprocessor.transform(X_test)
 
     run = wandb.init(entity="pd1-c2526-team4", project="Precios", name=modelName, job_type='knn')
 

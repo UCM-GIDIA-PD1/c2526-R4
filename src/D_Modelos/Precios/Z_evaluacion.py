@@ -22,28 +22,6 @@ import pandas as pd
 from numpy import vstack
 from src.utils.config import seed
 
-def catboostModel(df, table, model_path= 'models/precios/catboostClustered.pkl'):
-    y = df['price_range']
-    X = df.drop(columns=['price_range'])
-    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
-    X_train, X_val, X_test = cluster_embedings(X_train, X_val, X_test, emb_col='v_clip')
-
-    if os.path.exists(model_path):
-        model = joblib.load(model_path)
-
-        y_pred = model.predict(X_test)
-        metrics_dict = get_metrics(y_test, y_pred)
-
-        table.add_data(
-            'CatBoost Clustered',
-            metrics_dict['accuracy'],
-            metrics_dict['f1-score'],
-            metrics_dict['precision'],
-            metrics_dict['recall']
-        )
-    else:
-        raise FileNotFoundError
-
 def xgboostUmap(df, table, model_path= 'models/precios/xgboostumap.pkl'):
     # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
     le = LabelEncoder()
@@ -219,7 +197,6 @@ def evaluate_models():
     wandb.log({"comparative_table": table})
     print("Evaluación completada. Resultados en W&B.")
     run.finish()
-
 
 def main():
     evaluate_models()
