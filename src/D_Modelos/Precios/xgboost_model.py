@@ -13,25 +13,27 @@ from src.utils.config import precios_xgboostumap_file, precios_catboostClustered
 from src.utils.files import write_to_file
 from src.D_Modelos.Precios.utils.utils import read_prices, train_val_test_split, class_weights, get_metrics,get_train_test
 from src.D_Modelos.Precios.utils.utils import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings
-from src.utils.config import seed
 
-from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
+from sklearn.preprocessing import OrdinalEncoder
 import xgboost as xgb
 from sklearn.metrics import f1_score
 import optuna
 import wandb
-import pandas as pd
 from catboost import CatBoostClassifier
-from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score
-from sklearn.model_selection import RandomizedSearchCV, cross_validate
+from sklearn.model_selection import  cross_validate
 import os
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from imblearn.over_sampling import SMOTE
 import numpy as np
 from sklearn.preprocessing import FunctionTransformer
 from umap import UMAP
+import pandas as pd
+
+def unpack_embeddings(X):
+    if isinstance(X, pd.DataFrame):
+        return np.vstack(X.iloc[:, 0].values)
+    return np.vstack(X[:, 0])
 
 def _optimize_params_xgboost(X_train, y_train):
     def objective(trial):
@@ -162,76 +164,61 @@ def catModel(df, modelName='XGBoost Clustered'):
     run.finish()
 
 def model_umap(df, modelName=None):
-    """
-    Modelo completo de XGBoost realizando un UMap sobre los embeddings de imagenes.
-
-        Args:
-            - df (pd.DataFrame): DataFrame con el que se realizará el modelo.
-            - modelName (String): Nombre del modelo a subir a wandb
-        Returns:
-            None
-    """     
-    # Transformación de variable objetivo
+    print(f'Creando modelo {modelName}...')
+    
     le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
-    df['price_range'] = le.fit_transform(df['price_range'])
+    df['price_range'] = le.fit_transform(df[['price_range']])
 
-    # División train/test
     X_train, X_test, y_train, y_test = get_train_test(df)
 
-    # Definimos un pipeline que transforma los vectores a columnas y realiza el UMAP (Necesario para añadirlo a ColumnTransformer)
-    def stack_embeddings(X):
-        return np.vstack(X.ravel())
     embedding_pipeline = Pipeline([
-        ('stacker', FunctionTransformer(stack_embeddings)),
+        ('stacker', FunctionTransformer(unpack_embeddings)),
         ('umap', UMAP(n_components=16, random_state=42))
     ])
 
-    # Definimos el preprocesador para añadirlo al pipeline final
     preprocessor = ColumnTransformer([
-    ('clip_umap', embedding_pipeline, ['v_clip'])
+        ('clip_umap', embedding_pipeline, ['v_clip']),
     ], remainder='passthrough')
 
-    # Obtenemos los pesos
+    X_train_transformed = preprocessor.fit_transform(X_train)
+    X_test_transformed = preprocessor.transform(X_test)
+
+    run = wandb.init(entity="pd1-c2526-team4",
+                project="Precios",
+                name=modelName,
+                job_type='xgboost'
+            )
+    
+    best_params = _optimize_params_xgboost(X_train_transformed, y_train)
     sample_weights = class_weights(y_train)
-
-    run = wandb.init(
-        entity="pd1-c2526-team4",
-        project="Precios", 
-        name= modelName,
-        job_type='xgboost'
+    
+    clf = xgb.XGBClassifier(
+        **best_params, 
+        objective='multi:softprob', 
+        num_class=len(le.categories_[0]), 
+        random_state=42
     )
+    clf.fit(X_train_transformed, y_train, sample_weight=sample_weights)
 
-    # Optimización de hiperparámetros
-    best_params = _optimize_params_xgboost(X_train, y_train)
-
-    # Pipeline del modelo
-    pipeline = Pipeline([
+    final_pipeline = Pipeline([
         ('preprocessor', preprocessor),
-        ('classifier', xgb.XGBClassifier(
-            **best_params, 
-            objective='multi:softprob', 
-            num_class=len(le.classes_), 
-            random_state=42
-        ))
+        ('classifier', clf)
     ])
 
-    pipeline.fit(X_train, y_train, classifier__sample_weight=sample_weights)
-
-    y_pred = pipeline.predict(X_test)
-    y_test_labels = le.inverse_transform(y_test)
-    y_pred_labels = le.inverse_transform(y_pred)
-    cm_path = 'models/precios/graficos/confusionMatrix/knn_reduced.png'
+    y_pred = clf.predict(X_test_transformed)
+    y_test_labels = le.inverse_transform(y_test.values.reshape(-1, 1)).flatten()
+    y_pred_labels = le.inverse_transform(y_pred.reshape(-1, 1)).flatten()
 
     metrics_dict = get_metrics(
         y_test_labels, y_pred_labels,
-        classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
-        img_path=cm_path, download_images=True
+        classes=le.categories_[0],
+        img_path='models/precios/graficos/confusionMatrix/knn_reduced.png',
+        download_images=True
     )
 
     os.makedirs(models_precios_path(), exist_ok=True)
-    write_to_file(pipeline, precios_xgboostumap_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
-    print(f"Modelo guardado en {precios_xgboostumap_file}")
-
+    write_to_file(final_pipeline, precios_xgboostumap_file, {"minio_write": False, "minio_read": False})
+    
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
@@ -239,8 +226,8 @@ def model_umap(df, modelName=None):
 def xgboost_base(minio):
     df = read_prices(minio)
     
-    df_clustered = df.copy()
-    catModel(df_clustered, modelName='Cat Clustered')
+    # df_clustered = df.copy()
+    # catModel(df_clustered, modelName='Cat Clustered')
     
     df_umap = df.copy()
     model_umap(df_umap, modelName='XGBoost Umap')

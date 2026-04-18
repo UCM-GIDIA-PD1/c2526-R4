@@ -18,7 +18,6 @@ import joblib
 
 from numpy import vstack
 from pandas import concat
-
 import matplotlib.pyplot as plt
 import wandb
 from src.utils.config import seed
@@ -64,7 +63,6 @@ def get_train_test(df):
     X = df.drop(columns=['price_range'])
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed, stratify=y)
     return X_train, X_test, y_train, y_test
-
 
 def train_val_test_split(X, y):
     """Divide los datos en conjuntos de entrenamiento (70%), validación (15%) y prueba (15%).
