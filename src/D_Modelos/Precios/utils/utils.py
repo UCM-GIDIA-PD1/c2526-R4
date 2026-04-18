@@ -118,28 +118,25 @@ def umap_embeddings(X_train, X_val, X_test, emb_col, n_components=16):
     
     return X_train, X_val, X_test
 
-def cluster_embedings(X_train, X_val, X_test, emb_col,  n_clusters=8): 
+def cluster_embedings(X_train, X_test, emb_col,  n_clusters=8): 
     """
     Dado un dataFrame y una columna donde se encuentran los embeddings, devuelve un array resultado del clustering de esos embeddings.
     """
     clip_matrix_train = vstack(X_train[emb_col].values)
-    clip_matrix_val   = vstack(X_val[emb_col].values)
+
     clip_matrix_test  = vstack(X_test[emb_col].values)
     
     kmeans = KMeans(n_clusters=n_clusters, random_state=seed)
     cluster_train = kmeans.fit_predict(clip_matrix_train)
-    cluster_val   = kmeans.predict(clip_matrix_val)
     cluster_test  = kmeans.predict(clip_matrix_test)
     
     X_train['cluster'] = cluster_train
-    X_val['cluster']   = cluster_val
     X_test['cluster']  = cluster_test
     
     X_train = X_train.drop(columns=[emb_col])
-    X_val   = X_val.drop(columns=[emb_col])
     X_test  = X_test.drop(columns=[emb_col])
 
-    return X_train, X_val, X_test
+    return X_train,  X_test
 
 def normalize_train_test(X_train, X_val, X_test, columnas_numericas):
     '''
