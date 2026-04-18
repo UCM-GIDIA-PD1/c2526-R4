@@ -112,7 +112,6 @@ def model_umap(df, modelName='XGBoost Umap'):
             )
     
     best_params = _optimize_params_xgboost(X_train_transformed, y_train)
-    sample_weights = class_weights(y_train)
     
     clf = xgb.XGBClassifier(
         **best_params, 
@@ -120,14 +119,16 @@ def model_umap(df, modelName='XGBoost Umap'):
         num_class=len(le.categories_[0]), 
         random_state=42
     )
-    clf.fit(X_train_transformed, y_train, sample_weight=sample_weights)
 
     final_pipeline = Pipeline([
         ('preprocessor', preprocessor),
         ('classifier', clf)
     ])
 
-    y_pred = clf.predict(X_test_transformed)
+    sample_weights = class_weights(y_train)
+    final_pipeline.fit(X_train, y_train, classifier__sample_weight=sample_weights)
+    y_pred = final_pipeline.predict(X_test)
+
     y_test_labels = le.inverse_transform(y_test.values.reshape(-1, 1)).flatten()
     y_pred_labels = le.inverse_transform(y_pred.reshape(-1, 1)).flatten()
 

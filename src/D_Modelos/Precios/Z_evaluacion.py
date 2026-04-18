@@ -5,17 +5,13 @@ from src.utils.config import precios_xgboostumap_file, precios_mlp_file, precios
 from src.utils.config import precios_catboostClustered_file, precios_logistic_regression_file
 from src.utils.files import read_file
 from logistic_regression import _preprocess
+from src.D_Modelos.Precios.utils.utils import cluster_embedings, get_train_test
+from src.D_Modelos.Precios.xgboost_model import unpack_embeddings # Para cuando se carge la función en XGBoost UMAP
 
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OrdinalEncoder
 import os
 import joblib
 from sklearn.model_selection import train_test_split
-from sklearn.decomposition import PCA
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler, PowerTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-
 import wandb
 
 import pandas as pd
@@ -23,15 +19,9 @@ from numpy import vstack
 from src.utils.config import seed
 
 def xgboostUmap(df, table, model_path= 'models/precios/xgboostumap.pkl'):
-    # Hacemos encoding de la variable objetivo ya que no acepta str XGBoost
-    le = LabelEncoder()
-    df['price_range'] = le.fit_transform(df['price_range'])
-
-    # División Train, Validation, Test
-    y = df['price_range']
-    X = df.drop(columns=['price_range'])
-    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
-    X_train, X_val, X_test = umap_embeddings(X_train, X_val, X_test, emb_col='v_clip')
+    le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
+    df['price_range'] = le.fit_transform(df[['price_range']])
+    X_train, X_test, y_train, y_test = get_train_test(df)
 
     if os.path.exists(model_path):
         model = joblib.load(model_path)
@@ -50,25 +40,10 @@ def xgboostUmap(df, table, model_path= 'models/precios/xgboostumap.pkl'):
          raise FileNotFoundError
 
 def knnModel(df, table, model_path= 'models/precios/knncompleteclusters.pkl'):
-    y = df['price_range']
-    X = df.drop(columns=['price_range'])
-    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
-    X_train, X_val, X_test = cluster_embedings(X_train, X_val, X_test, emb_col='v_clip')
-
-    le = LabelEncoder()
-    y_train = le.fit_transform(y_train)
-    y_val   = le.transform(y_val)
-    y_test  = le.transform(y_test)
-
-    columnas_categoricas = ['Action','Adventure', 'Casual', 'Early Access', 'Indie', 'RPG', 'Simulation',
-    'Strategy', 'Co-op', 'Custom Volume Controls', 'Family Sharing',
-    'Full controller support', 'Multi-player', 'Online Co-op', 'Online PvP',
-    'Partial Controller Support', 'Playable without Timed Input', 'PvP',
-    'Remote Play Together', 'Shared/Split Screen', 'Single-player',
-    'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards']
-
-    columnas_numericas = X_train.columns.difference(columnas_categoricas).tolist()
-    X_train, X_val, X_test = normalize_train_test(X_train, X_val, X_test, columnas_numericas)
+    le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
+    df['price_range'] = le.fit_transform(df[['price_range']])
+    X_train, X_test, y_train, y_test = get_train_test(df)
+    X_train, X_test = cluster_embedings(X_train, X_test, emb_col='v_clip')
 
     if os.path.exists(model_path):
         model = joblib.load(model_path)
@@ -183,8 +158,6 @@ def evaluate_models():
         0.2475054205575472,
         0.49749916638879627
     )
-    print('Subiendo modelo de Catboost')
-    catboostModel(df.copy(), table)
     print('Subiendo modelo XGBoost UMAP')
     xgboostUmap(df.copy(), table)
     print('Subiendo modelo KNN Complete Clusters')

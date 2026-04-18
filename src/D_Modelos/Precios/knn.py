@@ -97,7 +97,6 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
     preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
 
     X_train_transformed = preprocessor.fit_transform(X_train)
-    X_test_transformed = preprocessor.transform(X_test)
 
     run = wandb.init(entity="pd1-c2526-team4", project="Precios", name=modelName, job_type='knn')
 
@@ -110,9 +109,8 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
         ('preprocessor', preprocessor),
         ('classifier', clf)
     ])
-
-    y_pred = clf.predict(X_test_transformed)
-    
+    pipeline.fit(X_train, y_train)
+    y_pred = pipeline.predict(X_test)
     y_test_labels = le.inverse_transform(y_test.values.reshape(-1, 1)).flatten()
     y_pred_labels = le.inverse_transform(y_pred.reshape(-1, 1)).flatten()
     
