@@ -1,10 +1,10 @@
 from utils.utils import read_prices, train_val_test_split, get_metrics
 from utils.utils import normalize_train_test, cluster_embedings, umap_embeddings
-from mlp_precios import _preprocess_test
+from mlp import _preprocess_test
 from src.utils.config import precios_xgboostumap_file, precios_mlp_file, precios_knncompleteclusters_file
 from src.utils.config import precios_catboostClustered_file, precios_logistic_regression_file
 from src.utils.files import read_file
-from logistic_regression_train import _preprocess
+from logistic_regression import _preprocess
 
 from sklearn.preprocessing import LabelEncoder
 import os
@@ -186,7 +186,6 @@ def logisticRegModel(df, table, model_path='models/precios/logistic_regression_p
         metrics_dict['recall']
     )
     
-
 def evaluate_models():
     run = wandb.init(
         entity="pd1-c2526-team4",

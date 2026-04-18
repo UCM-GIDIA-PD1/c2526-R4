@@ -3,7 +3,7 @@ Dado precios.parquet crea un modelo de knn para predecir en que rango de precio 
 según sus características.
 """
 
-from src.D_Modelos.Precios.utils.utils import get_metrics, read_prices, train_val_test_split, normalize_train_test, cluster_embedings, get_train_test
+from src.D_Modelos.Precios.utils.utils import get_metrics, read_prices, cluster_embedings, get_train_test
 from src.utils.config import precios_knncompleteclusters_file, models_precios_path
 from src.utils.files import write_to_file
 
@@ -14,12 +14,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import cross_validate
 from sklearn.pipeline import Pipeline
 
-
 import wandb
 import os
-
-import pandas as pd
-from src.utils.config import seed
 
 def grid_search_knn_full(X_train,  y_train):
     """
@@ -27,9 +23,7 @@ def grid_search_knn_full(X_train,  y_train):
 
     Args:
         - X_train (pd.Dataframe):  Conjunto de entranamiento
-        - X_val (pd.Dataframe): Conjunto de entranamiento
         - y_train (pd.Dataframe): Variable objetivo del conjunto de entrenamiento
-        - y_val (pd.Dataframe): Variable objetivo del conjunto de validacion
 
     Returns:
         best_params (dict): Diccionario que contiene los parámetros (n_neighbors, weights, metric) del mejor modelo
@@ -63,6 +57,20 @@ def grid_search_knn_full(X_train,  y_train):
     return best_params
 
 def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
+    """Modelo de KNN para el problema de precios con el dataFrame completo + Clusters de imagenes.
+    
+    Se realizan las siguientes transformaciones al conjunto X:
+        - PowerTransformer Yeo-Johnson en columnas sesgadas
+        - StandardScaler en columnas normales
+        - MinMaxScaler en columnas que sigan un orden lógico
+
+    Se almacena el pipeline del modelo.
+
+    Args:
+        df (pd.DataFrame): Dataframe de entrada con los datos del modelo
+        minio (Dict): Diccionario que indica si se desea guardar el modelo en minio
+        modelName (str, optional): Nombre del modelo para subir a WnB. Defaults to 'K-NN Complete Clusters'.
+    """
     print(f'Creando modelo {modelName}...')
     df = df.dropna()
 
@@ -122,7 +130,6 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
     run.config.update(best_params)
     run.log(metrics_dict)
     run.finish()
-
 
 def knnprecios(minio):
     df = read_prices(minio)

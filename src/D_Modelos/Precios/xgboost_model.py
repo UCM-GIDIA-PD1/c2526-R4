@@ -11,31 +11,48 @@ Dependencias:
 
 from src.utils.config import precios_xgboostumap_file, precios_catboostClustered_file, models_precios_path
 from src.utils.files import write_to_file
-from src.D_Modelos.Precios.utils.utils import read_prices, train_val_test_split, class_weights, get_metrics,get_train_test
-from src.D_Modelos.Precios.utils.utils import normalize_train_test, pca_train_test, cluster_embedings, umap_embeddings
+from src.D_Modelos.Precios.utils.utils import read_prices, train_val_test_split, class_weights, get_metrics,get_train_test,  cluster_embedings
 
-from sklearn.preprocessing import OrdinalEncoder
-import xgboost as xgb
-from sklearn.metrics import f1_score
-import optuna
-import wandb
-from catboost import CatBoostClassifier
+from sklearn.preprocessing import OrdinalEncoder,FunctionTransformer
 from sklearn.metrics import f1_score
 from sklearn.model_selection import  cross_validate
-import os
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-import numpy as np
-from sklearn.preprocessing import FunctionTransformer
+
+from catboost import CatBoostClassifier
+import xgboost as xgb
 from umap import UMAP
+import optuna
+import wandb
+import os
 import pandas as pd
+import numpy as np
 
 def unpack_embeddings(X):
+    """Dada una lista de vectores o una columna de dataFrame realiza un vstack. Esta función es usada
+    para poder convertirla en objeto usan FunctionTransformer
+
+    Args:
+        X (pd.DataFrame | list): Columna de dataframe al que transformar, debe ser una lista los valores
+
+    Returns:
+        np.array: Array de valores resultante de vstack
+    """
     if isinstance(X, pd.DataFrame):
         return np.vstack(X.iloc[:, 0].values)
     return np.vstack(X[:, 0])
 
 def _optimize_params_xgboost(X_train, y_train):
+    """Dado el conjunto de valores de entrenamiento, realiza la optimización de hiperparámetros del XGBoost
+    usando Optuna,
+
+    Args:
+        X_train (pd.DataFrame): Conjunto de entrenamiento (Entrada)
+        y_train (_type_): Conjunto de entrenamiento (Target)
+
+    Returns: 
+        best_params (dict): Diccionario con los mejores parámetros del study de optuna
+    """
     def objective(trial):
         params = {
             'verbosity': 0,
@@ -164,6 +181,12 @@ def catModel(df, modelName='XGBoost Clustered'):
     run.finish()
 
 def model_umap(df, modelName=None):
+    """Modelo de XGBoost realizando un UMAP sobre la columna de embeddings de imagenes. Almacena el pipeline del modelo.
+
+    Args:
+        df (pd.DataFrame): Dataframe de entrada con los datos del modelo
+        modelName (str, optional): Nombre del modelo para subir a WnB. Defaults to None..
+    """
     print(f'Creando modelo {modelName}...')
     
     le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
