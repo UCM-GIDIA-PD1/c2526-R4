@@ -16,7 +16,7 @@ from src.D_Modelos.Precios.mlp import transform_mlp as transform_mlp_precios, pr
 from src.D_Modelos.Precios.logistic_regression import transform_logistic_regression as transform_logistic_regression_precios, predict_logistic_regression as predict_logistic_regression_precios
 
 from src.D_Modelos.Reviews.baseline import transform_baseline as transform_baseline_reviews, predict_baseline_mode as predict_baseline_mode_reviews
-#from src.D_Modelos.Reviews.logistic_regression import transform_logistic_regression as transform_logistic_regression_reviews, predict_logistic_regression as predict_logistic_regression_reviews
+from src.D_Modelos.Reviews.logistic_regression import transform_logistic_regression as transform_logistic_regression_reviews, predict_logistic_regression as predict_logistic_regression_reviews
 
 # POPULARIDAD
 models_popularidad = {
@@ -98,4 +98,9 @@ models_reviews = {
             "model_path": None,
             "prediction_function": predict_baseline_mode_reviews,
         },
+        "Logistic Regression": {
+            "transform_function": transform_logistic_regression_reviews,
+            "model_path": reviews_logistic_regression_optuna_file ,
+            "prediction_function": predict_logistic_regression_reviews,
+        }
 }
