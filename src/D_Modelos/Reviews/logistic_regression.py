@@ -22,10 +22,10 @@ from nltk.corpus import stopwords
 
 from tqdm import tqdm
 
-from utils.preprocesamiento import clean_text_stem, train_val_test_split
+from src.D_Modelos.Reviews.utils.preprocesamiento import clean_text_stem, train_val_test_split
 from src.utils.config import seed
 
-from utils.utils import get_metrics
+from src.D_Modelos.Reviews.utils.utils import get_metrics
 
 class_names = ["Negativo", "Positivo"]
 
