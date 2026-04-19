@@ -18,7 +18,6 @@ import joblib
 
 from numpy import vstack
 from pandas import concat
-
 import matplotlib.pyplot as plt
 import wandb
 from src.utils.config import seed
@@ -48,6 +47,22 @@ def read_prices_reduced(minio = {"minio_write": False, "minio_read": False}):
     df = read_file(filepath=reduced_prices, minio=minio)
     assert df is not None, 'Error archivo precios_reducido.parquet no encontrado'
     return df
+
+def get_train_test(df):
+    """Divide los datos en los conjuntos de entrenamiento (80%) y prueva (20%)
+    
+    Args:
+        X (pd.DataFrame): Matriz de características.
+        y (pd.Series): Vector de etiquetas.
+
+    Returns:
+        tuple: Una tupla conteniendo elementos en este orden:
+            X_train, X_test, y_train, y_test.
+    """ 
+    y = df['price_range']
+    X = df.drop(columns=['price_range'])
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed, stratify=y)
+    return X_train, X_test, y_train, y_test
 
 def train_val_test_split(X, y):
     """Divide los datos en conjuntos de entrenamiento (70%), validación (15%) y prueba (15%).
@@ -101,28 +116,25 @@ def umap_embeddings(X_train, X_val, X_test, emb_col, n_components=16):
     
     return X_train, X_val, X_test
 
-def cluster_embedings(X_train, X_val, X_test, emb_col,  n_clusters=8): 
+def cluster_embedings(X_train, X_test, emb_col,  n_clusters=8): 
     """
     Dado un dataFrame y una columna donde se encuentran los embeddings, devuelve un array resultado del clustering de esos embeddings.
     """
     clip_matrix_train = vstack(X_train[emb_col].values)
-    clip_matrix_val   = vstack(X_val[emb_col].values)
+
     clip_matrix_test  = vstack(X_test[emb_col].values)
     
     kmeans = KMeans(n_clusters=n_clusters, random_state=seed)
     cluster_train = kmeans.fit_predict(clip_matrix_train)
-    cluster_val   = kmeans.predict(clip_matrix_val)
     cluster_test  = kmeans.predict(clip_matrix_test)
     
     X_train['cluster'] = cluster_train
-    X_val['cluster']   = cluster_val
     X_test['cluster']  = cluster_test
     
     X_train = X_train.drop(columns=[emb_col])
-    X_val   = X_val.drop(columns=[emb_col])
     X_test  = X_test.drop(columns=[emb_col])
 
-    return X_train, X_val, X_test
+    return X_train,  X_test
 
 def normalize_train_test(X_train, X_val, X_test, columnas_numericas):
     '''
@@ -198,7 +210,7 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=Fal
     print(cm)
 
     wandb_matrix = None
-    if classes:
+    if classes is not None:
         fig, ax = plt.subplots(figsize=(10,6))
         disp = ConfusionMatrixDisplay.from_predictions(
             y_test, y_pred,

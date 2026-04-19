@@ -11,12 +11,40 @@ import nltk
 import wandb
 import os
 import json
-from utils.utils import get_metrics
+from src.D_Modelos.Reviews.utils.utils import get_metrics
 
 class_names = ["Negativo", "Positivo"]
 
 nltk.download('stopwords')
 tqdm.pandas(desc="Limpiando texto")
+
+
+def transform_naive_bayes_cv(df):
+    return df
+
+def predict_naive_bayes_cv(model_data, test_df, train_df):
+    X_test, _ = _preprocess(test_df)
+    y_pred = model_data.predict(X_test)
+    
+    return y_pred
+
+def _preprocess(df):
+    '''
+    Función que se encarga del preprocesado del texto.
+    
+    Args:
+        - df (pd.DataFrame) : DataFrame con el que se realizará el modelo.
+    Returns:
+        - X (pd.Series) : Contiene la columna de los comentarios tras las transformaciones realizadas (eliminación
+        de stopwords y aplicación de stemming).
+        
+        - y (pd.Series) : Contiene la variable respuesta que puede tomar 2 valores: 0 (negativo), 1 (positivo).
+    '''
+
+    y = df["is_positive"]
+    X = df["text"].apply(lambda x : clean_text_lemma(x))
+    
+    return X, y
 
 def preprocesar_texto(X_train, X_val, X_test):
     X_train = [clean_text_lemma(review) for review in tqdm(X_train, desc = "Preprocesando entrenamiento")]
@@ -197,8 +225,8 @@ def best_standard_params(score_grid, params_grid,score_optuna, params_optuna):
     return best_params
 
 
-def main():
-    df = read_reviews()
+def main(minio = {"minio_write": False, "minio_read": False}):
+    df = read_reviews(minio)
     reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
     labels = df["is_positive"].to_list()
 

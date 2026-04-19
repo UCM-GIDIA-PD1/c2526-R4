@@ -3,7 +3,6 @@ Dado resenyas.parquet crea un modelo de Regresión Logística para predecir
 si la review es positiva o negativa en base al texto de esta. Utiliza TF-IDF
 para la transformación de texto a vectores numéricos.
 """
-import pandas as pd
 import wandb
 import optuna
 import numpy as np
@@ -23,14 +22,24 @@ from nltk.corpus import stopwords
 
 from tqdm import tqdm
 
-from utils.preprocesamiento import clean_text_stem, train_val_test_split
+from src.D_Modelos.Reviews.utils.preprocesamiento import clean_text_stem, train_val_test_split
 from src.utils.config import seed
 
-from utils.utils import get_metrics
+from src.D_Modelos.Reviews.utils.utils import get_metrics
 
 class_names = ["Negativo", "Positivo"]
 
-def preprocess(df):
+def transform_logistic_regression(df):
+    return df
+
+def predict_logistic_regression(model_data, test_df, train_df):
+    X_test, _ = _preprocess(test_df)
+    
+    
+    y_pred = model_data.predict(X_test)
+    return y_pred
+
+def _preprocess(df):
     '''
     Función que se encarga del preprocesado del texto.
     
@@ -44,7 +53,7 @@ def preprocess(df):
     '''
 
     y = df["is_positive"]
-    X = df["text"].progress_apply(lambda x : clean_text_stem(x))
+    X = df["text"].apply(lambda x : clean_text_stem(x))
     
     return X, y
 
@@ -134,7 +143,7 @@ def best_model_optuna(best_params):
     
     return Pipeline([("tfidf", tfidf),("clf", clf)])
 
-def train_optuna():
+def train_optuna(minio):
     '''
     Función para el entrenamiento del modelo usando Optuna para la
     búsqueda de los mejores hiperparámetros.
@@ -180,7 +189,7 @@ def train_optuna():
     run.finish()
 
     os.makedirs(models_reviews_path(), exist_ok=True)
-    write_to_file(best_logistic_model, reviews_logistic_regression_optuna_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(best_logistic_model, reviews_logistic_regression_optuna_file, minio)
     print(f"Modelo guardado en {reviews_logistic_regression_optuna_file}")
     
     print(f"Valor de accuracy: {accuracy}")
@@ -189,7 +198,7 @@ def train_optuna():
     print(f"Valor de recall: {recall}")
     print(f"Valor de precision: {precision}")
     
-def train_gridsearch():
+def train_gridsearch(minio):
     '''
     Función para el entrenamiento del modelo usando GridSearchCV para la
     búsqueda de los mejores hiperparámetros.
@@ -258,7 +267,7 @@ def train_gridsearch():
     run.finish()
 
     os.makedirs(models_reviews_path(), exist_ok=True)
-    write_to_file(grid, reviews_logistic_regression_gridsearch_file, {"minio_write": False, "minio_read": False}) # CAMBIO MINIO
+    write_to_file(grid, reviews_logistic_regression_gridsearch_file, minio)
     print(f"Modelo guardado en {reviews_logistic_regression_gridsearch_file}")
     
     print(f"Valor de accuracy: {accuracy}")
@@ -268,13 +277,13 @@ def train_gridsearch():
     print(f"Valor de precision: {precision}")
     
 
-def main():
+def main(minio = {"minio_write": False, "minio_read": False}):
     tqdm.pandas(desc="Limpiando texto")
     print("Leyendo Datos")
-    df = read_file(reviews)
+    df = read_file(reviews, minio)
 
     print("Preprocesado de los datos")
-    X, y = preprocess(df)
+    X, y = _preprocess(df)
 
     global X_train, X_val, X_test, y_train, y_val, y_test
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
@@ -282,9 +291,9 @@ def main():
     use_optuna = True
 
     if use_optuna:
-        train_optuna()
+        train_optuna(minio)
     else:
-        train_gridsearch()
+        train_gridsearch(minio)
 
 if __name__ == "__main__":
     main()

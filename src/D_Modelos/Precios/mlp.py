@@ -3,7 +3,7 @@ Dado precios.parquet crea diferentes modelos de MLP para predecir en que rango
 de precio se sitúa un juego según sus características.
 """
 
-from utils.utils import get_metrics, read_prices, train_val_test_split
+from src.D_Modelos.Precios.utils.utils import get_metrics, read_prices, train_val_test_split
 from src.utils.config import precios_mlp_file, models_precios_path
 from src.utils.files import write_to_file
 
@@ -21,6 +21,36 @@ import wandb
 from pandas import DataFrame, concat
 from numpy import vstack
 from src.utils.config import seed
+import pandas as pd
+import numpy as np
+
+def transform_mlp(df):
+    return df.copy()
+
+def predict_mlp(model_data, test_df, train_df):
+    mlp_model = model_data["model"]
+    transformers_dict = model_data["transformers"]
+    
+    y = pd.Series(test_df['price_range'], name='price_range')
+    X = test_df.drop(columns=['price_range'])
+    
+    X_test_mlp, Y_test_mlp = _preprocess_test(X, y.to_frame(), transformers_dict)
+    X_test_mlp = X_test_mlp.reset_index(drop=True)
+    
+    clip_matrix_test = np.vstack(X_test_mlp['v_clip'].values)
+    umap = transformers_dict['umap']
+    clip_reduced_test = umap.transform(clip_matrix_test)
+    
+    for i in range(19):
+        X_test_mlp[f'clip_umap_{i}'] = clip_reduced_test[:, i]
+        
+    X_test_mlp = X_test_mlp.drop(columns=['v_clip'])
+    
+    y_pred_mlp = mlp_model.predict(X_test_mlp)
+
+    ohe = transformers_dict['ohe']
+    y_pred_labels = ohe.inverse_transform(y_pred_mlp.reshape(-1, 1)).flatten()
+    return y_pred_labels
 
 def _preprocess_train(df_X, df_y):
     """Función para transformar los datos para realiza MLP
@@ -32,14 +62,14 @@ def _preprocess_train(df_X, df_y):
         DataFrame: Datos que contienen las variables regresoras.
         DataFrame: Datos que contienen las variables respuesta.
     """
-    df_X = df_X.reset_index(drop=True)
+    df_X = df_X.fillna(0).reset_index(drop=True)
     df_y = df_y.reset_index(drop=True)
 
     # Separación de DataFrames en diferentes tipos de variables
-    X_num_log = df_X[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
+    X_num_log = df_X[['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers']]
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
-    X_trans = df_X.drop(columns=['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
+    X_trans = df_X.drop(columns=['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'description_len', 'release_year', 'brillo'])
 
     # Transformación de variables
     pt = PowerTransformer(method='yeo-johnson')
@@ -72,13 +102,13 @@ def _preprocess_train(df_X, df_y):
     return df3, df_y_trans, transformers
 
 def _preprocess_test(df_X, df_y, transformers):
-    df_X = df_X.reset_index(drop=True)
+    df_X = df_X.fillna(0).reset_index(drop=True)
     df_y = df_y.reset_index(drop=True)
 
-    X_num_log = df_X[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
+    X_num_log = df_X[['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers']]
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
-    X_trans = df_X.drop(columns=['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
+    X_trans = df_X.drop(columns=['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'description_len', 'release_year', 'brillo'])
 
     pt = transformers['pt']
     X_num_log_trans = pt.transform(X_num_log)

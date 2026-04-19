@@ -32,7 +32,7 @@ def _preprocess_train(df):
         DataFrame: Datos que contienen las variables regresoras.
         DataFrame: Datos que contienen las variables respuesta.
     """
-    df = df.reset_index(drop=True)
+    df = df.fillna(0).reset_index(drop=True)
     df = df.drop(columns=['id', 'name', 'v_resnet', 'v_convnext', 'yt_score'])
 
     # Separación de DataFrames en diferentes tipos de variables
@@ -93,12 +93,12 @@ def _preprocess_train(df):
     return df4, df_y_trans, transformers
 
 def _preprocess_test(df, transformers):
-    df = df.reset_index(drop=True)
-    df = df.drop(columns=['price_range', 'id', 'name', 'v_resnet', 'v_convnext', 'yt_score'])
+    df = df.fillna(0).reset_index(drop=True)
+    df = df.drop(columns=['id', 'name', 'v_resnet', 'v_convnext', 'yt_score'])
 
     # Separación de DataFrames
     y = DataFrame(df['recomendaciones_totales'])
-    X_num_log = df[['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'price_overview']]
+    X_num_log = df[['num_languages', 'num_juegos_previos_developers', 'num_juegos_previos_publishers', 'price_overview']]
     X_num_minmax = df[['release_year']]
     X_num_std = df[['brillo', 'description_len']]
     X_youtube = df[[c for c in df.columns if 'video_statistics' in c]]

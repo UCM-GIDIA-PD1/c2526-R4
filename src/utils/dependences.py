@@ -65,6 +65,19 @@ class ucm_vpn_dependence():
     @staticmethod
     def check(minio = None):
         return file_exists_minio("grupo.txt")
+    
+class wandb_dependence():
+    @staticmethod
+    def get_info():
+        return "Clave de W&B"
+    
+    @staticmethod
+    def check(minio = None):
+        API_KEY = environ.get("WANDB_API_KEY")
+        if API_KEY is None:
+            return False
+        else:
+            return True
 
 # ------------ DEPENDENCIAS DE FICHEROS ------------
 

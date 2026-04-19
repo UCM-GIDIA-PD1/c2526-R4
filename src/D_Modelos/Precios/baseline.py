@@ -6,11 +6,18 @@ realizar las predicciones.
 Las métricas se registran en Weights & Biases (wandb).
 """
 
-from utils.utils import get_metrics, read_prices, train_val_test_split
+from src.D_Modelos.Precios.utils.utils import get_metrics, read_prices, train_val_test_split
 
 import wandb
 
 from pandas import DataFrame, concat
+
+def transform_baseline(df):
+    return df.copy()
+
+def predict_baseline_mode(model_data, test_df, train_df):
+    mode = train_df["price_range"].value_counts().idxmax()
+    return [mode] * len(test_df)
 
 def create_price_mode_baseline():
     
