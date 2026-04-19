@@ -11,7 +11,7 @@ import nltk
 import wandb
 import os
 import json
-from utils.utils import get_metrics
+from src.D_Modelos.Reviews.utils.utils import get_metrics
 
 class_names = ["Negativo", "Positivo"]
 

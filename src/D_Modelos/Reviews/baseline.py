@@ -10,7 +10,7 @@ import wandb
 from src.utils.config import reviews, seed
 from src.utils.files import read_file
 from sklearn.model_selection import train_test_split
-from utils_modelo_reviews.utils import get_metrics
+from src.D_Modelos.Reviews.utils.utils import get_metrics
 
 class_names = ["Negativo", "Positivo"]
 
