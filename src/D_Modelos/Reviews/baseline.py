@@ -14,6 +14,16 @@ from src.D_Modelos.Reviews.utils.utils import get_metrics
 
 class_names = ["Negativo", "Positivo"]
 
+def transform_baseline(df):
+    return df
+
+def predict_baseline_mode(model_data, test_df, train_df):
+    mayority = train_df["is_positive"].value_counts().idxmax()
+
+    y_pred = [mayority] * len(test_df)
+    
+    return y_pred
+    
 def create_reviews_baseline(minio):
 
     run = wandb.init(
@@ -22,16 +32,15 @@ def create_reviews_baseline(minio):
         name="baseline_all_positive",
         job_type="baseline"
     )
-    
-    df = read_file(reviews, minio)
     y_column = "is_positive"
+    df = read_file(reviews, minio)
 
-    train_df, test_df = train_test_split(df, test_size=0.30, random_state=seed)
+    train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
 
     mayority = train_df[y_column].value_counts().idxmax()
-
     y_true = test_df[y_column]
     y_pred = [mayority] * len(y_true)
+    
 
     cm_path = 'models/reviews/graficos/confusionMatrix/baseline.png'
 

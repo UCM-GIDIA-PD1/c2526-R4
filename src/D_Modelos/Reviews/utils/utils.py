@@ -1,5 +1,5 @@
 from src.utils.files import write_to_file
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix 
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, balanced_accuracy_score
 from sklearn.metrics import ConfusionMatrixDisplay, classification_report
 
 import os
@@ -27,11 +27,13 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=Fal
             - 'f1': Puntuación F1 media ponderada.
     """
     acc = accuracy_score(y_test, y_pred)
+    bal_acc = balanced_accuracy_score(y_test, y_pred)
     prec = precision_score(y_test, y_pred, average='weighted')
     rec = recall_score(y_test, y_pred, average='weighted')
     f1 = f1_score(y_test, y_pred, average='weighted')
 
     print(f'Accuracy:  {acc}')
+    print(f'Balanced accuracy: {bal_acc}')
     print(f'Precision: {prec}')
     print(f'Recall:    {rec}')
     print(f'F1 Score:  {f1}')
@@ -59,7 +61,7 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=Fal
         else:
             plt.close()
 
-    return {'accuracy': acc, 'precision': prec, 'recall': rec, 'f1-score': f1, 
+    return {'accuracy': acc, 'precision': prec, 'recall': rec, 'f1-score': f1, 'balanced_accuracy':bal_acc,
             'confusion_matrix': wandb_matrix }
 
 def save_model(output_file, final_model):
