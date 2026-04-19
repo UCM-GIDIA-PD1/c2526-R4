@@ -41,8 +41,7 @@ def transform_logistic_regression(df):
     return df.copy()
 
 def predict_logistic_regression(model_data, test_df, train_df):
-    df_prepared = _preprocess(test_df.copy())
-    X_test = df_prepared.drop(columns=['price_range'])
+    X_test, _ = _preprocess(test_df.copy())
     
     y_pred = model_data.predict(X_test)
     y_pred_labels = pd.Series(y_pred, index=X_test.index).map(orden_inverso).values
@@ -141,7 +140,7 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params, minio):
         max_iter=1500, random_state=seed, class_weight='balanced'
     )
 
-    cols_sesgadas = ['num_languages', 'total_games_by_publisher', 'total_games_by_developer']
+    cols_sesgadas = ['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers']
     cols_normales = ['description_len', 'release_year', 'brillo']
     img_cols = [col for col in X_train.columns if col.startswith("v_clip_")]
     cols_binarias = [col for col in X_train.columns if col not in cols_sesgadas + cols_normales + img_cols]
@@ -200,7 +199,7 @@ def training_optuna(df):
         model = LogisticRegression(C=C, solver=solver, l1_ratio=l1_ratio, max_iter=1500, random_state=seed, class_weight='balanced')
         steps = []
         
-        cols_sesgadas = ['num_languages', 'total_games_by_publisher', 'total_games_by_developer']
+        cols_sesgadas = ['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers']
         cols_normales = ['description_len', 'release_year', 'brillo']
         img_cols = [c for c in X_t.columns if c.startswith(f'{image_col}_')] if use_images else []
         cols_binarias = [c for c in X_t.columns if c not in cols_sesgadas + cols_normales + img_cols]
@@ -269,7 +268,7 @@ def training_optuna(df):
                                         max_iter=3000, random_state=seed, class_weight='balanced')
                                         
         final_steps = []
-        cols_sesgadas = ['num_languages', 'total_games_by_publisher', 'total_games_by_developer']
+        cols_sesgadas = ['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers']
         cols_normales = ['description_len', 'release_year', 'brillo']
         img_cols = [col for col in X_train.columns if col.startswith(f"{c[0]}_")] if c[1] else []
         cols_binarias = [col for col in X_train.columns if col not in cols_sesgadas + cols_normales + img_cols]
@@ -340,7 +339,7 @@ def training_gridsearchcv(df):
         
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed, stratify=y)
 
-        cols_sesgadas = ['num_languages', 'total_games_by_publisher', 'total_games_by_developer']
+        cols_sesgadas = ['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers']
         cols_normales = ['description_len', 'release_year', 'brillo']
         img_cols = [col for col in X_train.columns if col.startswith(f"{c[0]}_")] if c[1] else []
         cols_binarias = [col for col in X_train.columns if col not in cols_sesgadas + cols_normales + img_cols]

@@ -35,6 +35,7 @@ def predict_mlp(model_data, test_df, train_df):
     X = test_df.drop(columns=['price_range'])
     
     X_test_mlp, Y_test_mlp = _preprocess_test(X, y.to_frame(), transformers_dict)
+    X_test_mlp = X_test_mlp.reset_index(drop=True)
     
     clip_matrix_test = np.vstack(X_test_mlp['v_clip'].values)
     umap = transformers_dict['umap']
@@ -61,14 +62,14 @@ def _preprocess_train(df_X, df_y):
         DataFrame: Datos que contienen las variables regresoras.
         DataFrame: Datos que contienen las variables respuesta.
     """
-    df_X = df_X.reset_index(drop=True)
+    df_X = df_X.fillna(0).reset_index(drop=True)
     df_y = df_y.reset_index(drop=True)
 
     # Separación de DataFrames en diferentes tipos de variables
-    X_num_log = df_X[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
+    X_num_log = df_X[['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers']]
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
-    X_trans = df_X.drop(columns=['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
+    X_trans = df_X.drop(columns=['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'description_len', 'release_year', 'brillo'])
 
     # Transformación de variables
     pt = PowerTransformer(method='yeo-johnson')
@@ -101,13 +102,13 @@ def _preprocess_train(df_X, df_y):
     return df3, df_y_trans, transformers
 
 def _preprocess_test(df_X, df_y, transformers):
-    df_X = df_X.reset_index(drop=True)
+    df_X = df_X.fillna(0).reset_index(drop=True)
     df_y = df_y.reset_index(drop=True)
 
-    X_num_log = df_X[['num_languages', 'total_games_by_publisher', 'total_games_by_developer']]
+    X_num_log = df_X[['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers']]
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
-    X_trans = df_X.drop(columns=['num_languages', 'total_games_by_publisher', 'total_games_by_developer', 'description_len', 'release_year', 'brillo'])
+    X_trans = df_X.drop(columns=['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'description_len', 'release_year', 'brillo'])
 
     pt = transformers['pt']
     X_num_log_trans = pt.transform(X_num_log)

@@ -3,10 +3,10 @@ from src.utils.config import popularidad_linear_regression_file, popularidad_lin
 from src.utils.config import precios_xgboostumap_file, precios_knncompleteclusters_file, precios_mlp_file, precios_logistic_regression_file
 
 from src.D_Modelos.Popularidad.baseline import transform_baseline, predict_baseline_median, predict_baseline_mean
-from src.D_Modelos.Popularidad.linear_regresion_log import transform_for_linear_regresion, predict_linear_regresion, predict_linear_regresion_log
-from src.D_Modelos.Popularidad.xgboost_popularidad import transform_for_xgboost, predict_xgboost, predict_xgboost_log
-from src.D_Modelos.Popularidad.mlp_popularidad import transform_mlp, predict_mlp
-from src.D_Modelos.Popularidad.knn_popularidad import transform_for_knn, predict_knn
+from src.D_Modelos.Popularidad.linear_regression import transform_for_linear_regresion, predict_linear_regresion, predict_linear_regresion_log
+from src.D_Modelos.Popularidad.xgboost import transform_for_xgboost, predict_xgboost, predict_xgboost_log
+from src.D_Modelos.Popularidad.mlp import transform_mlp, predict_mlp
+from src.D_Modelos.Popularidad.knn import transform_for_knn, predict_knn
 
 from src.D_Modelos.Precios.baseline import transform_baseline as transform_baseline_precios, predict_baseline_mode
 from src.D_Modelos.Precios.xgboost_model import transform_xgboost as transform_xgboost_precios, predict_xgboost as predict_xgboost_precios

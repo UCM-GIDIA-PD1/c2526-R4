@@ -210,7 +210,7 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=Fal
     print(cm)
 
     wandb_matrix = None
-    if classes:
+    if classes is not None:
         fig, ax = plt.subplots(figsize=(10,6))
         disp = ConfusionMatrixDisplay.from_predictions(
             y_test, y_pred,

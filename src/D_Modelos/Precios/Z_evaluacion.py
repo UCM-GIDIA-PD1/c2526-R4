@@ -8,6 +8,7 @@ from src.utils.config import seed
 from src.D_Modelos.Precios.utils.utils import read_prices, get_metrics
 from src.utils.files import read_file
 from src.D_Modelos.model_list import models_precios
+from src.D_Modelos.Precios.xgboost_model import unpack_embeddings
 
 def evaluate_models(minio):
     run = wandb.init(
