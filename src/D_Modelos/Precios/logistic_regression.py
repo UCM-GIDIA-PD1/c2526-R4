@@ -37,6 +37,17 @@ orden_precios = {
 orden_inverso = {v: k for k, v in orden_precios.items()}
 nombres_clases_ordenados = list(orden_precios.keys())
 
+def transform_logistic_regression(df):
+    return df.copy()
+
+def predict_logistic_regression(model_data, test_df, train_df):
+    df_prepared = _preprocess(test_df.copy())
+    X_test = df_prepared.drop(columns=['price_range'])
+    
+    y_pred = model_data.predict(X_test)
+    y_pred_labels = pd.Series(y_pred, index=X_test.index).map(orden_inverso).values
+    return y_pred_labels
+
 def _preprocess(df):
     """
     Función para limpiar y estructurar los datos para la Regresión Logística.

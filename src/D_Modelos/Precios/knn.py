@@ -17,6 +17,23 @@ from sklearn.pipeline import Pipeline
 import wandb
 import os
 
+def transform_knn(df):
+    return df.copy()
+
+def predict_knn(model_data, test_df, train_df):
+    from src.D_Modelos.Precios.utils.utils import cluster_embedings
+    X_train = train_df.drop(columns=['price_range'])
+    X_test = test_df.drop(columns=['price_range'])
+    
+    _, X_test_clustered = cluster_embedings(X_train, X_test, emb_col='v_clip')
+    
+    y_pred = model_data.predict(X_test_clustered)
+    
+    le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
+    le.fit([[c] for c in le.categories[0]])
+    y_pred_labels = le.inverse_transform(y_pred.reshape(-1, 1)).flatten()
+    return y_pred_labels
+
 def grid_search_knn_full(X_train,  y_train):
     """
     Optimización de hiperparámetros para K-NN usando los conjuntos de train y validation.

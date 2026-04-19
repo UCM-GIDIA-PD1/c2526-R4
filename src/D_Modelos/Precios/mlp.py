@@ -21,6 +21,35 @@ import wandb
 from pandas import DataFrame, concat
 from numpy import vstack
 from src.utils.config import seed
+import pandas as pd
+import numpy as np
+
+def transform_mlp(df):
+    return df.copy()
+
+def predict_mlp(model_data, test_df, train_df):
+    mlp_model = model_data["model"]
+    transformers_dict = model_data["transformers"]
+    
+    y = pd.Series(test_df['price_range'], name='price_range')
+    X = test_df.drop(columns=['price_range'])
+    
+    X_test_mlp, Y_test_mlp = _preprocess_test(X, y.to_frame(), transformers_dict)
+    
+    clip_matrix_test = np.vstack(X_test_mlp['v_clip'].values)
+    umap = transformers_dict['umap']
+    clip_reduced_test = umap.transform(clip_matrix_test)
+    
+    for i in range(19):
+        X_test_mlp[f'clip_umap_{i}'] = clip_reduced_test[:, i]
+        
+    X_test_mlp = X_test_mlp.drop(columns=['v_clip'])
+    
+    y_pred_mlp = mlp_model.predict(X_test_mlp)
+
+    ohe = transformers_dict['ohe']
+    y_pred_labels = ohe.inverse_transform(y_pred_mlp.reshape(-1, 1)).flatten()
+    return y_pred_labels
 
 def _preprocess_train(df_X, df_y):
     """Función para transformar los datos para realiza MLP

@@ -39,6 +39,18 @@ def unpack_embeddings(X):
         return np.vstack(X.iloc[:, 0].values)
     return np.vstack(X[:, 0])
 
+def transform_xgboost(df):
+    return df.copy()
+
+def predict_xgboost(model_data, test_df, train_df):
+    X_test = test_df.drop(columns=['price_range'])
+    y_pred = model_data.predict(X_test)
+    
+    le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
+    le.fit([[c] for c in le.categories[0]])
+    y_pred_labels = le.inverse_transform(y_pred.reshape(-1, 1)).flatten()
+    return y_pred_labels
+
 def _optimize_params_xgboost(X_train, y_train):
     """Dado el conjunto de valores de entrenamiento, realiza la optimización de hiperparámetros del XGBoost
     usando Optuna,
