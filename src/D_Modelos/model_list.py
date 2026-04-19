@@ -1,7 +1,7 @@
 from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, popularidad_mlp_file
 from src.utils.config import popularidad_linear_regression_file, popularidad_linear_regression_log_file, popularidad_knn_log_file
 from src.utils.config import precios_xgboostumap_file, precios_knncompleteclusters_file, precios_mlp_file, precios_logistic_regression_file
-from src.utils.config import reviews_logistic_regression_optuna_file
+from src.utils.config import reviews_logistic_regression_optuna_file, reviews_naive_bayes_cv_file, reviews_naive_bayes_tfidf_file
 
 from src.D_Modelos.Popularidad.baseline import transform_baseline, predict_baseline_median, predict_baseline_mean
 from src.D_Modelos.Popularidad.linear_regression import transform_for_linear_regresion, predict_linear_regresion, predict_linear_regresion_log
@@ -17,6 +17,8 @@ from src.D_Modelos.Precios.logistic_regression import transform_logistic_regress
 
 from src.D_Modelos.Reviews.baseline import transform_baseline as transform_baseline_reviews, predict_baseline_mode as predict_baseline_mode_reviews
 from src.D_Modelos.Reviews.logistic_regression import transform_logistic_regression as transform_logistic_regression_reviews, predict_logistic_regression as predict_logistic_regression_reviews
+from src.D_Modelos.Reviews.naive_bayes_CV import transform_naive_bayes_cv, predict_naive_bayes_cv
+from src.D_Modelos.Reviews.naive_bayes_TFIDF import transform_naive_bayes_tfidf, predict_naive_bayes_tfidf
 
 # POPULARIDAD
 models_popularidad = {
@@ -102,5 +104,16 @@ models_reviews = {
             "transform_function": transform_logistic_regression_reviews,
             "model_path": reviews_logistic_regression_optuna_file ,
             "prediction_function": predict_logistic_regression_reviews,
+        },
+        "Naive Bayes CV": {
+            "transform_function": transform_naive_bayes_cv,
+            "model_path":  reviews_naive_bayes_cv_file,
+            "prediction_function": predict_naive_bayes_cv,
+        },
+        "Naive Bayes TFIDF": {
+            "transform_function": transform_naive_bayes_tfidf,
+            "model_path":  reviews_naive_bayes_tfidf_file,
+            "prediction_function": predict_naive_bayes_tfidf,
         }
+        
 }

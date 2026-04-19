@@ -283,7 +283,7 @@ def main(minio = {"minio_write": False, "minio_read": False}):
     df = read_file(reviews, minio)
 
     print("Preprocesado de los datos")
-    X, y = preprocess(df)
+    X, y = _preprocess(df)
 
     global X_train, X_val, X_test, y_train, y_val, y_test
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
