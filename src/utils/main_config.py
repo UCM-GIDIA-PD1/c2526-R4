@@ -207,13 +207,6 @@ main_modelos_info = {
            "usar": False, 
            "dependences": [dep.reviews_dependence]
     },
-    "C2": {"fichero": "Reviews.logistic_regression_gridsearch", 
-           "salida": reviews_logistic_regression_gridsearch_file.name, 
-           "path": reviews_logistic_regression_gridsearch_file, 
-           "ejecutable": "main", 
-           "usar": False, 
-           "dependences": [dep.reviews_dependence]
-    },
     "C": {"fichero": "Reviews.Z_evaluacion", 
            "salida": None, 
            "path": None, 
