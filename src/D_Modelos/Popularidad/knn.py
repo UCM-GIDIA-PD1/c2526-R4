@@ -21,10 +21,9 @@ from src.utils.config import seed
 
 # HAY QUE PONER LAS VARIABLES QUE SALGAN EN XGBOOST
 VARIABLES_GANADORAS = [
-    'Free To Play', 'yt_score', 'Steam Trading Cards', 'price_overview', 
-    'Steam Cloud', 'num_languages', 'Steam Achievements', 'RPG', 
-    'Custom Volume Controls', 'Simulation', 'release_year', 'Co-op', 
-    'Multi-player', 'Shared/Split Screen', 'ema_reviews_developers'
+    'video_1_video_statistics.likeCount', 'video_0_video_statistics.likeCount', 'video_2_video_statistics.likeCount',
+    'ema_reviews_publishers', 'Steam Trading Cards', 'Steam Cloud', 'num_languages', 'video_2_video_statistics.commentCount',
+    'Steam Achievements', 'RPG', 'ema_reviews_developers'
 ]
 
 def transform_for_knn(df):

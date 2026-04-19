@@ -14,7 +14,7 @@ import warnings
 from src.utils.config import prices, load_env_file, seed
 from src.utils.files import read_file, write_to_file
 from src.utils.config import precios_logistic_regression_file, models_precios_path
-from utils.utils import get_metrics
+from src.D_Modelos.Precios.utils.utils import get_metrics
 
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate, GridSearchCV
 from sklearn.decomposition import PCA

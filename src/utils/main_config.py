@@ -106,14 +106,14 @@ main_transformacion_info = {
 }
 
 main_modelos_info = {
-    "A1": {"fichero": "Popularidad.xgboost", 
+    "A1": {"fichero": "Popularidad.xgboost_model", 
            "salida": popularidad_xgboost_file.name, 
            "path": popularidad_xgboost_file, 
            "ejecutable": "main1", 
            "usar": False, 
            "dependences": [dep.popularity_dependence]
     },
-    "A2": {"fichero": "Popularidad.xgboost", 
+    "A2": {"fichero": "Popularidad.xgboost_model", 
            "salida": popularidad_xgboost_log_file.name, 
            "path": popularidad_xgboost_log_file, 
            "ejecutable": "main2", 
@@ -157,7 +157,7 @@ main_modelos_info = {
     },
 
 
-    "B1": {"fichero": "Precios.xgboost", 
+    "B1": {"fichero": "Precios.xgboost_model", 
            "salida": precios_xgboostumap_file.name, 
            "path": precios_xgboostumap_file, 
            "ejecutable": "main", 
@@ -178,7 +178,7 @@ main_modelos_info = {
            "usar": False, 
            "dependences": [dep.prices_dependence]
     },
-    "B4": {"fichero": "Precios.xgboost", 
+    "B4": {"fichero": "Precios.xgboost_model", 
            "salida": precios_catboostClustered_file.name, 
            "path": precios_catboostClustered_file, 
            "ejecutable": "main", 
