@@ -14,7 +14,6 @@ models
 # Extensiones de archivos
 *.csv
 *.json
-*.jpg
 *.parquet
 *.json.gzip
 *.json.gz
@@ -24,6 +23,10 @@ models
 *.exe
 *.pkl
 *.png
+*.jpg
+!app/static/img/*.jpg
+!app/static/img/*.png
+
 
 # Archivos concretos
 test.py
