@@ -40,13 +40,13 @@ def draw_scripts_section(scripts_info, keys, title):
     for i in range(0, len(keys), 2):
         k1 = keys[i]
         m1 = f"[{settings['marked']}]" if scripts_info[k1]["usar"] else "[ ]"
-        t1 = f"{k1:<2}) {m1} {scripts_info[k1]['fichero']}"
+        t1 = f"{k1:<2}) {m1} {scripts_info[k1]['mensaje']}"
         
         t2 = ""
         if i + 1 < len(keys):
             k2 = keys[i+1]
             m2 = f"[{settings['marked']}]" if scripts_info[k2]["usar"] else "[ ]"
-            t2 = f"{k2:<2}) {m2} {scripts_info[k2]['fichero']}"
+            t2 = f"{k2:<2}) {m2} {scripts_info[k2]['mensaje']}"
             
         print(format_line_two_columns(t1, t2))
     show_footer()
@@ -104,15 +104,19 @@ def draw_files_section(scripts_info, keys, minio_info):
         show_separator()
         
         # Dependencias de Scripts
+        used = {}
         for k in sorted(seleccionados):
-            for dep in scripts_info[k]["dependences"]:
-                draw_dependency_line(k, dep, minio_info)
+            for d in scripts_info[k]["dependences"]:
+                used.setdefault(d, []).append(k)
         
         # Dependencia de MinIO
         if minio_activo:
-            draw_dependency_line("MinIO", minio_dependence, minio_info)
+            used.setdefault(minio_dependence, []).append("MinIO")
             if minio_dependence.check():
-                draw_dependency_line("MinIO", ucm_vpn_dependence, minio_info)
+                used.setdefault(ucm_vpn_dependence, []).append("MinIO")
+        
+        for d, ks in used.items():
+            draw_dependency_line(",".join(ks), d, minio_info)
         
     show_footer()
 
