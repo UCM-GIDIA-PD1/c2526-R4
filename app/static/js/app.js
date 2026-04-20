@@ -11,12 +11,7 @@ let currentGame = null;
 let currentPrediction = null;
 let charts = {};
 
-// ---- DOM Ready ----
-document.addEventListener('DOMContentLoaded', () => {
-    loadTrendingGames();
-    setupSearch();
-    setupNavigation();
-});
+
 
 
 // ============================================================
@@ -152,7 +147,7 @@ async function requestPrediction(type, appid) {
     const resultsArea = document.getElementById('prediction-results-area');
     resultsArea.style.display = 'block';
     resultsArea.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-    
+
     // Scroll suave hasta el área de resultados
     resultsArea.scrollIntoView({ behavior: 'smooth' });
 
@@ -492,4 +487,135 @@ function formatNumber(n) {
 
 function formatFeatureName(name) {
     return name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+
+// ============================================================
+// BACKGROUND ANIMATION — Floating figures
+// ============================================================
+function initBackground() {
+    const container = document.getElementById('bg-figures');
+    if (!container) return;
+
+    // ============================================================
+    // CONFIGURACIÓN DEL FONDO (MODIFICAR PARA AJUSTAR ESTÉTICA)
+    // ============================================================
+    const CONFIG = {
+        IMG_SRC: '/static/img/figura.png',
+        NUM_COLUMNS: 14,            // Aumentar para que haya más cadenas y se superpongan juntas
+        COL_WIDTH: 400,             // Ancho base de cada columna en px (hacer más anchas para que ocupen toda la pantalla y solapen)
+        OVERLAP_OFFSET: -14,         // Dejar que se salgan un poco por los bordes laterales (-5%)
+        OVERLAP_END: 200,           // Fin del area donde se distribuyen (105%)
+        SCALE_MIN: 1.0,             // Escala mínima (deben ser grandes para overlap perfecto)
+        SCALE_MAX: 1.5,             // Escala máxima
+        OPACITY_MIN: 0.22,          // Visibilidad mínima
+        OPACITY_MAX: 0.3,          // Visibilidad máxima
+        DUR_MIN: 40,                // Tiempo mínimo en dar una vuelta completa (vertical)
+        DUR_MAX: 70,                // Tiempo máximo en dar una vuelta completa (vertical)
+        SWAY_MAX_PX: 50,            // Cantidad máxima de píxeles que oscila lateralmente cada cadena (eje X)
+        SWAY_DUR_MIN: 8,            // Tiempo mínimo de un bamboleo (ida y vuelta)
+        SWAY_DUR_MAX: 15,           // Tiempo máximo de un bamboleo
+        BLUR_PX: 2,                 // Suavizado (desenfoque) definido en styles.css pero controlable conceptualmente
+    };
+    // ============================================================
+
+    const range = CONFIG.OVERLAP_END - CONFIG.OVERLAP_OFFSET;
+
+    for (let i = 0; i < CONFIG.NUM_COLUMNS; i++) {
+        const col = document.createElement('div');
+        col.className = 'bg-chain-col';
+
+        // Ancho forzado desde config
+        col.style.width = `${CONFIG.COL_WIDTH}px`;
+
+        // Intercalar dirección
+        const goesUp = (i % 2 === 0);
+        col.classList.add(goesUp ? 'up' : 'down');
+
+        // Posición horizontal (calculada para abarcar de Offset a End uniformemente)
+        const leftPct = CONFIG.OVERLAP_OFFSET + (i / (CONFIG.NUM_COLUMNS - 1)) * range;
+        col.style.left = `${leftPct}%`;
+
+        // Tamaño aleatorio y opacidad variable en base a la config
+        const scale = CONFIG.SCALE_MIN + Math.random() * (CONFIG.SCALE_MAX - CONFIG.SCALE_MIN);
+        col.style.transform = `scale(${scale})`;
+        col.style.opacity = (CONFIG.OPACITY_MIN + Math.random() * (CONFIG.OPACITY_MAX - CONFIG.OPACITY_MIN)).toString();
+
+        // Envoltorio para balanceo (sway en el eje X)
+        const sway = document.createElement('div');
+        sway.className = 'bg-chain-sway';
+        const swayAmount = Math.random() * CONFIG.SWAY_MAX_PX;
+        const swayDur = CONFIG.SWAY_DUR_MIN + Math.random() * (CONFIG.SWAY_DUR_MAX - CONFIG.SWAY_DUR_MIN);
+        sway.style.setProperty('--sway-amount', swayAmount);
+        sway.style.setProperty('--sway-dur', `${swayDur}s`);
+        sway.style.animationDelay = `-${Math.random() * swayDur}s`; // Para que no vayan todas a la vez
+
+        // Pista que contiene las imágenes para el bucle infinito (movimiento Y)
+        const track = document.createElement('div');
+        track.className = 'bg-chain-track';
+
+        // Duración Vertical
+        const durY = CONFIG.DUR_MIN + Math.random() * (CONFIG.DUR_MAX - CONFIG.DUR_MIN);
+        track.style.animationDuration = `${durY}s`;
+
+        // Pequeño retraso para que las columnas vecinas no vayan Y-sincronizadas
+        const delayY = -(Math.random() * durY);
+        track.style.animationDelay = `${delayY}s`;
+
+        // Añadimos 3 copias para cubrir el alto siempre (1 imagen de buffer, 2 expuestas)
+        for (let j = 0; j < 3; j++) {
+            const img = document.createElement('img');
+            img.src = CONFIG.IMG_SRC;
+            img.className = 'bg-chain-img';
+            img.alt = '';
+            img.draggable = false;
+            track.appendChild(img);
+        }
+
+        sway.appendChild(track);
+        col.appendChild(sway);
+        container.appendChild(col);
+    }
+}
+
+// Arrancar el fondo al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+    loadTrendingGames();
+    setupSearch();
+    setupNavigation();
+    initBackground();
+    initNoise();
+});
+
+
+// ============================================================
+// NOISE GRAIN — ruido continuo 0-255, overlay baja opacidad = grano de película
+// ============================================================
+function initNoise() {
+    const el = document.getElementById('bg-noise');
+    if (!el) return;
+
+    const SIZE = 150;
+    const c = document.createElement('canvas');
+    c.width = SIZE;
+    c.height = SIZE;
+
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(SIZE, SIZE);
+    const data = img.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+        // Ruido continuo uniforme: todos los píxeles aleatorizados 0-255.
+        // Con mix-blend-mode:overlay a baja opacidad:
+        //   grises ~128 = sin efecto; más claros = aclaran; más oscuros = oscurecen
+        // Resultado: micro-variaciones de brillo = grano cinematográfico sutil
+        const v = Math.floor(Math.random() * 256);
+        data[i] = v;
+        data[i + 1] = v;
+        data[i + 2] = v;
+        data[i + 3] = 255;
+    }
+
+    ctx.putImageData(img, 0, 0);
+    el.style.backgroundImage = `url('${c.toDataURL()}')`;
 }
