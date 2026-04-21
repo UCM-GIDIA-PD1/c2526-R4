@@ -4,226 +4,198 @@ Aplica transformaciones a los datos, optimización de hiperparámetros
 con Optuna y registro de métricas con Weights & Biases (wandb).
 """
 
+import os
+import numpy as np
+import pandas as pd
+import xgboost as xgb
+import wandb
+import optuna
+
 from src.utils.config import popularity, seed
 from src.utils.files import read_file, write_to_file
 from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, models_popularidad_path
+from src.utils.config import popularidad_xgboost_nomulti_file, popularidad_xgboost_log_nomulti_file
+from src.D_Modelos.Popularidad.utils import clean_df, create_stratified_bins
 
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error
-import optuna
-import wandb
-import xgboost as xgb
-import umap
-import os
+from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score
+from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import FunctionTransformer
 
-import numpy as np
-import pandas as pd
 
-def transform_for_xgboost(df):
+def transform_xgboost(df):
+    """Transforma los datos usando la configuración por defecto para XGBoost."""
+    # Por defecto usamos avoid_multicol=True para la evaluación final
+    return clean_df(df, avoid_multicol=True)
+
+def predict_xgboost(model_data, test_df, train_df=None):
+    """Realiza la predicción consumiendo el diccionario extraído del .pkl"""
+    modelo_final = model_data["model"]
+    X_test = test_df.drop(columns=["recomendaciones_totales"], errors='ignore')
+    preds = np.maximum(modelo_final.predict(X_test), 0)
+    return preds
+
+def get_clip_matrix(X):
+    # Transforma la serie de listas/arrays en una matriz 2D.
+    return np.vstack(X.iloc[:, 0].values)
+
+def build_standard_estimator(preprocessor, reg_params, use_log):
     """
-    Realiza las transformaciones necesarias en el DataFrame para poder entrenar el modelo XGBoost.
-    Elimina columnas innecesarias, aplica PCA a los embeddings de CLIP y transforma tipos de datos.
-
-    Args:
-        df (pd.DataFrame): DataFrame con los datos originales.
-    
-    Returns:
-        pd.DataFrame: DataFrame limpio y numérico, listo para el entrenamiento.
+    Construye y devuelve un estimador estándar de XGBoost
+    insertado en un pipeline con sus transformadores.
     """
-    df_clean = df.copy()
-    
-    # Eliminamos columnas que no aportan información al modelo
-    errase_columns = ['id', 'name', 'v_resnet', 'v_convnext']
-    df_clean = df_clean.drop(columns=[col for col in errase_columns if col in df_clean.columns])
+    params = reg_params.copy()
+    if not use_log:
+        params['objective'] = 'reg:tweedie'
+        params.setdefault('tweedie_variance_power', 1.5)
 
-    # Rellenamos los arrays vacíos o nulos en v_clip con ceros
-    zero_vector = np.zeros(512)
-    df_clean['v_clip'] = df_clean['v_clip'].apply(
-        lambda x: x if isinstance(x, (list, np.ndarray)) else zero_vector
-    )
-    
-    # Extraemos la matriz de características y aplicamos UMAP para reducir la dimensionalidad
-    clip_matrix = np.vstack(df_clean['v_clip'].values)
+    reg_base = Pipeline([
+        ('prep', preprocessor), 
+        ('xgb_reg', xgb.XGBRegressor(**params))
+    ])
 
-    reducer = umap.UMAP(n_components=10, random_state=seed) 
-    clip_reduced = reducer.fit_transform(clip_matrix)
-    
-    for i in range(10):
-        df_clean[f'clip_pca_{i}'] = clip_reduced[:, i] # Aunque pone PCA estoy probando con UMAP que es otra técnica
-    
-    df_clean = df_clean.drop(columns=['v_clip'])
+    if use_log:
+        return TransformedTargetRegressor(regressor=reg_base, func=np.log1p, inverse_func=np.expm1)
+    return reg_base
 
-    # Convertimos todo a numérico
-    obj_cols = df_clean.select_dtypes(include=['object']).columns
-    for col in obj_cols:
-        df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
-
-    df_clean = df_clean.select_dtypes(include=[np.number])
-    df_clean = df_clean.fillna(0)
-
-    return df_clean
-
-def predict_xgboost(model_data, test_df, train_df):
-    xgb_vars = [c for c in train_df.columns if c != 'recomendaciones_totales']
-    X_test_xgb = test_df[xgb_vars]
-    y_pred_raw = model_data.predict(X_test_xgb)
-    return y_pred_raw
-
-def predict_xgboost_log(model_data, test_df, train_df):
-    xgb_vars = [c for c in train_df.columns if c != 'recomendaciones_totales']
-    X_test_xgb = test_df[xgb_vars]
-    y_pred_raw = model_data.predict(X_test_xgb)
-    y_pred_raw = np.maximum(y_pred_raw, 0)
-    return np.expm1(y_pred_raw)
-
-def _get_best_xgboost_params(X_train_full, y_train_target_full, use_log):
+def get_best_hyperparameters(X_train, y_train, y_binned_train, preprocessor, use_log):
     """
-    Busca los mejores hiperparámetros para el modelo XGBoost utilizando Optuna.
-
-    Args:
-        X_train_full (pd.DataFrame): Variables predictoras de entrenamiento.
-        y_train_target_full (pd.Series o np.ndarray): Variable objetivo de entrenamiento.
-        use_log (bool): Indica si la variable objetivo está en escala logarítmica.
-    
-    Returns:
-        dict: Diccionario con los mejores parámetros encontrados.
+    Ejecuta un estudio de Optuna para encontrar los mejores hiperparámetros 
+    minimizando el RMSE.
     """
-    # Dividimos internamente en conjunto de entrenamiento y validación para Optuna
-    X_train_opt, X_val_opt, y_train_opt, y_val_opt = train_test_split(
-        X_train_full, y_train_target_full, test_size=0.20, random_state=seed
-    )
-
     def objective(trial):
         param = {
             'n_estimators': trial.suggest_int('n_estimators', 50, 300),
             'max_depth': trial.suggest_int('max_depth', 3, 10),
             'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
             'subsample': trial.suggest_float('subsample', 0.6, 1.0),
-            'random_state': 42,
+            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
+            'random_state': seed,
             'n_jobs': -1
         }
+        
+        if not use_log:
+            param['tweedie_variance_power'] = trial.suggest_float('tweedie_variance_power', 1.1, 1.9)
 
-        model = xgb.XGBRegressor(**param)
-        model.fit(X_train_opt, y_train_opt)
+        model = build_standard_estimator(preprocessor, param, use_log)
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+        cv_splits = list(cv.split(X_train, y_binned_train))
+        
+        cv_results = cross_validate(
+            model, X_train, y_train, 
+            scoring='neg_root_mean_squared_error', 
+            cv=cv_splits, n_jobs=1
+        )
+        
+        return -cv_results['test_score'].mean()
 
-        y_pred_raw = model.predict(X_val_opt)
-
-        if use_log:
-            y_pred_raw = np.maximum(y_pred_raw, 0)
-            y_pred = np.expm1(y_pred_raw)
-            y_val_real = np.expm1(y_val_opt)
-        else:
-            y_pred = np.maximum(y_pred_raw, 0)
-            y_val_real = y_val_opt
-
-        mae = mean_absolute_error(y_val_real, y_pred)
-
-        wandb.log({
-            "optuna_trial": trial.number,
-            "test_mae": mae,
-            "learning_rate": param['learning_rate'],
-            "max_depth": param['max_depth']
-        })
-
-        return mae
-    
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
     study = optuna.create_study(direction="minimize")
-    study.optimize(objective, n_trials=35)
-    
+    study.optimize(objective, n_trials=30) 
     return study.best_params
 
-def _train_xgboost(train_df, test_df, y_variable, minio, use_log=False):
-    """
-    Realiza el ciclo completo de entrenamiento y evaluación del modelo XGBoost:
-    obtención de mejores parámetros, ajuste del modelo final e inferencia sobre el conjunto de test.
 
-    Args:
-        train_df (pd.DataFrame): DataFrame de entrenamiento.
-        test_df (pd.DataFrame): DataFrame de test.
-        y_variable (str): Nombre de la variable objetivo.
-        use_log (bool): Si es True, aplica logaritmo a la variable objetivo antes de entrenar.
-
-    Returns:
-        tuple: (mae, r2, importances)
-               - mae (float): Error Absoluto Medio.
-               - r2 (float): Coeficiente de determinación R^2.
-               - importances (list): Lista de tuplas (variable, importancia) ordenada de mayor a menor.
+def run_experiment(df_raw, config, minio, hyperparameters=None):
     """
-    variables = [c for c in train_df.columns if c != y_variable]
+    Ejecuta el pipeline completo y registra los resultados en Weights & Biases.
+    """
+    avoid_multicol = config.get("avoid_multicol", True)
+    use_log = config.get("use_log", True)
+
+    multicol_suffix = "no_multicol" if avoid_multicol else "with_multicol"
+    log_suffix = "log" if use_log else "raw"
+    run_name = f"xgboost-{multicol_suffix}-{log_suffix}"
     
-    X_train_full = train_df[variables]
-
-    if use_log:
-        y_train_target_full = np.log1p(train_df[y_variable])
+    if avoid_multicol:
+        model_path = popularidad_xgboost_log_nomulti_file if use_log else popularidad_xgboost_nomulti_file
     else:
-        y_train_target_full = train_df[y_variable]
+        model_path = popularidad_xgboost_log_file if use_log else popularidad_xgboost_file
 
-    # Búsqueda de los mejores hiperparámetros
-    best_params = _get_best_xgboost_params(X_train_full, y_train_target_full, use_log)
-    best_params['random_state'] = 42
-    best_params['n_jobs'] = -1
-    
-    # Entrenamiento del modelo final
-    final_model = xgb.XGBRegressor(**best_params)
-    final_model.fit(X_train_full, y_train_target_full)
-
-    os.makedirs(models_popularidad_path(), exist_ok=True)
-    model_name = popularidad_xgboost_log_file if use_log else popularidad_xgboost_file
-    write_to_file(final_model, model_name, minio) # CAMBIO MINIO
-    print(f"Modelo guardado en {model_name}")
-
-    df_importances = pd.DataFrame({
-        'Variable': variables,
-        'Importancia': final_model.feature_importances_
-    })
-
-    df_importances = df_importances.sort_values(by='Importancia', ascending=False)
-    importances = df_importances.values.tolist()
-    
-    return importances
-
-def create_xgboost_model_popularity(use_log, minio):
-    """
-    Función principal que orquesta el entrenamiento del modelo XGBoost para la predicción de popularidad.
-    Se encarga de inicializar wandb, leer los datos, procesarlos, dividirlos en train/test, 
-    entrenar el modelo y mostrar los resultados.
-
-    Args:
-        use_log (bool): Si es True, predice sobre el logaritmo de las recomendaciones totales.
-
-    Returns:
-        None
-    """
-    run_name = "xgboost-log" if use_log else "xgboost-normal"
-    
     run = wandb.init(
-        entity="pd1-c2526-team4",
-        project="Popularidad",
+        entity="pd1-c2526-team4", 
+        project="Popularidad", 
         name=run_name,
-        job_type="model-training"
+        job_type="model-training",
+        config=config
     )
 
-    df = read_file(popularity, minio)
-    y_variable = "recomendaciones_totales"
+    print(f"Iniciando experimento: {run_name} ---")
     
-    df = transform_for_xgboost(df)
-
-    train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
-
-    importances = _train_xgboost(train_df, test_df, y_variable, minio, use_log)
-
-    print("10 variables más importantes:")
-    for var_name, var_importance in importances[:10]:
-        print(f"- {var_name}: {var_importance:.4f}")
-
-    run.finish()
-
-def main1(minio = {"minio_write": False, "minio_read": False}):
-    create_xgboost_model_popularity(False, minio)
+    df_prep = clean_df(df_raw, avoid_multicol)
+    X = df_prep.drop(columns=["recomendaciones_totales"])
+    y = df_prep["recomendaciones_totales"]
     
-def main2(minio = {"minio_write": False, "minio_read": False}):
-    create_xgboost_model_popularity(True, minio)
+    y_binned = create_stratified_bins(y, n_bins=5, random_state=seed)
+    X_train, X_test, y_train, y_test, y_binned_train, _ = train_test_split(
+        X, y, y_binned, test_size=0.2, stratify=y_binned, random_state=seed
+    )
+    
+    numeric_columns = [col for col in X.columns if col != 'v_clip']
+    clip_pipe = Pipeline([
+        ('extractor', FunctionTransformer(get_clip_matrix, validate=False)),
+        ('pca', PCA(n_components=10, random_state=seed))
+    ])
+    preprocessor = ColumnTransformer(transformers=[
+        ('clip_pca', clip_pipe, ['v_clip']),
+        ('numeric', 'passthrough', numeric_columns)
+    ], remainder='drop')
+
+    model_data = None
+    try:
+        model_data = read_file(model_path, minio)
+    except Exception:
+        model_data = None
+    
+    if model_data is not None:
+        print(f"Cargando modelo existente de {model_path}...")
+        modelo_final = model_data["model"]
+        best_params = model_data.get("hyperparameters", {})
+    else:
+        print("No se encontró pkl. Iniciando entrenamiento...")
+        if hyperparameters:
+            best_params = hyperparameters.copy()
+        else:
+            best_params = get_best_hyperparameters(X_train, y_train, y_binned_train, preprocessor, use_log)
+
+        best_params.update({'random_state': seed, 'n_jobs': -1})
+
+        modelo_final = build_standard_estimator(preprocessor, best_params, use_log)
+        modelo_final.fit(X_train, y_train)
+
+        # Guardado del diccionario completo para futuras ejecuciones
+        os.makedirs(models_popularidad_path(), exist_ok=True)
+        write_to_file({"model": modelo_final, "hyperparameters": best_params}, model_path, minio)
+        print(f"Modelo guardado exitosamente en {model_path}")
+
+    wandb.config.update({"params": best_params})
+    preds = np.maximum(modelo_final.predict(X_test), 0)
+    
+    mae = mean_absolute_error(y_test, preds)
+    rmse = root_mean_squared_error(y_test, preds)
+    r2 = r2_score(y_test, preds)
+    
+    print(f"Resultados: MAE: {mae:.4f} | RMSE: {rmse:.4f} | R2: {r2:.4f}")
+
+    wandb.log({
+        "test_mae": mae, 
+        "test_rmse": rmse,
+        "test_r2": r2
+    })
+    
+    run.finish() # Cierre estándar de WandB
+
+
+def main(minio={"minio_write": False, "minio_read": False}):
+    df_raw = read_file(popularity, minio)
+    
+    my_config = {
+        "avoid_multicol": True,
+        "use_log": True
+    }
+    
+    run_experiment(df_raw, config=my_config, minio=minio)
 
 if __name__ == "__main__":
-    main1()
-    main2()
+    main()

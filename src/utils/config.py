@@ -220,6 +220,8 @@ reduced_prices = processed_data_path() / "precios_reducido.parquet"
 # Popularidad
 popularidad_xgboost_file = models_popularidad_path() / "xgboost_model.pkl"
 popularidad_xgboost_log_file = models_popularidad_path() / "xgboost_model_log.pkl"
+popularidad_xgboost_nomulti_file = models_popularidad_path() / "xgboost_model_nomulti.pkl"
+popularidad_xgboost_log_nomulti_file = models_popularidad_path() / "xgboost_model_log_nomulti.pkl"
 popularidad_mlp_file = models_popularidad_path() / "mlp_model_popularidad.pkl"
 popularidad_linear_regression_file = models_popularidad_path() / "linear_regression_model.pkl"
 popularidad_linear_regression_log_file = models_popularidad_path() / "linear_regression_model_log.pkl"
