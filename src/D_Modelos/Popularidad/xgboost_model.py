@@ -17,13 +17,15 @@ from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_f
 from src.utils.config import popularidad_xgboost_nomulti_file, popularidad_xgboost_log_nomulti_file
 from src.D_Modelos.Popularidad.utils import clean_df, create_stratified_bins
 
-from sklearn.decomposition import PCA
+from umap import UMAP
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
 
+import warnings
+warnings.filterwarnings('ignore')
 
 def transform_xgboost(df):
     """Transforma los datos usando la configuración por defecto para XGBoost."""
@@ -135,7 +137,7 @@ def run_experiment(df_raw, config, minio, hyperparameters=None):
     numeric_columns = [col for col in X.columns if col != 'v_clip']
     clip_pipe = Pipeline([
         ('extractor', FunctionTransformer(get_clip_matrix, validate=False)),
-        ('pca', PCA(n_components=10, random_state=seed))
+        ('pca', UMAP(n_components=10, random_state=seed))
     ])
     preprocessor = ColumnTransformer(transformers=[
         ('clip_pca', clip_pipe, ['v_clip']),
@@ -164,7 +166,6 @@ def run_experiment(df_raw, config, minio, hyperparameters=None):
         modelo_final = build_standard_estimator(preprocessor, best_params, use_log)
         modelo_final.fit(X_train, y_train)
 
-        # Guardado del diccionario completo para futuras ejecuciones
         os.makedirs(models_popularidad_path(), exist_ok=True)
         write_to_file({"model": modelo_final, "hyperparameters": best_params}, model_path, minio)
         print(f"Modelo guardado exitosamente en {model_path}")
@@ -184,7 +185,16 @@ def run_experiment(df_raw, config, minio, hyperparameters=None):
         "test_r2": r2
     })
     
-    run.finish() # Cierre estándar de WandB
+    run.finish()
+    
+    pipeline_real = modelo_final.regressor_ if use_log else modelo_final
+    importancias = pipeline_real.named_steps['xgb_reg'].feature_importances_
+    nombres = [f"clip_umap_{i}" for i in range(10)] + numeric_columns
+    
+    lista_importancias = sorted(zip(nombres, importancias), key=lambda x: x[1], reverse=True)
+    
+    print("\nTop 20 variables:")
+    print(lista_importancias[:20])
 
 
 def main(minio={"minio_write": False, "minio_read": False}):

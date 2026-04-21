@@ -20,11 +20,10 @@ from src.utils.config import popularidad_knn_log_file, models_popularidad_path
 from src.utils.config import seed
 
 # HAY QUE PONER LAS VARIABLES QUE SALGAN EN XGBOOST
-VARIABLES_GANADORAS = [
-    'video_1_video_statistics.likeCount', 'video_0_video_statistics.likeCount', 'video_2_video_statistics.likeCount',
-    'ema_reviews_publishers', 'Steam Trading Cards', 'Steam Cloud', 'num_languages', 'video_2_video_statistics.commentCount',
-    'Steam Achievements', 'RPG', 'ema_reviews_developers'
-]
+VARIABLES_GANADORAS = ['commentCountTotal', 'Family Sharing', 'Steam Cloud', 'ema_reviews_publishers', 'Free To Play', 
+ 'Steam Trading Cards', 'num_languages', 'price_overview', 'Steam Achievements', 'Online Co-op', 
+ 'yt_score', 'Simulation', 'RPG', 'release_year', 'Shared/Split Screen', 'Playable without Timed Input', 
+ 'Remote Play Together', 'clip_umap_3', 'clip_umap_0', 'Casual']
 
 def transform_for_knn(df):
     """
