@@ -1,0 +1,1023 @@
+/* ============================================================
+   SteamPredictor — Premium Dark Theme
+   ============================================================ */
+
+/* --- Google Fonts --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+/* --- CSS Variables --- */
+:root {
+    --bg-primary: #002355;
+    --bg-secondary: #062d6b;
+    --bg-card: rgba(0, 24, 65, 0.65);
+    --bg-card-hover: rgba(5, 35, 85, 0.80);
+    --bg-glass: rgba(0, 20, 60, 0.60);
+    --border-glass: rgba(100, 190, 240, 0.18);
+    --border-glow: rgba(19, 133, 182, 0.45);
+    --text-primary: #dff0fb;
+    --text-secondary: #88bcd6;
+    --text-muted: #5a8fa8;
+    --accent-blue: #1385b6;
+    --accent-cyan: #22d3ee;
+    --accent-green: #34d399;
+    --accent-red: #f87171;
+    --accent-gold: #fbbf24;
+    --gradient-main: radial-gradient(ellipse at center, #1385b6 0%, #002355 100%);
+    --gradient-card: linear-gradient(145deg, rgba(0, 30, 80, 0.80), rgba(5, 45, 107, 0.45));
+    --gradient-accent: linear-gradient(135deg, #1385b6, #22d3ee);
+    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
+    --shadow-glow: 0 0 30px rgba(19, 133, 182, 0.20);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Reset & Base --- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    /* El verdadero fondo está en .bg-base; el body sólo necesita el color base por si acaso */
+    background: #002355;
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* ============================================================
+   FONDO ANIMADO — capas independientes del contenido
+   z-index: bg-base(0) < bg-figures(1) < bg-noise(2) < app-container(10)
+   ============================================================ */
+
+/* Capa raíz: degradado radial fijo que cubre toda la pantalla */
+.bg-base {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    /* Degradado radial: azul claro en el centro, azul muy oscuro en los bordes */
+    background: radial-gradient(ellipse at 50% 50%, #1385b6 0%, #003b7a 45%, #002355 100%);
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* Contenedor de las figuras animadas */
+.bg-figures {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+/* Viñeteado de fondo inmersivo */
+.bg-vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    /* Degradado oscuro más largo y fuerte en los bordes */
+    box-shadow: inset 0 0 350px 150px rgba(0, 4, 15, 0.98),
+        inset 0 0 100px 50px rgba(0, 4, 15, 1);
+}
+
+/* Columnas de cadena infinita */
+.bg-chain-col {
+    position: absolute;
+    top: -50%;
+    bottom: -50%;
+    width: 140px;
+    /* Será modificado dinámicamente en JS para ajustar superposición */
+    overflow: hidden;
+    filter: blur(2px);
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Envoltorio para balanceo horizontal independiente del movimiento vertical */
+.bg-chain-sway {
+    width: 100%;
+    height: 100%;
+    animation: swayX var(--sway-dur, 10s) ease-in-out infinite alternate;
+}
+
+.bg-chain-track {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    will-change: transform;
+}
+
+.bg-chain-col.up .bg-chain-track {
+    animation: moveChainUp linear infinite;
+}
+
+.bg-chain-col.down .bg-chain-track {
+    animation: moveChainDown linear infinite;
+}
+
+.bg-chain-img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+@keyframes moveChainUp {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-33.3333%);
+    }
+}
+
+@keyframes moveChainDown {
+    0% {
+        transform: translateY(-33.3333%);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+}
+
+@keyframes swayX {
+    0% {
+        transform: translateX(calc(var(--sway-amount, 10) * -1px));
+    }
+
+    100% {
+        transform: translateX(calc(var(--sway-amount, 10) * 1px));
+    }
+}
+
+/* Capa de ruido — rellenada por JS con canvas grain (overlay + opacidad baja = grano de película) */
+.bg-noise {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    background-repeat: repeat;
+    background-size: 150px 150px;
+    /* tile pequeño → grano fino */
+    mix-blend-mode: overlay;
+    /* valores grises al 50% no cambian nada; variaciones crean grano sutil */
+    opacity: 0.2;
+    /* muy bajo → grano apenas perceptible, como cine */
+    pointer-events: none;
+}
+
+/* --- Layout Container --- */
+.app-container {
+    position: relative;
+    z-index: 10;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    min-height: 100vh;
+}
+
+/* ============================================================
+   HEADER — Logo + Title superposition (matching wireframe)
+   ============================================================ */
+.header {
+    position: relative;
+    /* z-index ajustado para entrelazar con el ruido (z-index:5) */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 0 0;
+    gap: 0;
+    width: 100%;
+}
+
+.header-brand {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 1200px;
+    height: auto;
+    /* Altura automática basada en los hijos */
+    padding: 20px 0 36px 0; /* Margen vertical reducido otro 10% extra */
+    margin: 0 auto;
+    cursor: pointer;
+}
+
+.header-brand:hover .header-logo,
+.header-brand:hover .header-title-group {
+    transform: scale(1.02);
+}
+
+.header-logo {
+    width: 717px; /* Aumentado otro 5% extra */
+    height: auto;
+    filter: drop-shadow(0 0 30px rgba(56, 152, 236, 0.3));
+    position: relative;
+    z-index: 3;
+    pointer-events: none;
+    margin-right: -95px; /* Ajustado proporcionalmente al nuevo tamaño más grande */
+    margin-top: 35px;    /* Lo bajamos ligeramente para alinear con el texto */
+    transition: transform var(--transition);
+}
+
+.header-title-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+    z-index: 6;
+    transition: transform var(--transition);
+}
+
+.header-title-img {
+    height: 218px;
+    /* Reducido un 5% a petición, corrigiendo lo anterior */
+    width: auto;
+    filter: drop-shadow(0 0 20px rgba(56, 152, 236, 0.25));
+}
+
+
+/* ============================================================
+   SEARCH BAR
+   ============================================================ */
+.search-container {
+    width: 100%;
+    max-width: 850px;
+    margin: 0 auto 20px;
+    position: relative;
+}
+
+.search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 4px;
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.5);
+    transition: color var(--transition);
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 8px 12px 32px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 0;
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: all var(--transition);
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 300;
+}
+
+.search-input:focus {
+    border-bottom-color: rgba(255, 255, 255, 0.9);
+}
+
+.search-input:focus~.search-icon {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+    padding-bottom: 60px;
+    max-width: 850px;
+    margin: 0 auto;
+}
+
+.game-card {
+    position: relative;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.game-card:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.game-card-banner {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    display: block;
+    border-radius: var(--radius-sm);
+}
+
+.game-card-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.game-card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.game-card-price {
+    font-weight: 600;
+    color: var(--accent-green);
+}
+
+.game-card-price.free {
+    color: var(--accent-cyan);
+}
+
+.game-card-trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+    font-size: 0.82rem;
+}
+
+.game-card-trend.up {
+    color: var(--accent-green);
+}
+
+.game-card-trend.down {
+    color: var(--accent-red);
+}
+
+.game-card-genres {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.genre-tag {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+    background: rgba(56, 152, 236, 0.12);
+    color: var(--accent-blue);
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+/* ============================================================
+   VIEW: GAME DETAIL
+   ============================================================ */
+.view {
+    display: none;
+}
+
+.view.active {
+    display: block;
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all var(--transition);
+    margin-bottom: 24px;
+    font-family: 'Inter', sans-serif;
+}
+
+.back-btn:hover {
+    border-color: var(--accent-blue);
+    color: var(--text-primary);
+    background: rgba(56, 152, 236, 0.08);
+}
+
+/* --- Game Detail Design (Sketch Revision) --- */
+.game-detail-header-container {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    margin-bottom: 40px;
+    background: var(--bg-card);
+    padding: 30px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-glass);
+    box-shadow: var(--shadow-lg);
+}
+
+.game-banner-large {
+    width: 320px;
+    aspect-ratio: 460 / 215;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.game-info-primary {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.game-detail-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 2.8rem;
+    font-weight: 900;
+    margin: 0;
+    color: #fff;
+    line-height: 1.1;
+}
+
+.game-detail-dev-meta {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.game-detail-date-meta {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+.genre-tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.genre-chip {
+    background: rgba(56, 152, 236, 0.1);
+    color: var(--accent-blue);
+    padding: 6px 16px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid rgba(56, 152, 236, 0.2);
+}
+
+.game-detail-stats {
+    display: flex;
+    gap: 24px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.stat-value.price {
+    color: var(--accent-gold);
+}
+
+.stat-value.positive {
+    color: var(--accent-green);
+}
+
+.stat-value.negative {
+    color: var(--accent-red);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
+
+/* Prediction Cards Grid */
+/* Prediction Action Sections (Large Buttons) */
+.prediction-section-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.prediction-action-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    padding: 30px;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    text-align: left;
+}
+
+.prediction-action-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--accent-blue);
+    transform: translateX(10px);
+}
+
+.prediction-btn-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.prediction-btn-hint {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    max-width: 80%;
+    line-height: 1.4;
+}
+
+.prediction-action-btn::after {
+    content: '→';
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 2rem;
+    color: var(--accent-blue);
+    opacity: 0.2;
+    transition: var(--transition);
+}
+
+.prediction-action-btn:hover::after {
+    opacity: 1;
+    right: 30px;
+}
+
+/* Prediction Details area (for future expansion) */
+.prediction-results-area {
+    margin-top: 40px;
+}
+
+margin-bottom: 16px;
+}
+
+.prediction-card-confidence {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.confidence-bar-container {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.confidence-bar {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1s ease;
+}
+
+.prediction-card.popularidad .confidence-bar {
+    background: var(--gradient-accent);
+}
+
+.prediction-card.precio .confidence-bar {
+    background: linear-gradient(90deg, var(--accent-gold), #f59e0b);
+}
+
+.prediction-card.reviews .confidence-bar {
+    background: linear-gradient(90deg, var(--accent-green), #10b981);
+}
+
+.confidence-text {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    min-width: 42px;
+    text-align: right;
+}
+
+.prediction-card-chart {
+    width: 100%;
+    height: 100px;
+}
+
+.prediction-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.prediction-card-model {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.view-detail-btn {
+    color: var(--accent-blue);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: color var(--transition);
+}
+
+.prediction-card:hover .view-detail-btn {
+    color: var(--accent-cyan);
+}
+
+/* ============================================================
+   VIEW: PREDICTION DETAIL
+   ============================================================ */
+.prediction-detail-header {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    margin-bottom: 32px;
+}
+
+.prediction-detail-game-img {
+    width: 200px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    flex-shrink: 0;
+}
+
+.prediction-detail-main {
+    flex: 1;
+}
+
+.prediction-detail-type {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+}
+
+.prediction-detail-type.popularidad {
+    color: var(--accent-cyan);
+}
+
+.prediction-detail-type.precio {
+    color: var(--accent-gold);
+}
+
+.prediction-detail-type.reviews {
+    color: var(--accent-green);
+}
+
+.prediction-detail-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 6px;
+}
+
+.prediction-detail-unit {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.prediction-detail-confidence {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--bg-glass);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-glass);
+}
+
+.prediction-detail-confidence-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.prediction-detail-confidence-value {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+/* Info panels */
+.detail-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 60px;
+}
+
+.detail-panel {
+    background: var(--gradient-card);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    backdrop-filter: blur(10px);
+}
+
+.detail-panel-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-chart-container {
+    width: 100%;
+    height: 220px;
+}
+
+/* Feature importance bars */
+.feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.feature-name {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    min-width: 140px;
+}
+
+.feature-bar-container {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.feature-bar {
+    height: 100%;
+    background: var(--gradient-accent);
+    border-radius: 10px;
+    transition: width 0.8s ease;
+}
+
+.feature-value {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    min-width: 40px;
+    text-align: right;
+    font-weight: 600;
+}
+
+/* Sentiment distribution */
+.sentiment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sentiment-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sentiment-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.sentiment-name {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    min-width: 120px;
+}
+
+.sentiment-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Price range */
+.price-range {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    margin-top: 8px;
+}
+
+.price-range-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.price-range-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.price-range-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    margin: 0 20px;
+    position: relative;
+}
+
+.price-range-fill {
+    position: absolute;
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-gold), #f59e0b);
+    border-radius: 10px;
+    left: 0;
+    width: 100%;
+}
+
+/* ============================================================
+   LOADING SPINNER
+   ============================================================ */
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 60px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(56, 152, 236, 0.15);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(56, 152, 236, 0.2);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(56, 152, 236, 0.35);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+    .header-logo {
+        width: 180px;
+        margin-right: -40px;
+    }
+
+    .header-title-img {
+        height: 65px;
+    }
+
+    .game-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 6px;
+    }
+
+    .game-detail-header {
+        flex-direction: column;
+    }
+
+    .game-detail-banner {
+        width: 100%;
+    }
+
+    .predictions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .prediction-detail-header {
+        flex-direction: column;
+    }
+
+    .prediction-detail-game-img {
+        width: 100%;
+        max-width: 280px;
+    }
+
+    .detail-panels {
+        grid-template-columns: 1fr;
+    }
+
+    .prediction-detail-value {
+        font-size: 2.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-container {
+        padding: 0 16px;
+    }
+
+    .game-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .game-card-name {
+        font-size: 0.85rem;
+    }
+
+    .search-input {
+        font-size: 0.9rem;
+        padding: 14px 16px 14px 44px;
+    }
+}

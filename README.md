@@ -89,7 +89,24 @@ Definición de variables:
 Para Scrapear YouTube necesitamos tener tanto una versión de Google Chrome reciente, como TOR bundle descargado de la [página oficial de TOR](https://www.torproject.org/download/tor/).
 ##### En Windows
 Después de descargar TOR, ejecutad el archivo ``tor.exe`` que podéis encontrar dentro de la subcarpeta tor para que se creen los archivos por defecto para el correcto funcionamiento del mismo. Cuando el proceso de TOR llegue al 100%, cerradlo. Posteriormente, abrid las variables de entorno del sistema y clicad para abrir la variable PATH. Hecho eso, añadid la carpeta de tor (la que tiene como hija al archivo tor.exe) como nueva variable de entorno. El script C1 usará como configuración de TOR el archivo `torrc` que podéis encontrar en el repositorio, que sirve para que funcione correctamente la rotación de IP.
-##### Linux
+##### Linux y MacOS
+Se puede hacer la instalación usando la terminal:
+
+- Mediante `apt` (distribuciones basadas en Debian):
+```bash
+sudo apt install tor
+```
+
+- Mediante `pacman` (distribuciones basadas en Arch):
+```bash
+sudo pacman -S tor
+```
+
+- Mediante `brew` (MacOS):
+```bash
+brew install tor
+```
+
 Algunas distros de linux ejecutan un proceso en segundo plano de TOR al iniciar. Si el script C1 diese error al cambiar de IP, se deben ejecutar los siguientes comandos en consola:
 
 Para detener el proceso:
@@ -102,29 +119,10 @@ Para detener el proceso actual y deshabilitar el servicio permanentemente:
 sudo systemctl stop tor
 sudo systemctl disable tor
 ```
-
-- Mediante `apt` (gran parte de distros):
-```bash
-sudo apt install tor
-```
-
-- Mediante `pacman` (Arch):
-```bash
-sudo pacman -S tor
-```
-
-En **MacOS**:
-- Mediante `brew`:
-```bash
-brew install tor
-```
-
 ---
 
 ## Autores 
-* Antón Vladislavov
-* Jan Mercado
-* Jorge Bertomeu
-* Lucas Ospina
-* Nicolás Gil
-* Zhixian Zhou
+
+| [<img src="https://github.com/nicgil23.png" width="100px;"/>](https://github.com/nicgil23) | [<img src="https://github.com/JanMercado51.png" width="100px;"/>](https://github.com/JanMercado51) | [<img src="https://github.com/jorgbert.png" width="100px;"/>](https://github.com/jorgbert) | [<img src="https://github.com/lucasosp.png" width="100px;"/>](https://github.com/lucasosp) | [<img src="https://github.com/anton-VK.png" width="100px;"/>](https://github.com/anton-VK) | [<img src="https://github.com/zhixianzucm.png" width="100px;"/>](https://github.com/zhixianzucm) |
+| :-: | :-: | :-: | :-: | :-: | :-: |
+| [Nicolás Gil](https://github.com/nicgil23) | [Jan Mercado](https://github.com/JanMercado51) | [Jorge Bertomeu](https://github.com/jorgbert) | [Lucas Ospina](https://github.com/lucasosp) | [Antón Vladislavov](https://github.com/anton-VK) | [Zhixian Zhou](https://github.com/zhixianzucm) |

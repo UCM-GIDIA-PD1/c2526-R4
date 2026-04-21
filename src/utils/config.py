@@ -238,3 +238,5 @@ precios_logistic_regression_file = models_precios_path() / "logistic_regression_
 # Reviews
 reviews_logistic_regression_optuna_file = models_reviews_path() / "logistic_regression_optuna.pkl"
 reviews_logistic_regression_gridsearch_file = models_reviews_path() / "logistic_regression_gridsearch.pkl"
+reviews_naive_bayes_cv_file = models_reviews_path() / "naive_bayes_cv.pkl"
+reviews_naive_bayes_tfidf_file = models_reviews_path() / "naive_bayes_tfidf.pkl"

@@ -140,10 +140,6 @@ def C_estadisticas_youtube(minio):
     assert data, 'No se ha podido leer el archivo'
 
     data_filtrado = filtrado_por_clasificacion(data, minio)
-
-    print(data)
-    print()
-    print(data_filtrado)
     
     print('Transformando a dataframe')
     df = _transform_to_dataframe(data_filtrado)

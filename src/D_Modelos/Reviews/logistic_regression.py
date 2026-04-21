@@ -29,7 +29,17 @@ from src.D_Modelos.Reviews.utils.utils import get_metrics
 
 class_names = ["Negativo", "Positivo"]
 
-def preprocess(df):
+def transform_logistic_regression(df):
+    return df
+
+def predict_logistic_regression(model_data, test_df, train_df):
+    X_test, _ = _preprocess(test_df)
+    
+    
+    y_pred = model_data.predict(X_test)
+    return y_pred
+
+def _preprocess(df):
     '''
     Función que se encarga del preprocesado del texto.
     
@@ -43,7 +53,7 @@ def preprocess(df):
     '''
 
     y = df["is_positive"]
-    X = df["text"].progress_apply(lambda x : clean_text_stem(x))
+    X = df["text"].apply(lambda x : clean_text_stem(x))
     
     return X, y
 
@@ -273,7 +283,7 @@ def main(minio = {"minio_write": False, "minio_read": False}):
     df = read_file(reviews, minio)
 
     print("Preprocesado de los datos")
-    X, y = preprocess(df)
+    X, y = _preprocess(df)
 
     global X_train, X_val, X_test, y_train, y_val, y_test
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
