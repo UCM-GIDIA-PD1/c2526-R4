@@ -15,8 +15,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi import Request
 from pydantic import BaseModel
 import random
-from src.D_Modelos.Popularidad.xgboost_model import transform_for_xgboost, predict_xgboost_log
-import pandas as pd
+
 
 # --------------------------------------------------------------------------
 # Lifespan: se ejecuta al arrancar (startup) y al apagar (shutdown)
@@ -24,7 +23,7 @@ import pandas as pd
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: cargar modelos en memoria
-    app.state.model_popularidad = load('models/popularidad/xgboost_model.pkl')
+    # app.state.model_popularidad = load('models/popularidad/xgboost_model.pkl')
     # app.state.model_precio = load('models/precios/catboostClustered.pkl')
     # app.state.model_reviews = load('models/reviews/logistic_regression_optuna.pkl')
     print("SteamPredictor API iniciada")
@@ -55,25 +54,37 @@ class PredictionRequest(BaseModel):
     appid: int
     model_name: str = "default"
 
-class GameRequest(BaseModel):
-    """Información básica de un juego para poder luego encontrar la información en el servidor. """ 
-    appid: int
- 
-class PopularityPrediction(BaseModel):
-    """ Resultado de la predicción del modelo de Popularidad.
-    """
-    totalReviews : int
 
-class PricesPrediction(BaseModel):
-    """ Resultado de la predicción del modelo de Precios.
-    """
-    priceRange : str
+class PredictionResponse(BaseModel):
+    """Resultado de una predicción."""
+    value: float
+    confidence: float
+    model_used: str
+    details: dict
 
-class ReviewsPrediction(BaseModel):
-    """ Resultado de la predicicón del modelo de Reviews
-    """
-    isPositive : int
+class PopularityResponse(BaseModel):
+    reviews : int
+
+class PriceResponse(BaseModel):
+    price : str
+
+class ReviewsResponse():
+    value : bool
     topics : list
+
+class GameInfo(BaseModel):
+    """Información básica de un juego. Usada para mostrar un juego en la página web y para luego obtener la información
+    de dicho juego en cada modelo"""
+    appid: int
+    name: str
+    banner_url: str
+    release_date: str
+    developer: str
+    genres: list[str]
+    price: float
+    positive_reviews: int
+    negative_reviews: int
+
 
 # --------------------------------------------------------------------------
 # Datos mock para desarrollo (se reemplazarán con datos reales)
@@ -149,21 +160,42 @@ def get_trending():
 
 
 @app.post("/api/predict/popularidad", response_model=PredictionResponse)
-def predict_popularidad(gameRequest : GameRequest):
+def predict_popularidad(req: PredictionRequest):
     """Predicción de popularidad (stub)."""
-    # TODO: ACCEDER A LA INFORMACIÓN DEL DATAFRAME DE JUEGO
-    # TODO: LLAMAR A LA FUNCIÓN DE TRANSFORMACIÓN
-    # TODO: LLAMAR A LA FUNCIÓN DE PREDICCIÓN
     
-    dataRow = pd.DataFrame([vars(f) for f in gameInfo])
-    dataRow = transform_for_xgboost(dataRow)
+    #TODO: Función para obtener los datos para el problema de popularidad
+    # data = get_gameinfo_popularity(req.appid)
+    
+    #TODO: Cargar el modelo y llamar a la función de transformación y función de predicción
+    # data = transformación(data)
+    # PopularityResponse = app.state.model_popularidad.predict(data)
+    # return PopularityResponse
+    return PredictionResponse(
+        value=round(base),
+        confidence=round(random.uniform(0.72, 0.95), 2),
+        model_used="XGBoost (Log)",
+        details={
+            "metric": "estimated_owners",
+            "unit": "jugadores",
+            "history": _generate_mock_history(base),
+            "feature_importance": {
+                "reviews_count": 0.34, "price": 0.21,
+                "genres": 0.18, "developer_reputation": 0.15, "release_year": 0.12,
+            },
+        },
+    )
 
-    return PricesPrediction()
-    
 
 @app.post("/api/predict/precio", response_model=PredictionResponse)
 def predict_precio(req: PredictionRequest):
     """Predicción de precio (stub)."""
+    #TODO: Función para obtener los datos para el problema de precios
+    # data = get_gameinfo_precios(req.appid)
+    
+    #TODO: Cargar el modelo y llamar a la función de transformación y función de predicción
+    # data = transformación(data)
+    # PriceResponse = app.state.model_precios.predict(data)
+
     base = round(random.uniform(4.99, 59.99), 2)
     return PredictionResponse(
         value=base,
