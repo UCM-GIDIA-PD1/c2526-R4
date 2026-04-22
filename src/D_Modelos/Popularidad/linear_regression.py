@@ -1,148 +1,197 @@
-import pandas as pd
+"""
+Dado popularidad.parquet, ejecuta el modelo óptimo para predecir recomendaciones_totales
+"""
 import numpy as np
-import wandb
-import os
-
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
+import pandas as pd
 import statsmodels.api as sm
+import warnings
+import wandb
 
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer, QuantileTransformer
+from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LinearRegression
+from sklearn.decomposition import PCA
+
+from src.utils.files import read_file
+from src.utils.config import popularidad_linear_regression_file, popularidad_linear_regression_log_file
 from src.utils.config import popularity, seed
-from src.utils.files import read_file, write_to_file
-from src.utils.config import popularidad_linear_regression_log_file, popularidad_linear_regression_file, models_popularidad_path
+from src.D_Modelos.Popularidad.popularity_model import PopularityModel
 
-def transform_for_linear_regresion(df):
-    df_clean = df.copy()
-    errase_columns = ['id', 'name', 'v_resnet', 'v_convnext']
-    df_clean = df_clean.drop(columns=[col for col in errase_columns if col in df_clean.columns])
+warnings.filterwarnings('ignore')
 
-    # PCA de vector de emmbedings
-    zero_vector = np.zeros(512)
-    df_clean['v_clip'] = df_clean['v_clip'].apply(
-        lambda x: x if isinstance(x, (list, np.ndarray)) else zero_vector
-    )
+def get_clip_matrix(X):
+    return np.vstack(X.iloc[:, 0].values)
+
+def select_features(X, indices=None):
+    return X[:, indices]
+
+class LinearRegressionPopularity(PopularityModel):
     
-    clip_matrix = np.vstack(df_clean['v_clip'].values)
-    
-    pca = PCA(n_components=10, random_state=seed)
-    clip_pca = pca.fit_transform(clip_matrix)
-    
-    for i in range(10):
-        df_clean[f'clip_pca_{i}'] = clip_pca[:, i]
-    
-    df_clean = df_clean.drop(columns=['v_clip'])
+    def _preprocess_data(self, df_raw, config):
+        """Limpieza base asegurando que v_clip no se destruya."""
+        df_clean = super()._preprocess_data(df_raw, config)
 
-    variables_to_scale = [col for col in df_clean.columns if col != 'recomendaciones_totales']
-    
-    scaler = StandardScaler()
-    df_clean[variables_to_scale] = scaler.fit_transform(df_clean[variables_to_scale])
-
-    # Forzamos a todos los datos a ser numéricos
-    obj_cols = df_clean.select_dtypes(include=['object']).columns
-    for col in obj_cols:
-        df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
-
-    # Solo nos quedamos con columnas numéricas y por si hay algún nulo ponemos 0s
-    df_clean = df_clean.select_dtypes(include=[np.number])
-    df_clean = df_clean.fillna(0)
-
-    return df_clean
-
-def predict_linear_regresion(model_data, test_df, train_df):
-    lr_model = model_data["model"]
-    lr_vars = model_data["selected_variables"]
-    X_test_lr = sm.add_constant(test_df[lr_vars], has_constant='add')
-    y_pred_raw_lr = lr_model.predict(X_test_lr)
-    return y_pred_raw_lr
-
-def predict_linear_regresion_log(model_data, test_df, train_df):
-    lr_model = model_data["model"]
-    lr_vars = model_data["selected_variables"]
-    X_test_lr = sm.add_constant(test_df[lr_vars], has_constant='add')
-    y_pred_raw_lr = lr_model.predict(X_test_lr)
-    return np.expm1(y_pred_raw_lr)
-
-def forward_selection(train_df, test_df, y_variable, selection_method, use_log, minio):
-    initial_variables = [c for c in train_df.columns if c != y_variable]
-    selected_variables = []
-    
-    current_score = float('inf') 
-    
-    if use_log:
-        y_train_target = np.log1p(train_df[y_variable])
-    else:
-        y_train_target = train_df[y_variable]
-        
-    step = 0
-
-    while initial_variables:
-        scores_with_candidates = []
-        
-        for candidate in initial_variables:
-            variables = selected_variables + [candidate]
-            X_train = sm.add_constant(train_df[variables])
+        if 'v_clip' in df_clean.columns:
+            zero_vector = np.zeros(512)
+            df_clean['v_clip'] = df_clean['v_clip'].apply(
+                lambda x: x if isinstance(x, (list, np.ndarray)) else zero_vector
+            )
             
-            model = sm.OLS(y_train_target, X_train).fit()
-            scores_with_candidates.append((getattr(model, selection_method.lower()), candidate))
-            
-        best_new_score, best_candidate = min(scores_with_candidates) 
-        
-        if best_new_score < current_score:
-            selected_variables.append(best_candidate)
-            initial_variables.remove(best_candidate)
-            current_score = best_new_score
-            step += 1
+        return df_clean
 
-            wandb.log({
-                "iteration": step,
-                "score": current_score,
-                "num_variables": len(selected_variables),
-                "current_variables": ", ".join(selected_variables) 
-            })
+    def _get_preprocessor_and_cols(self, X_train):
+        """
+        Replica exactamente las transformaciones del KNN y devuelve 
+        el ColumnTransformer junto con el orden exacto de las columnas de salida.
+        """
+        vars_reales = [v for v in X_train.columns if v != 'v_clip' and not v.startswith('clip_pca_')]
+
+        cols_minmax = [c for c in vars_reales if c in self.COLS_ACOTADAS]
+        cols_sesgadas = [c for c in vars_reales if c in self.COLS_SESGADAS]
+        cols_binarias = [c for c in vars_reales if c in self.COLS_BINARIAS]
+        cols_normales = [c for c in vars_reales if c not in cols_minmax + cols_sesgadas + cols_binarias]
+
+        transformers = []
+        output_cols = []
+
+        if 'v_clip' in X_train.columns:
+            clip_pipe = Pipeline([
+                ('extractor', FunctionTransformer(get_clip_matrix, validate=False)),
+                ('pca', PCA(n_components=10, random_state=seed)),
+                ('scale', MinMaxScaler())
+            ])
+            transformers.append(('clip_pca', clip_pipe, ['v_clip']))
+            output_cols.extend([f'clip_pca_{i}' for i in range(10)])
+
+        if cols_minmax:
+            transformers.append(('minmax', MinMaxScaler(), cols_minmax))
+            output_cols.extend(cols_minmax)
+
+        # PowerTransformer(method='yeo-johnson')
+        # QuantileTransformer(output_distribution='normal', random_state=seed)
+        if cols_sesgadas:
+            transformers.append(('sesgadas', QuantileTransformer(output_distribution='normal', random_state=seed), cols_sesgadas))
+            output_cols.extend(cols_sesgadas)
+
+        if cols_binarias:
+            transformers.append(('binarias', 'passthrough', cols_binarias))
+            output_cols.extend(cols_binarias)
             
-            print(f"Añadida {best_candidate} con {selection_method}: {current_score:.2f}")
+        if cols_normales:
+            transformers.append(('normales', StandardScaler(), cols_normales))
+            output_cols.extend(cols_normales)
+
+        preprocessor = ColumnTransformer(transformers=transformers, remainder='drop')
+        return preprocessor, output_cols
+
+    def _optimize_hyperparameters(self, data_splits, config):
+        """Optimiza variables usando Forward Selection (AIC) y evalúa el resultado con CV."""
+        X_train_raw = data_splits["X_train"]
+        y_train_raw = data_splits["y_train"]
+        y_binned_train = data_splits["y_binned_train"]
+        
+        X_train = X_train_raw.copy()
+        y_train = y_train_raw.copy()
+        
+        use_log = config.get("use_log", False)
+        y_train_target = np.log1p(y_train) if use_log else y_train
+
+        preprocessor, output_cols = self._get_preprocessor_and_cols(X_train)
+        X_train_transformed = preprocessor.fit_transform(X_train)
+        
+        X_train_df = pd.DataFrame(X_train_transformed, columns=output_cols, index=X_train.index)
+
+        initial_variables = list(X_train_df.columns)
+        selected_variables = []
+        current_score = float('inf') 
+        step = 0
+        
+        while initial_variables:
+            scores_with_candidates = []
+            
+            for candidate in initial_variables:
+                variables = selected_variables + [candidate]
+                X_train_const = sm.add_constant(X_train_df[variables], has_constant='add')
+                
+                model = sm.OLS(y_train_target, X_train_const).fit()
+                scores_with_candidates.append((model.aic, candidate))
+                
+            best_new_score, best_candidate = min(scores_with_candidates) 
+            
+            if best_new_score < current_score:
+                selected_variables.append(best_candidate)
+                initial_variables.remove(best_candidate)
+                current_score = best_new_score
+                step += 1
+
+                wandb.log({
+                    "fs_iteration": step,
+                    "fs_aic_score": current_score,
+                    "fs_num_variables": len(selected_variables),
+                })
+            else:
+                break 
+                
+        params = {"selected_variables": selected_variables}
+
+        return params
+
+    def _build_pipeline(self, hyperparameters, config, X_train):
+        """Construye un pipeline nativo aplicando un filtro antes de la Regresión."""
+        selected_vars = hyperparameters.get("selected_variables", [])
+        
+        preprocessor, output_cols = self._get_preprocessor_and_cols(X_train)
+        
+        if selected_vars:
+            indices_ganadores = [output_cols.index(v) for v in selected_vars if v in output_cols]
+            selector = FunctionTransformer(select_features, kw_args={'indices': indices_ganadores}, validate=False)
+            
+            pipeline = Pipeline([
+                ('prep', preprocessor),
+                ('selector', selector),
+                ('lr', LinearRegression(n_jobs=-1))
+            ])
         else:
-            break 
+            pipeline = Pipeline([
+                ('prep', preprocessor),
+                ('lr', LinearRegression(n_jobs=-1))
+            ])
+
+        if config.get("use_log", False):
+            return TransformedTargetRegressor(
+                regressor=pipeline,
+                func=np.log1p,
+                inverse_func=np.expm1
+            )
             
-    X_train_final = sm.add_constant(train_df[selected_variables])
-    final_model = sm.OLS(y_train_target, X_train_final).fit()
+        return pipeline
 
-    os.makedirs(models_popularidad_path(), exist_ok=True)
-    model_name = popularidad_linear_regression_log_file if use_log else popularidad_linear_regression_file
-    data = {"model": final_model, "selected_variables": selected_variables}
-    write_to_file(data, model_name, minio) 
-    print(f"Modelo guardado en {model_name}")
-    
-def create_linear_model_popularity(minio, selection_method, use_log):
-    run_name = f"linear-regression-log-{selection_method.lower()}" if use_log else f"linear-regression-{selection_method.lower()}"
-    
-    run = wandb.init(
-        entity="pd1-c2526-team4",
-        project="Popularidad",
-        name=run_name,
-        job_type="model-training"
-    )
+    def run_experiment(self, df_raw, config, hyperparameters=None):
+        config["avoid_multicol"] = False # Ya se encarga forward_selection
+        
+        use_log = config.get("use_log", False)
+        log_suffix = "log" if use_log else "raw"
+        
+        self.run_name = f"linear-regression-{log_suffix}"
+        self.model_path = popularidad_linear_regression_log_file if use_log else popularidad_linear_regression_file
 
-    df = read_file(popularity, minio)
-    y_variable = "recomendaciones_totales"
-    
-    df = transform_for_linear_regresion(df)
+        return super().run_experiment(df_raw, config, hyperparameters)
 
-    train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed)
 
-    forward_selection(train_df, test_df, y_variable, selection_method, use_log, minio)
+def main(minio={"minio_write": False, "minio_read": False}):
+    df_raw = read_file(popularity, minio)
 
-    run.finish()
-
-def main1(minio = {"minio_write": False, "minio_read": False}):
-    # Con AIC Normal
-    create_linear_model_popularity(minio, selection_method="AIC", use_log=False)
-
-def main2(minio = {"minio_write": False, "minio_read": False}):
-    # Con AIC Logarítmico
-    create_linear_model_popularity(minio, selection_method="AIC", use_log=True)
+    for log in [True, False]:
+        my_config = {"use_log": log}
+        
+        modelo = LinearRegressionPopularity(
+            run_name="", 
+            model_path="",
+            minio=minio
+        )
+        
+        modelo.run_experiment(df_raw, config=my_config)
 
 if __name__ == "__main__":
-    main1()
-    main2()
+    main()

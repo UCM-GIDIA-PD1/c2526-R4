@@ -6,9 +6,54 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error, median
 from src.D_Modelos.base_model import BaseModel
 from src.utils.config import seed
 
+[
+       
+       'num_juegos_previos_developers', 'es_primer_juego_developers',
+       'ema_reviews_developers', 'max_historico_reviews_developers',
+       'num_juegos_previos_publishers', 'es_primer_juego_publishers',
+       'ema_reviews_publishers', 'max_historico_reviews_publishers', 'brillo',
+       'v_clip',
+       'video_0_video_statistics.viewCount',
+       'video_0_video_statistics.likeCount',
+       'video_0_video_statistics.favoriteCount',
+       'video_0_video_statistics.commentCount',
+       'video_1_video_statistics.viewCount',
+       'video_1_video_statistics.likeCount',
+       'video_1_video_statistics.favoriteCount',
+       'video_1_video_statistics.commentCount',
+       'video_2_video_statistics.viewCount',
+       'video_2_video_statistics.likeCount',
+       'video_2_video_statistics.favoriteCount',
+       'video_2_video_statistics.commentCount',
+       'video_3_video_statistics.viewCount',
+       'video_3_video_statistics.likeCount',
+       'video_3_video_statistics.favoriteCount',
+       'video_3_video_statistics.commentCount', 'yt_score', 'viewCountTotal',
+       'likeCountTotal', 'commentCountTotal']
+
 class PopularityModel(BaseModel):
     COLS_SESGADAS = ['price_overview', 'total_games_by_publisher', 'total_games_by_developer',
-                     'commentCountTotal', 'ema_reviews_publishers']
+                    'num_juegos_previos_developers', 'es_primer_juego_developers', 
+                    'ema_reviews_developers', 'max_historico_reviews_developers',
+                    'num_juegos_previos_publishers', 'es_primer_juego_publishers',
+                    'ema_reviews_publishers', 'max_historico_reviews_publishers',
+                    'video_0_video_statistics.viewCount',
+                    'video_0_video_statistics.likeCount',
+                    'video_0_video_statistics.favoriteCount',
+                    'video_0_video_statistics.commentCount',
+                    'video_1_video_statistics.viewCount',
+                    'video_1_video_statistics.likeCount',
+                    'video_1_video_statistics.favoriteCount',
+                    'video_1_video_statistics.commentCount',
+                    'video_2_video_statistics.viewCount',
+                    'video_2_video_statistics.likeCount',
+                    'video_2_video_statistics.favoriteCount',
+                    'video_2_video_statistics.commentCount',
+                    'video_3_video_statistics.viewCount',
+                    'video_3_video_statistics.likeCount',
+                    'video_3_video_statistics.favoriteCount',
+                    'video_3_video_statistics.commentCount',
+                    'viewCountTotal', 'likeCountTotal', 'commentCountTotal']
     COLS_ACOTADAS = ['description_len', 'num_languages', 'brillo', 'release_year']
     COLS_BINARIAS = ['Action', 'Adventure', 'Casual', 'Early Access', 'Free To Play', 'Indie', 'RPG',
        'Simulation', 'Strategy', 'Co-op', 'Custom Volume Controls',
