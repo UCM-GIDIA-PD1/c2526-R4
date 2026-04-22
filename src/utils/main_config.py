@@ -11,7 +11,7 @@ from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_f
 from src.utils.config import popularidad_linear_regression_file, popularidad_linear_regression_log_file, popularidad_knn_log_file
 from src.utils.config import precios_xgboostumap_file, precios_mlp_file, precios_knncompleteclusters_file
 from src.utils.config import precios_catboostClustered_file, precios_logistic_regression_file
-from src.utils.config import reviews_logistic_regression_optuna_file, reviews_logistic_regression_gridsearch_file
+from src.utils.config import reviews_logistic_regression_optuna_file, reviews_logistic_regression_gridsearch_file,reviews_naive_bayes_cv_file, reviews_naive_bayes_tfidf_file
 
 main_extraccion_info = {
         "A": {"fichero": "A_lista_juegos", 
@@ -229,6 +229,22 @@ main_modelos_info = {
            "mensaje": "Reseñas Logistic regression",
            "salida": reviews_logistic_regression_optuna_file.name, 
            "path": reviews_logistic_regression_optuna_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": [dep.reviews_dependence, dep.wandb_dependence]
+    },
+    "C2": {"fichero": "Reviews.naive_bayes_CV", 
+           "mensaje": "Reseñas Naive Bayes CV",
+           "salida": reviews_naive_bayes_cv_file.name, 
+           "path": reviews_naive_bayes_cv_file, 
+           "ejecutable": "main", 
+           "usar": False, 
+           "dependences": [dep.reviews_dependence, dep.wandb_dependence]
+    },
+    "C3": {"fichero": "Reviews.naive_bayes_TFIDF", 
+           "mensaje": "Reseñas Naive Bayes TFIDF",
+           "salida": reviews_naive_bayes_tfidf_file.name, 
+           "path": reviews_naive_bayes_tfidf_file, 
            "ejecutable": "main", 
            "usar": False, 
            "dependences": [dep.reviews_dependence, dep.wandb_dependence]
