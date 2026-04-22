@@ -26,11 +26,11 @@ class XGBoostPopularity(PopularityModel):
         
         clip_pipe = Pipeline([
             ('extractor', FunctionTransformer(get_clip_matrix, validate=False)),
-            ('pca', UMAP(n_components=10, random_state=seed))
+            ('umap', UMAP(n_components=10, random_state=seed))
         ])
         
         return ColumnTransformer([
-            ('clip_pca', clip_pipe, ['v_clip']),
+            ('clip_umap', clip_pipe, ['v_clip']),
             ('numeric', 'passthrough', numeric_columns)
         ], remainder='drop')
 
@@ -67,10 +67,17 @@ class XGBoostPopularity(PopularityModel):
                 'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
                 'subsample': trial.suggest_float('subsample', 0.6, 1.0),
                 'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
+                'min_child_weight': trial.suggest_int('min_child_weight', 2, 20),
                 'random_state': seed,
                 'n_jobs': -1
             }
-            if not use_log:
+            
+            if use_log:
+                # Pseudo-Huber: ignora penalizaciones cuadráticas extremas
+                param['objective'] = 'reg:pseudohubererror'
+                param['huber_slope'] = trial.suggest_float('huber_slope', 0.1, 5.0)
+            else:
+                param['objective'] = 'reg:tweedie'
                 param['tweedie_variance_power'] = trial.suggest_float('tweedie_variance_power', 1.1, 1.9)
 
             model = self._build_pipeline(param, config, X_train)
@@ -78,14 +85,14 @@ class XGBoostPopularity(PopularityModel):
             cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
             cv_results = cross_validate(
                 model, X_train, y_train, 
-                scoring='neg_root_mean_squared_error', 
+                scoring='neg_mean_absolute_error', 
                 cv=list(cv.split(X_train, y_binned_train)), n_jobs=1
             )
             return -cv_results['test_score'].mean()
 
         optuna.logging.set_verbosity(optuna.logging.WARNING)
         study = optuna.create_study(direction="minimize")
-        study.optimize(objective, n_trials=30) 
+        study.optimize(objective, n_trials=50) 
         
         best_params = study.best_params
         best_params.update({'random_state': seed, 'n_jobs': -1})
@@ -123,6 +130,8 @@ class XGBoostPopularity(PopularityModel):
 
 def main(minio={"minio_write": False, "minio_read": False}):
     df_raw = read_file(popularity, minio)
+    
+    # Probar una configuración
     my_config = {"avoid_multicol": True, "use_log": True}
     
     modelo = XGBoostPopularity(
@@ -132,6 +141,23 @@ def main(minio={"minio_write": False, "minio_read": False}):
     )
     
     modelo.run_experiment(df_raw, config=my_config)
+    
+    '''
+    # Probar todas las configuraciones
+    for multicol in [True, False]:
+        for log in [True, False]:
+            
+            my_config = {"avoid_multicol": multicol, "use_log": log}
+            print(f"Ejecutando con: {my_config}")
+            
+            modelo = XGBoostPopularity(
+                run_name="", 
+                model_path="",
+                minio=minio
+            )
+            
+            modelo.run_experiment(df_raw, config=my_config)
+    '''
 
 if __name__ == "__main__":
     main()

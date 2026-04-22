@@ -10,7 +10,7 @@ import wandb
 from numpy import sqrt
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, median_absolute_error
 
 from src.utils.config import popularity
 from src.utils.files import read_file
@@ -47,12 +47,12 @@ def create_popularity_median_baseline(minio):
 
     mae = mean_absolute_error(y_true, y_pred)
     rmse = sqrt(mean_squared_error(y_true, y_pred))
-    r2 = r2_score(y_true, y_pred)
+    medae = median_absolute_error(y_true, y_pred)
 
     wandb.log({
         "test_mae": mae,
         "test_rmse": rmse,
-        "test_r2": r2,
+        "medae": medae
     })
 
     print(f"Mediana: {mediana_train}")
@@ -81,12 +81,12 @@ def create_popularity_mean_baseline(minio):
 
     mae = mean_absolute_error(y_true, y_pred)
     rmse = sqrt(mean_squared_error(y_true, y_pred))
-    r2 = r2_score(y_true, y_pred)
+    medae = median_absolute_error(y_true, y_pred)
 
     wandb.log({
         "test_mae": mae,
         "test_rmse": rmse,
-        "test_r2": r2,
+        "medae": medae
     })
 
     print(f"Media: {mean_train}")

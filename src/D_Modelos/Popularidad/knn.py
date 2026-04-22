@@ -3,183 +3,179 @@ Dado popularidad.parquet, ejecuta el modelo óptimo para predecir recomendacione
 """
 import numpy as np
 import pandas as pd
-import os
-import wandb
 import optuna
+import warnings
 
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_squared_log_error
-from sklearn.model_selection import train_test_split, KFold, cross_validate
-from sklearn.preprocessing import StandardScaler, PowerTransformer
-from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
+from sklearn.preprocessing import PowerTransformer, MinMaxScaler, QuantileTransformer, FunctionTransformer, StandardScaler
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.model_selection import StratifiedKFold, cross_validate
+from umap import UMAP
 
-from src.utils.config import popularity
-from src.utils.files import read_file, write_to_file
-from src.utils.config import popularidad_knn_log_file, models_popularidad_path
-from src.utils.config import seed
+from src.utils.files import read_file
+from src.utils.config import popularity, popularidad_knn_log_file, seed
+from src.D_Modelos.Popularidad.popularity_model import PopularityModel
 
-# HAY QUE PONER LAS VARIABLES QUE SALGAN EN XGBOOST
+
+warnings.filterwarnings('ignore')
+
 VARIABLES_GANADORAS = [
-    'video_1_video_statistics.likeCount', 'video_0_video_statistics.likeCount', 'video_2_video_statistics.likeCount',
-    'ema_reviews_publishers', 'Steam Trading Cards', 'Steam Cloud', 'num_languages', 'video_2_video_statistics.commentCount',
-    'Steam Achievements', 'RPG', 'ema_reviews_developers'
-]
+    'commentCountTotal', 'Free To Play', 'Family Sharing', 'ema_reviews_publishers', 
+    'Steam Trading Cards', 'Steam Cloud', 'num_languages', 'price_overview', 'Steam Achievements', 
+    'Online Co-op', 'Simulation', 'RPG', 'Custom Volume Controls', 'release_year', 
+    'clip_umap_0', 'Remote Play Together', 'Online PvP', 'clip_umap_2', 'Playable without Timed Input', 
+    'Shared/Split Screen']
 
-def transform_for_knn(df):
-    """
-    Preprocesamiento limpio y directo. Solo conserva las variables
-    ganadoras y la variable objetivo, forzando los tipos numéricos.
-    """
-    cols_to_keep = VARIABLES_GANADORAS + ['recomendaciones_totales']
-    df_clean = df[[c for c in cols_to_keep if c in df.columns]].copy()
+['Family Sharing', 'commentCountTotal', 'Free To Play', 'ema_reviews_publishers', 
+ 'Steam Trading Cards', 'Steam Cloud', 'num_languages', 'price_overview', 
+ 'Steam Achievements', 'Simulation', 'Online Co-op', 'RPG', 'release_year', 
+ 'Custom Volume Controls', 'Online PvP', 'Single-player', 'Playable without Timed Input', 
+ 'Shared/Split Screen', 'clip_umap_0', 'PvP']
 
-    # Forzamos numéricos y rellenamos nulos con 0
-    for col in VARIABLES_GANADORAS:
-        if col in df_clean.columns:
-            df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce').fillna(0)
+def get_clip_matrix(X):
+    return np.vstack(X.iloc[:, 0].values)
 
-    return df_clean
+def slice_umap(X):
+    return X[:, [0]]
 
-def predict_knn(model_data, test_df, train_df):
-    X_test_knn = test_df[VARIABLES_GANADORAS]
-    y_pred_knn = model_data.predict(X_test_knn)
-    y_pred_knn = np.clip(y_pred_knn, 0, None)
-    return y_pred_knn
+class KNNPopularity(PopularityModel):
+    def __init__(self, minio: dict):
+        super().__init__(
+            run_name="knn-model-log",
+            model_path=popularidad_knn_log_file,
+            minio=minio
+        )
 
-def _get_best_knn_params(X_train, y_train):
-    """
-    Busca los mejores hiperparámetros para el modelo KNN utilizando Optuna.
-    """
-    def objective(trial):
-        n_neighbors = trial.suggest_int('n_neighbors', 3, 50)
-        weights = trial.suggest_categorical('weights', ['uniform', 'distance'])
-        p = trial.suggest_int('p', 1, 2)
+    def _preprocess_data(self, df_raw, config):
+        """
+        Limpia los datos y mantiene todas las candidatas a variables ganadoras.
+        El Pipeline se encargará de descartar las que Optuna decida apagar.
+        """
+        df_clean = super()._preprocess_data(df_raw, config)
 
-        todas_sesgadas = ['price_overview', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer']
-        cols_sesgadas = [c for c in VARIABLES_GANADORAS if c in todas_sesgadas and c in X_train.columns]
-        cols_binarias = [c for c in VARIABLES_GANADORAS if c in X_train.columns and set(X_train[c].dropna().unique()).issubset({0, 1, 0.0, 1.0})]
-        cols_normales = [c for c in VARIABLES_GANADORAS if c in X_train.columns and c not in cols_sesgadas + cols_binarias]
+        vars_reales = [v for v in VARIABLES_GANADORAS if not v.startswith('clip_umap_')]
 
-        preprocessor = ColumnTransformer(transformers=[
-            ('sesgadas', PowerTransformer(method='yeo-johnson'), cols_sesgadas),
-            ('normales', StandardScaler(), cols_normales),
-            ('binarias', 'passthrough', cols_binarias)
-        ], remainder='drop')
+        cols_to_keep = vars_reales + ['recomendaciones_totales', 'v_clip']
+        df_final = df_clean[[c for c in cols_to_keep if c in df_clean.columns]].copy()
+
+        return df_final
+
+    def _build_pipeline(self, hyperparameters, config, X_train):
+        """Construye el pipeline filtrando solo las variables seleccionadas por Optuna."""
+        # La idea es que de las 20 variables mas importantes en xgboost, solo se quede con las óptimas
+        # Esto es porque knn penaliza mucho la alta dimensionalidad
+        selected_vars = []
+        has_feature_selection = any(k.startswith('use_') for k in hyperparameters.keys())
+        
+        if has_feature_selection:
+            # Optuna ha runneado: filtramos las que son True
+            selected_vars = [var for var in VARIABLES_GANADORAS if hyperparameters.get(f'use_{var}', False)]
+            clip_vars = [v for v in selected_vars if v.startswith('clip_umap_')]
+            selected_vars = [v for v in selected_vars if not v.startswith('clip_umap_')]
+
+            use_clip = len(clip_vars) > 0
+            # Si Optuna decide apagar todas las variables, forzamos a usar al menos una para que no falle
+            if not selected_vars:
+                selected_vars = [VARIABLES_GANADORAS[0]]
+        else:
+            # Fallback por si se pasan parámetros sin selección de características
+            clip_vars = [v for v in VARIABLES_GANADORAS if v.startswith('clip_umap_')]
+            selected_vars = [v for v in VARIABLES_GANADORAS if not v.startswith('clip_umap_')]
+            use_clip = len(clip_vars) > 0
+
+        # Separamos los parámetros puros del KNN de los booleanos de las variables
+        knn_params = {k: v for k, v in hyperparameters.items() if not k.startswith('use_')}
+
+        transformer_name = knn_params.pop('transformer', 'power')
+        transformer = PowerTransformer(method='yeo-johnson') if transformer_name == 'power' else QuantileTransformer(output_distribution='normal', random_state=seed)
+
+        # Porque solo vamos a usar la componente 0
+        slice_components = FunctionTransformer(slice_umap, validate=False)
+
+        clip_pipe = Pipeline([
+            ('extractor', FunctionTransformer(get_clip_matrix, validate=False)),
+            ('umap', UMAP(n_components=10, random_state=seed)),
+            ('slicer', slice_components),
+            ('scale', MinMaxScaler())
+        ])
+
+        cols_minmax = [c for c in selected_vars if c in self.COLS_ACOTADAS and c in X_train.columns]
+        cols_sesgadas = [c for c in selected_vars if c in self.COLS_SESGADAS and c in X_train.columns]
+        cols_binarias = [c for c in selected_vars if c in self.COLS_BINARIAS and c in X_train.columns]
+        cols_normales = [c for c in selected_vars if c in X_train.columns and c not in cols_minmax + cols_sesgadas + cols_binarias]
+        
+        transformers = []
+
+        if use_clip and 'v_clip' in X_train.columns:
+            transformers.append(('clip_umap', clip_pipe, ['v_clip']))
+
+        if cols_minmax:
+            transformers.append(('minmax', MinMaxScaler(), cols_minmax))
+
+        if cols_sesgadas:
+            transformers.append(('sesgadas', transformer, cols_sesgadas))
+
+        if cols_binarias:
+            transformers.append(('binarias', 'passthrough', cols_binarias))
+        
+        if cols_normales:
+            transformers.append(('normales', StandardScaler(), cols_normales))
+
+        preprocessor = ColumnTransformer(
+            transformers=transformers,
+            remainder='drop'
+        )
 
         pipeline = Pipeline([
             ('prep', preprocessor),
-            ('knn', KNeighborsRegressor(n_neighbors=n_neighbors, weights=weights, p=p, n_jobs=-1))
+            ('knn', KNeighborsRegressor(**knn_params, n_jobs=-1))
         ])
 
-        final_model = TransformedTargetRegressor(
-            regressor=pipeline,
-            func=np.log1p,
-            inverse_func=np.expm1
-        )
+        return TransformedTargetRegressor(regressor=pipeline, func=np.log1p, inverse_func=np.expm1)
 
-        cv = KFold(n_splits=5, shuffle=True, random_state=seed)
+    def _optimize_hyperparameters(self, data_splits, config):
+        """Optimiza hiperparámetros y realiza Feature Selection simultánea."""
+        X_train = data_splits["X_train"]
+        y_train = data_splits["y_train"]
+        y_binned_train = data_splits["y_binned_train"]
+
+        def objective(trial):
+            params = {
+                'n_neighbors': trial.suggest_int('n_neighbors', 3, 50),
+                'weights': trial.suggest_categorical('weights', ['uniform', 'distance']),
+                'p': trial.suggest_int('p', 1, 2),
+                'transformer': trial.suggest_categorical('transformer', ['power', 'quantile'])
+            }
+            
+            # Optuna enciende/apaga cada variable de forma independiente
+            for var in VARIABLES_GANADORAS:
+                if var in X_train.columns:
+                    params[f'use_{var}'] = trial.suggest_categorical(f'use_{var}', [True, False])
+
+            model = self._build_pipeline(params, config, X_train)
+            cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+            
+            scores = cross_validate(
+                model, X_train, y_train,
+                cv=list(cv.split(X_train, y_binned_train)),
+                scoring='neg_mean_absolute_error',
+                n_jobs=-1,
+                error_score='raise'
+            )
+            return -scores['test_score'].mean()
+
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+        study = optuna.create_study(direction="minimize")
+        study.optimize(objective, n_trials=30) 
         
-        scores = cross_validate(
-            final_model, X_train, y_train,
-            cv=cv,
-            scoring='neg_mean_absolute_error',
-            n_jobs=-1
-        )
-        return -scores['test_score'].mean()
+        return study.best_params
 
-    study = optuna.create_study(direction="minimize")
-    study.optimize(objective, n_trials=30)
-    
-    return study.best_params
-
-def create_knn_model_popularity(minio):
-    """
-    Orquesta el entrenamiento del modelo KNN (solo tabular) y su subida a wandb.
-    """
-    run = wandb.init(
-        entity="pd1-c2526-team4",
-        project="Popularidad",
-        name="knn-model-log",
-        job_type="knn-model-log",
-        config={
-            "modelo": "KNN_POPULARIDAD", 
-            "variables": VARIABLES_GANADORAS
-        }
-    )
-
+def main(minio={"minio_write": False, "minio_read": False}):
     df_raw = read_file(popularity, minio)
-    print("Aplicando transformaciones a los datos...")
-    df_prepared = transform_for_knn(df_raw)
     
-    X = df_prepared[VARIABLES_GANADORAS]
-    y = df_prepared['recomendaciones_totales']
-
-    bins_strat = [-1, 10, 100, 1000, 10000, float('inf')]
-    y_binned = pd.cut(y, bins=bins_strat, labels=False)
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=seed, stratify=y_binned
-    )
-
-    print("Buscando los mejores parámetros para el modelo KNN...")
-    best_params = _get_best_knn_params(X_train, y_train)
-    print("Mejores parámetros encontrados:", best_params)
-    
-    wandb.config.update({"params": best_params})
-
-    todas_sesgadas = ['price_overview', 'num_languages', 'total_games_by_publisher', 'total_games_by_developer']
-    cols_sesgadas = [c for c in VARIABLES_GANADORAS if c in todas_sesgadas and c in X_train.columns]
-    cols_binarias = [c for c in VARIABLES_GANADORAS if c in X_train.columns and set(X_train[c].dropna().unique()).issubset({0, 1, 0.0, 1.0})]
-    cols_normales = [c for c in VARIABLES_GANADORAS if c in X_train.columns and c not in cols_sesgadas + cols_binarias]
-
-    preprocessor = ColumnTransformer(transformers=[
-        ('sesgadas', PowerTransformer(method='yeo-johnson'), cols_sesgadas),
-        ('normales', StandardScaler(), cols_normales),
-        ('binarias', 'passthrough', cols_binarias)
-    ], remainder='drop')
-
-    final_model = TransformedTargetRegressor(
-        regressor=Pipeline([
-            ('prep', preprocessor),
-            ('knn', KNeighborsRegressor(**best_params, n_jobs=-1))
-        ]),
-        func=np.log1p,
-        inverse_func=np.expm1
-    )
-
-    print("Entrenando el modelo KNN definitivo...")
-    final_model.fit(X_train, y_train)
-
-    y_pred = np.clip(final_model.predict(X_test), 0, None)
-    
-    mae = mean_absolute_error(y_test, y_pred)
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    r2 = r2_score(y_test, y_pred)
-    rmsle = np.sqrt(mean_squared_log_error(y_test, y_pred))
-
-    print(f"\nResultados Test:")
-    print(f"MAE:   {mae:.4f}")
-    print(f"RMSE:  {rmse:.4f}")
-    print(f"R2:    {r2:.4f}")
-    print(f"RMSLE: {rmsle:.4f}")
-
-    wandb.log({
-        "test_mae": mae,
-        "test_rmse": rmse,
-        "test_r2": r2,
-        "test_rmsle": rmsle
-    })
-
-    os.makedirs(models_popularidad_path(), exist_ok=True)
-    write_to_file(final_model, popularidad_knn_log_file, minio)
-    print(f"Modelo guardado en {popularidad_knn_log_file}")
-
-    run.finish()
-
-
-def main(minio = {"minio_write": False, "minio_read": False}):
-    create_knn_model_popularity(minio)
+    modelo_knn = KNNPopularity(minio=minio)
+    modelo_knn.run_experiment(df_raw, config={"avoid_multicol": True, "use_log": True})
 
 if __name__ == "__main__":
     main()

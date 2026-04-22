@@ -1,13 +1,24 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import KBinsDiscretizer
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error, median_absolute_error
 
 from src.D_Modelos.base_model import BaseModel
 from src.utils.config import seed
 
 class PopularityModel(BaseModel):
+    COLS_SESGADAS = ['price_overview', 'total_games_by_publisher', 'total_games_by_developer',
+                     'commentCountTotal', 'ema_reviews_publishers']
+    COLS_ACOTADAS = ['description_len', 'num_languages', 'brillo', 'release_year']
+    COLS_BINARIAS = ['Action', 'Adventure', 'Casual', 'Early Access', 'Free To Play', 'Indie', 'RPG',
+       'Simulation', 'Strategy', 'Co-op', 'Custom Volume Controls',
+       'Family Sharing', 'Full controller support', 'Multi-player',
+       'Online Co-op', 'Online PvP', 'Partial Controller Support',
+       'Playable without Timed Input', 'PvP', 'Remote Play Together',
+       'Shared/Split Screen', 'Single-player', 'Steam Achievements',
+       'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards', 
+       'es_primer_juego_developers', 'es_primer_juego_publishers']
+
     def __init__(self, run_name: str, model_path, minio: dict):
         super().__init__(project_name="Popularidad", run_name=run_name, model_path=model_path, minio=minio)
 
@@ -15,7 +26,7 @@ class PopularityModel(BaseModel):
         avoid_multicollinearity = config.get("avoid_multicol", True)
         df_clean = df.copy()
         
-        erase_columns = ['id', 'name', 'v_resnet', 'v_convnext']
+        erase_columns = ['id', 'name', 'v_resnet', 'v_convnext', 'yt_score']
         df_clean = df_clean.dropna(subset=["num_juegos_previos_developers", "num_juegos_previos_publishers"], how="all")
 
         cols_devs = ["num_juegos_previos_developers", "es_primer_juego_developers", "ema_reviews_developers", "max_historico_reviews_developers"]
@@ -39,15 +50,30 @@ class PopularityModel(BaseModel):
             if col != 'v_clip':
                 df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
         
-        return df_clean.fillna(0)
+        cols_to_fill = [c for c in df_clean.columns if c != 'v_clip']
+        df_clean[cols_to_fill] = df_clean[cols_to_fill].fillna(0)
+
+        return df_clean
 
     def _create_stratified_bins(self, y, n_bins=5):
-        bins = np.zeros(len(y), dtype=int)
-        mask_pos = y > 0
-        if mask_pos.sum() > n_bins:
-            kb = KBinsDiscretizer(n_bins=n_bins-1, encode='ordinal', strategy='quantile', random_state=seed)
-            bins[mask_pos] = kb.fit_transform(y[mask_pos].values.reshape(-1, 1)).flatten() + 1
-        return bins
+        """
+        Crea exactamente 5 bins estratificados. 
+        Si hay empates masivos, los desempata al 
+        azar para que todos los grupos tengan el mismo tamaño.
+        """
+        # Cortes basados en los datos:
+        # 0 - 6 (Percentil 0-50)
+        # 6 - 23 (Percentil 50-75)
+        # 23 - 106 (Percentil 75-90)
+        # 106 - 320 (Percentil 90-95)
+        # 320+ (Top 5%)
+        
+        bins = pd.cut(
+            y, 
+            bins=[-np.inf, 6, 23, 106, 320, np.inf], 
+            labels=False
+        )
+        return bins.values
 
     def _split_data(self, df_prep):
         X = df_prep.drop(columns=["recomendaciones_totales"])
@@ -63,12 +89,12 @@ class PopularityModel(BaseModel):
             "X_test": X_test,
             "y_train": y_train, 
             "y_test": y_test,
-            "y_binned_train": y_binned_train  # Necesario para StratifiedKFold
+            "y_binned_train": y_binned_train
         }
 
     def _calculate_metrics(self, y_true, y_pred) -> dict:
         return {
             "mae": mean_absolute_error(y_true, y_pred),
             "rmse": root_mean_squared_error(y_true, y_pred),
-            "r2": r2_score(y_true, y_pred)
+            "medae": median_absolute_error(y_true, y_pred)
         }

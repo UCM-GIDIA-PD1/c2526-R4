@@ -33,6 +33,10 @@ class BaseModel(ABC):
     @abstractmethod
     def _calculate_metrics(self, y_true, y_pred) -> dict:
         pass
+
+    @staticmethod
+    def _format_metrics(metrics: dict) -> str:
+        return " | ".join(f"{k.upper()}: {v:.4f}" for k, v in metrics.items())
     
     def _predict(self, model, X_test, X_train=None):
         preds = model.predict(X_test)
@@ -61,7 +65,7 @@ class BaseModel(ABC):
         model_data = None
         try:
             model_data = read_file(self.model_path, self.minio)
-        except Exception:
+        except FileNotFoundError:
             pass
         
         if model_data is not None:
@@ -87,8 +91,8 @@ class BaseModel(ABC):
         
         preds = self._predict(modelo_final, X_test, X_train)
         metrics = self._calculate_metrics(y_test, preds)
-        
-        print(f"Resultados de {self.run_name}: MAE: {metrics['mae']:.4f} | RMSE: {metrics['rmse']:.4f} | R2: {metrics['r2']:.4f}")
+
+        print(f"Resultados de {self.run_name}: {self._format_metrics(metrics)}")        
         wandb.log({f"test_{k}": v for k, v in metrics.items()}) # Logueamos estandarizado
         
         run.finish()
