@@ -1,4 +1,7 @@
-from utils.preprocesamiento import read_reviews, train_val_test_split, clean_text_lemma
+import nltk
+nltk.download('stopwords')
+nltk.download('wordnet')
+from src.D_Modelos.Reviews.utils.preprocesamiento import read_reviews, train_val_test_split, clean_text_lemma
 from tqdm import tqdm
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import ComplementNB
@@ -7,11 +10,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import cross_val_score
 import optuna
-import nltk
 import wandb
 import os
 import json
 from src.D_Modelos.Reviews.utils.utils import get_metrics
+
+from src.utils.files import read_file, write_to_file
+from src.utils.config import reviews_naive_bayes_tfidf_file, models_reviews_path
 
 class_names = ["Negativo", "Positivo"]
 
@@ -220,20 +225,17 @@ def _optuna(X_train, X_val, X_test, y_train, y_val, y_test):
 
     return balanced_accuracy, mejores_params
 
-def train_best_model(X_train, y_train):
-    path = "models/reviews/naivebayes_tfidf_hyperparameters.json"
-    with open(path, "r") as f:
-        model_params = json.load(f)
+def train_best_model(best_params, X_train, y_train):
         
     final_model = Pipeline([
         ('vect', TfidfVectorizer(
-            ngram_range=tuple(model_params["ngram_range"]),
-            min_df=model_params['min_df'],
-            max_df=model_params['max_df'],
-            sublinear_tf=model_params['sublinear_tf'],
-            norm=model_params['norm']
+            ngram_range=tuple(best_params["ngram_range"]),
+            min_df=best_params['min_df'],
+            max_df=best_params['max_df'],
+            sublinear_tf=best_params['sublinear_tf'],
+            norm=best_params['norm']
         )),
-        ('clf', ComplementNB(alpha=model_params['alpha']))
+        ('clf', ComplementNB(alpha=best_params['alpha']))
     ])
     
     final_model.fit(X_train, y_train)
@@ -254,10 +256,11 @@ def main(minio = {"minio_write": False, "minio_read": False}):
 
     best_params = best_standard_params(score_grid, params_grid,score_optuna, params_optuna)
 
+    best_model = train_best_model(best_params, X_train, y_train)
 
-    os.makedirs('models/reviews', exist_ok=True)
-    with open("models/reviews/naivebayes_tfidf_hyperparameters.json", "w") as f:
-        json.dump(best_params, f, indent=4)
+    os.makedirs(models_reviews_path(), exist_ok=True)
+    write_to_file(best_model, reviews_naive_bayes_tfidf_file, minio)
+    print(f"Modelo guardado en {reviews_naive_bayes_tfidf_file}")
 
 if __name__ == "__main__":
     main()

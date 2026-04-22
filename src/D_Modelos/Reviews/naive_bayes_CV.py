@@ -242,7 +242,7 @@ def main(minio = {"minio_write": False, "minio_read": False}):
 
     best_params = best_standard_params(score_grid, params_grid,score_optuna, params_optuna)
 
-    best_model = train_best_model(best_params, X_train, X_test)
+    best_model = train_best_model(best_params, X_train, y_train)
 
     os.makedirs(models_reviews_path(), exist_ok=True)
     write_to_file(best_model, reviews_naive_bayes_cv_file, minio)
