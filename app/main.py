@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi import Request
 from pydantic import BaseModel
+from utils.request import read_popularity, read_prices, find_row
 import random
 
 
@@ -26,6 +27,9 @@ async def lifespan(app: FastAPI):
     # app.state.model_popularidad = load('models/popularidad/xgboost_model.pkl')
     # app.state.model_precio = load('models/precios/catboostClustered.pkl')
     # app.state.model_reviews = load('models/reviews/logistic_regression_optuna.pkl')
+    app.state.df_popularity = read_popularity()
+    app.state.df_precios = read_prices()
+
     print("SteamPredictor API iniciada")
     yield
     print("SteamPredictor API detenida")
@@ -100,6 +104,8 @@ MOCK_GAMES = [
     GameInfo(appid=730, name="Counter-Strike 2", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/730/header.jpg", release_date="21 Aug, 2012", developer="Valve", genres=["FPS", "Shooter", "Competitive"], price=0.00, positive_reviews=7234567, negative_reviews=1234567),
     GameInfo(appid=1086940, name="Baldur's Gate 3", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1086940/header.jpg", release_date="3 Aug, 2023", developer="Larian Studios", genres=["RPG", "Strategy", "Adventure"], price=59.99, positive_reviews=512345, negative_reviews=15234),
     GameInfo(appid=367520, name="Hollow Knight", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/367520/header.jpg", release_date="24 Feb, 2017", developer="Team Cherry", genres=["Metroidvania", "Action", "Indie"], price=14.99, positive_reviews=289345, negative_reviews=4567),
+    #NOTE: Este juego es uno de prueba para probar que el request funcione
+    GameInfo(appid=60340, name="Luxor: 5th Passage", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg", release_date="26 Feb, 2016", developer="ConcernedApe", genres=["RPG", "Simulation", "Farming"], price=13.99, positive_reviews=523847, negative_reviews=5891),
 ]
 
 
@@ -162,9 +168,8 @@ def get_trending():
 @app.post("/api/predict/popularidad", response_model=PredictionResponse)
 def predict_popularidad(req: PredictionRequest):
     """Predicción de popularidad (stub)."""
-    
-    #TODO: Función para obtener los datos para el problema de popularidad
-    # data = get_gameinfo_popularity(req.appid)
+    print('Predicting popularity')
+    data = find_row(str(req.appid), app.state.df_popularity)
     
     #TODO: Cargar el modelo y llamar a la función de transformación y función de predicción
     # data = transformación(data)
