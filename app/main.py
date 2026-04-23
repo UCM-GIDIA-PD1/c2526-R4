@@ -16,6 +16,7 @@ from fastapi import Request
 from pydantic import BaseModel
 from utils.request import read_popularity, read_prices, find_row
 import random
+from joblib import load
 
 
 # --------------------------------------------------------------------------
@@ -25,10 +26,13 @@ import random
 async def lifespan(app: FastAPI):
     # Startup: cargar modelos en memoria
     # app.state.model_popularidad = load('models/popularidad/xgboost_model.pkl')
-    # app.state.model_precio = load('models/precios/catboostClustered.pkl')
+    app.state.model_price = load('models/precios/knncompleteclusters.pkl')
     # app.state.model_reviews = load('models/reviews/logistic_regression_optuna.pkl')
+
+
+    # Cargar los datos en memoria
     app.state.df_popularity = read_popularity()
-    app.state.df_precios = read_prices()
+    app.state.df_prices = read_prices()
 
     print("SteamPredictor API iniciada")
     yield
@@ -105,7 +109,7 @@ MOCK_GAMES = [
     GameInfo(appid=1086940, name="Baldur's Gate 3", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1086940/header.jpg", release_date="3 Aug, 2023", developer="Larian Studios", genres=["RPG", "Strategy", "Adventure"], price=59.99, positive_reviews=512345, negative_reviews=15234),
     GameInfo(appid=367520, name="Hollow Knight", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/367520/header.jpg", release_date="24 Feb, 2017", developer="Team Cherry", genres=["Metroidvania", "Action", "Indie"], price=14.99, positive_reviews=289345, negative_reviews=4567),
     #NOTE: Este juego es uno de prueba para probar que el request funcione
-    GameInfo(appid=60340, name="Luxor: 5th Passage", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg", release_date="26 Feb, 2016", developer="ConcernedApe", genres=["RPG", "Simulation", "Farming"], price=13.99, positive_reviews=523847, negative_reviews=5891),
+    GameInfo(appid=99700, name="Luxor: 5th Passage", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg", release_date="26 Feb, 2016", developer="ConcernedApe", genres=["RPG", "Simulation", "Farming"], price=13.99, positive_reviews=523847, negative_reviews=5891),
 ]
 
 
@@ -194,26 +198,13 @@ def predict_popularidad(req: PredictionRequest):
 @app.post("/api/predict/precio", response_model=PredictionResponse)
 def predict_precio(req: PredictionRequest):
     """Predicción de precio (stub)."""
-    #TODO: Función para obtener los datos para el problema de precios
-    # data = get_gameinfo_precios(req.appid)
+    print('Predicting prices')
+    data = find_row(str(req.appid), app.state.df_prices)
     
-    #TODO: Cargar el modelo y llamar a la función de transformación y función de predicción
     # data = transformación(data)
-    # PriceResponse = app.state.model_precios.predict(data)
-
-    base = round(random.uniform(4.99, 59.99), 2)
-    return PredictionResponse(
-        value=base,
-        confidence=round(random.uniform(0.65, 0.92), 2),
-        model_used="CatBoost Clustered",
-        details={
-            "metric": "predicted_price",
-            "unit": "€",
-            "history": _generate_mock_history(base),
-            "price_range": {"min": round(base * 0.7, 2), "max": round(base * 1.3, 2)},
-        },
-    )
-
+    prediction = app.state.model_price.predict(data)
+    print('Predicción', prediction)
+    return prediction
 
 @app.post("/api/predict/reviews", response_model=PredictionResponse)
 def predict_reviews(req: PredictionRequest):

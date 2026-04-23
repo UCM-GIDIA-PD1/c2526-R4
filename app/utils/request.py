@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np 
+from sklearn.cluster import KMeans
 
 #TODO: Implementar lectura de minio para los modelos y datos
 
@@ -27,6 +29,11 @@ def read_prices():
 
     print('Data read correctly')
 
+    matrix = np.stack(data['v_clip'].values)
+    kmeans = KMeans(n_clusters=8, random_state=42)
+    data['cluster'] = kmeans.fit_predict(matrix)
+    data = data.drop(columns=['v_clip'])
+
     return data
     
 def find_row(appid : str, df : pd.DataFrame):
@@ -37,3 +44,13 @@ def find_row(appid : str, df : pd.DataFrame):
     print(row)
 
     return row
+
+def prices_transform(data):
+    #NOTE: Se usa el modelo de knn de precios (para probar porque era el más 'sencillo')
+
+    data = data.drop(columns= ['id','name','price_overview','v_resnet','v_convnext'])
+    data['release_year'] = df['release_year'].apply(lambda x : int(x))
+    return data
+
+
+
