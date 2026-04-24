@@ -5,11 +5,10 @@ y las registra en W&B en un único run y en una tabla comparativa.
 """
 import wandb
 import pandas as pd
-from math import sqrt
-import importlib
+import numpy as np
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error, median_absolute_error
 
 from src.utils.config import popularity, seed
 from src.utils.files import read_file
@@ -26,16 +25,17 @@ def evaluate_models(minio):
     df_raw = read_file(popularity, minio)
     y_variable = "recomendaciones_totales"
 
-    table = wandb.Table(columns=["Model", "MAE", "RMSE", "R2"])
+    table = wandb.Table(columns=["Model", "MAE", "RMSE", "MEDAE"])
 
     for model_name, config in models_popularidad.items():
         df = config["transform_function"](df_raw)
 
-        bins_strat = [-1, 10, 100, 1000, 10000, float('inf')]
+        bins_strat = [-np.inf, 6, 23, 106, 320, np.inf]
         y_binned = pd.cut(df[y_variable], bins=bins_strat, labels=False)
+        
         train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed, stratify=y_binned)
 
-        if config["model_path"] != None:
+        if config["model_path"] is not None:
             model_data = read_file(config["model_path"], minio)
         else:
             model_data = None
@@ -43,14 +43,15 @@ def evaluate_models(minio):
         y_real = test_df[y_variable]
         y_pred = config["prediction_function"](model_data, test_df, train_df)
 
-        mae = mean_absolute_error(y_real, y_pred)
-        rmse = sqrt(mean_squared_error(y_real, y_pred))
-        r2 = r2_score(y_real, y_pred)
+        y_pred = np.maximum(y_pred, 0)
 
-        table.add_data(model_name, mae, rmse, r2)
+        mae = mean_absolute_error(y_real, y_pred)
+        rmse = root_mean_squared_error(y_real, y_pred)
+        medae = median_absolute_error(y_real, y_pred)
+
+        table.add_data(model_name, mae, rmse, medae)
 
     wandb.log({"comparative_table": table})
-    print("Evaluación completada. Resultados en W&B.")
 
     run.finish()
 
