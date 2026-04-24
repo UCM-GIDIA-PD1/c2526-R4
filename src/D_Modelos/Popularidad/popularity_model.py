@@ -1,37 +1,15 @@
+import os
+import wandb
 import pandas as pd
 import numpy as np
+from abc import ABC, abstractmethod
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error, median_absolute_error
 
-from src.D_Modelos.base_model import BaseModel
 from src.utils.config import seed
+from src.utils.files import read_file, write_to_file
 
-[
-       
-       'num_juegos_previos_developers', 'es_primer_juego_developers',
-       'ema_reviews_developers', 'max_historico_reviews_developers',
-       'num_juegos_previos_publishers', 'es_primer_juego_publishers',
-       'ema_reviews_publishers', 'max_historico_reviews_publishers', 'brillo',
-       'v_clip',
-       'video_0_video_statistics.viewCount',
-       'video_0_video_statistics.likeCount',
-       'video_0_video_statistics.favoriteCount',
-       'video_0_video_statistics.commentCount',
-       'video_1_video_statistics.viewCount',
-       'video_1_video_statistics.likeCount',
-       'video_1_video_statistics.favoriteCount',
-       'video_1_video_statistics.commentCount',
-       'video_2_video_statistics.viewCount',
-       'video_2_video_statistics.likeCount',
-       'video_2_video_statistics.favoriteCount',
-       'video_2_video_statistics.commentCount',
-       'video_3_video_statistics.viewCount',
-       'video_3_video_statistics.likeCount',
-       'video_3_video_statistics.favoriteCount',
-       'video_3_video_statistics.commentCount', 'yt_score', 'viewCountTotal',
-       'likeCountTotal', 'commentCountTotal']
-
-class PopularityModel(BaseModel):
+class PopularityModel(ABC):
     COLS_SESGADAS = ['price_overview', 'total_games_by_publisher', 'total_games_by_developer',
                     'num_juegos_previos_developers', 'es_primer_juego_developers', 
                     'ema_reviews_developers', 'max_historico_reviews_developers',
@@ -65,7 +43,96 @@ class PopularityModel(BaseModel):
        'es_primer_juego_developers', 'es_primer_juego_publishers']
 
     def __init__(self, run_name: str, model_path, minio: dict):
-        super().__init__(project_name="Popularidad", run_name=run_name, model_path=model_path, minio=minio)
+        self.project_name = "Popularidad"
+        self.run_name = run_name
+        self.model_path = model_path
+        self.minio = minio
+        self.entity = "pd1-c2526-team4"
+
+    @abstractmethod
+    def _optimize_hyperparameters(self, data_splits, config):
+        pass
+
+    @abstractmethod
+    def _build_pipeline(self, hyperparameters, config, X_train):
+        pass
+
+    @staticmethod
+    def _format_metrics(metrics: dict) -> str:
+        return " | ".join(f"{k.upper()}: {v:.4f}" for k, v in metrics.items())
+    
+    def _predict(self, model, X_test, X_train=None):
+        preds = model.predict(X_test)
+        return np.maximum(preds, 0)
+
+    def run_experiment(self, df_raw, config, hyperparameters=None):
+        """Flujo de ejecución de un modelo"""
+        
+        run = wandb.init(
+            entity=self.entity, 
+            project=self.project_name, 
+            name=self.run_name,
+            job_type="model-training",
+            config=config
+        )
+        print(f"\nIniciando experimento: {self.run_name} ---")
+
+        df_prep = self._preprocess_data(df_raw, config)
+        data_splits = self._split_data(df_prep)
+        
+        X_train, X_test = data_splits["X_train"], data_splits["X_test"]
+        y_train, y_test = data_splits["y_train"], data_splits["y_test"]
+
+        # Intentamos cargar hiperparámetros en caso de que ya se hayan encontrado los óptimos
+        model_data = None
+        try:
+            model_data = read_file(self.model_path, self.minio)
+        except FileNotFoundError:
+            pass
+        
+        if model_data is not None:
+            print(f"Cargando modelo existente de {self.model_path}...")
+            modelo_final = model_data["model"]
+            best_params = model_data.get("hyperparameters", {})
+        else:
+            print("No se encontró pkl. Iniciando entrenamiento...")
+            if hyperparameters:
+                best_params = hyperparameters.copy()
+            else:
+                best_params = self._optimize_hyperparameters(data_splits, config)
+
+            modelo_final = self._build_pipeline(best_params, config, X_train)
+            modelo_final.fit(X_train, y_train)
+
+            os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
+            write_to_file({"model": modelo_final, "hyperparameters": best_params}, self.model_path, self.minio)
+            print(f"Modelo guardado exitosamente en {self.model_path}")
+
+        wandb.config.update({"params": best_params})
+        
+        preds = self._predict(modelo_final, X_test, X_train)
+        metrics = self._calculate_metrics(y_test, preds)
+
+        print(f"Resultados de {self.run_name}: {self._format_metrics(metrics)}")        
+        wandb.log({f"test_{k}": v for k, v in metrics.items()}) # Logueamos estandarizado
+        
+        run.finish()
+        return modelo_final
+
+    # Evaluación para Z_evaluaciones.py
+    def evaluate(self, df_raw, config) -> dict:
+        """Hace todo el pipeline de datos y predice cargando los hiperparámetros óptimos"""
+        df_prep = self._preprocess_data(df_raw, config)
+        data_splits = self._split_data(df_prep)
+        
+        model_data = read_file(self.model_path, self.minio)
+        if model_data is None:
+            raise FileNotFoundError(f"No se encontró el modelo en {self.model_path} para evaluación.")
+            
+        modelo_final = model_data["model"]
+        preds = self._predict(modelo_final, data_splits["X_test"], data_splits["X_train"])
+        
+        return self._calculate_metrics(data_splits["y_test"], preds)
 
     def _preprocess_data(self, df, config):
         avoid_multicollinearity = config.get("avoid_multicol", True)
