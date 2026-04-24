@@ -130,7 +130,7 @@ class XGBoostPopularity(PopularityModel):
 
 def main(minio={"minio_write": False, "minio_read": False}):
     df_raw = read_file(popularity, minio)
-    
+    '''
     # Probar una configuración
     my_config = {"avoid_multicol": True, "use_log": True}
     
@@ -141,8 +141,8 @@ def main(minio={"minio_write": False, "minio_read": False}):
     )
     
     modelo.run_experiment(df_raw, config=my_config)
-    
     '''
+    
     # Probar todas las configuraciones
     for multicol in [True, False]:
         for log in [True, False]:
@@ -157,7 +157,7 @@ def main(minio={"minio_write": False, "minio_read": False}):
             )
             
             modelo.run_experiment(df_raw, config=my_config)
-    '''
+    
 
 if __name__ == "__main__":
     main()

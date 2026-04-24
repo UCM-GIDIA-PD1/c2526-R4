@@ -1,247 +1,205 @@
 """
-Dado precios.parquet crea diferentes modelos de MLP para predecir en que rango 
-de precio se sitúa un juego según sus características.
+Dado popularidad.parquet, ejecuta el modelo de Late Fusion
+para procesar embeddings de imágenes (512 dims) y datos tabulares en paralelo.
 """
-
-from src.utils.config import popularity
-from src.utils.files import read_file, write_to_file
-from src.utils.config import popularidad_mlp_file, models_popularidad_path
-
-from sklearn.preprocessing import StandardScaler, PowerTransformer, MinMaxScaler, FunctionTransformer
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.model_selection import cross_val_score
-from sklearn.neural_network import MLPRegressor
-from sklearn.decomposition import PCA
-from umap import UMAP
-import optuna
-
-import wandb
-
-from pandas import DataFrame, concat
-from numpy import vstack, log1p, expm1, clip
 import os
-from src.utils.config import seed
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '' # Para forzar GPU
 
-def _preprocess_train(df):
-    """Función para transformar los datos para realiza MLP
+import numpy as np
+import optuna
+import warnings
 
-    Args:
-        df (DataFrame): Datos iniciales del modelo que van a ser procesados.
-    
-    Returns:
-        DataFrame: Datos que contienen las variables regresoras.
-        DataFrame: Datos que contienen las variables respuesta.
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
+from sklearn.preprocessing import PowerTransformer, QuantileTransformer, MinMaxScaler, StandardScaler, FunctionTransformer
+from sklearn.model_selection import StratifiedKFold, cross_validate
+
+import keras
+from keras.models import Model
+from keras.layers import Input, Dense, Dropout, Concatenate
+from keras.callbacks import EarlyStopping
+from keras.regularizers import l2
+from scikeras.wrappers import KerasRegressor
+
+from src.utils.files import read_file
+from src.utils.config import popularity, popularidad_mlp_file, seed
+from src.D_Modelos.Popularidad.popularity_model import PopularityModel
+
+warnings.filterwarnings('ignore')
+
+def get_image_matrix(X):
+    """Extrae las matrices de los embeddings de imagen (512 dimensiones)"""
+    return np.vstack(X.iloc[:, 0].values).astype(np.float32)
+
+def cast_to_float32(X):
+    """Conversión segura para Keras (Sustituye a la antigua función lambda)"""
+    return X.astype(np.float32)
+
+def safe_expm1(y):
+    """Evita predicciones atípicas explosivas al deshacer el logaritmo"""
+    return np.expm1(np.clip(y, a_min=0, a_max=16))
+
+def build_keras_late_fusion(hidden_layer_sizes=(128, 64), activation='relu', learning_rate_init=0.001, alpha=0.0001, image_features=512, meta=None):
     """
-    df = df.fillna(0).reset_index(drop=True)
-    df = df.drop(columns=['id', 'name', 'v_resnet', 'v_convnext', 'yt_score'])
-
-    # Separación de DataFrames en diferentes tipos de variables
-    y = DataFrame(df['recomendaciones_totales'])
-    X_num_log = df[['num_languages', 'num_juegos_previos_developers', 'num_juegos_previos_publishers', 'price_overview']]
-    X_num_minmax = df[['release_year']] # Fechas
-    X_num_std = df[['brillo', 'description_len']]
-    X_youtube = df[[c for c in df.columns if 'video_statistics' in c]]
-    X_trans = df[['Action', 'Adventure', 'Casual', 'Early Access', 'Free To Play', 'Indie', 'RPG', 'Simulation', 'Strategy', 'Co-op', 
-                  'Custom Volume Controls', 'Family Sharing', 'Full controller support', 'Multi-player', 'Online Co-op', 'Online PvP', 
-                  'Partial Controller Support', 'Playable without Timed Input', 'PvP', 'Remote Play Together', 'Shared/Split Screen', 
-                  'Single-player', 'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards']]
-
-    # Transformación de variables
-    pt1 = FunctionTransformer(func=log1p, inverse_func=expm1, validate=True, feature_names_out="one-to-one")
-    pt2 = PowerTransformer(method='yeo-johnson')
-    y_trans = pt1.fit_transform(y)
-    X_num_log_trans = pt2.fit_transform(X_num_log)
-
-    std = StandardScaler()
-    X_num_std_trans = std.fit_transform(X_num_std)
-
-    mm = MinMaxScaler()
-    X_num_minmax_trans = mm.fit_transform(X_num_minmax)
-
-    pty = PowerTransformer(method='yeo-johnson')
-    X_youtube_log = pty.fit_transform(X_youtube)
-    pca = PCA(n_components=0.95)
-    youtube_pca_trans = pca.fit_transform(X_youtube_log)
-
-    # Datos a dataframes
-    df_y_trans = DataFrame(y_trans, columns = pt1.get_feature_names_out())
-    df_num_log_trans = DataFrame(X_num_log_trans, columns = pt2.get_feature_names_out())
-    df_num_std_trans = DataFrame(X_num_std_trans, columns = std.get_feature_names_out())
-    df_minmax_trans = DataFrame(X_num_minmax_trans, columns = mm.get_feature_names_out())
-    df_youtube_pca_trans = DataFrame(youtube_pca_trans, columns = pca.get_feature_names_out())
-
-    # Unificar datos transformados
-    df1 = concat([df_num_log_trans, df_num_std_trans], axis=1)
-    df2 = concat([df1, X_trans], axis=1)
-    df3 = concat([df2, df_minmax_trans], axis=1)
-    df4 = concat([df3, df_youtube_pca_trans], axis=1)
-
-    # Aplicamos UMAP para reducir la dimensionalidad de los vectores de imágenes
-    clip_matrix = vstack(df['v_clip'].values)
-    umap = UMAP(n_components=18, random_state=seed) 
-    clip_reduced = umap.fit_transform(clip_matrix)
+    Crea una red con dos brazos: uno agresivo para comprimir el embedding de imagen y 
+    uno estándar para los datos tabulares.
+    """
+    keras.utils.set_random_seed(seed)
     
-    for i in range(18):
-        df4[f'clip_umap_{i}'] = clip_reduced[:, i]
+    n_features = meta["n_features_in_"]
+    inputs = Input(shape=(n_features,))
+
+    if image_features > 0:
+        # Separamos el tensor de entrada (los embeddings de imagen siempre van primero)
+        image_inputs = inputs[:, :image_features]
+        tabular_inputs = inputs[:, image_features:]
+
+        # BRAZO DE IMAGEN: Reducción drástica, Dropout masivo y L2 muy alto
+        v = Dense(128, activation=activation, kernel_regularizer=l2(alpha * 10))(image_inputs)
+        v = Dropout(0.5)(v) # <- IMPRESCINDIBLE para no memorizar las 512 dimensiones
+        v = Dense(32, activation=activation)(v)
+
+        # BRAZO TABULAR: Procesamiento clásico y limpio
+        t = Dense(hidden_layer_sizes[0], activation=activation, kernel_regularizer=l2(alpha))(tabular_inputs)
+        if len(hidden_layer_sizes) > 1:
+            t = Dense(hidden_layer_sizes[1], activation=activation)(t)
+
+        # LATE FUSION
+        merged = Concatenate()([v, t])
+        z = Dense(32, activation=activation)(merged)
+        outputs = Dense(1)(z)
+        
+    else:
+        t = Dense(hidden_layer_sizes[0], activation=activation, kernel_regularizer=l2(alpha))(inputs)
+        if len(hidden_layer_sizes) > 1:
+            t = Dense(hidden_layer_sizes[1], activation=activation)(t)
+        outputs = Dense(1)(t)
+
+    model = Model(inputs=inputs, outputs=outputs)
     
-    # Transformers usados para la transformación de los modelos
-    transformers = {
-        'pt1': pt1, 'pt2': pt2, 'std': std, 'mm': mm, 
-        'pty': pty, 'pca': pca, 'umap': umap
-    }
-
-    return df4, df_y_trans, transformers
-
-def _preprocess_test(df, transformers):
-    df = df.fillna(0).reset_index(drop=True)
-    df = df.drop(columns=['id', 'name', 'v_resnet', 'v_convnext', 'yt_score'])
-
-    # Separación de DataFrames
-    y = DataFrame(df['recomendaciones_totales'])
-    X_num_log = df[['num_languages', 'num_juegos_previos_developers', 'num_juegos_previos_publishers', 'price_overview']]
-    X_num_minmax = df[['release_year']]
-    X_num_std = df[['brillo', 'description_len']]
-    X_youtube = df[[c for c in df.columns if 'video_statistics' in c]]
-    X_trans = df[['Action', 'Adventure', 'Casual', 'Early Access', 'Free To Play', 'Indie', 'RPG', 'Simulation', 'Strategy', 'Co-op', 
-                  'Custom Volume Controls', 'Family Sharing', 'Full controller support', 'Multi-player', 'Online Co-op', 'Online PvP', 
-                  'Partial Controller Support', 'Playable without Timed Input', 'PvP', 'Remote Play Together', 'Shared/Split Screen', 
-                  'Single-player', 'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards']]
-
-    # Transformación de variables usando transform()
-    pt1 = transformers['pt1']
-    pt2 = transformers['pt2']
-    y_trans = pt1.transform(y)
-    X_num_log_trans = pt2.transform(X_num_log)
-
-    std = transformers['std']
-    X_num_std_trans = std.transform(X_num_std)
-
-    mm = transformers['mm']
-    X_num_minmax_trans = mm.transform(X_num_minmax)
-
-    pty = transformers['pty']
-    X_youtube_log = pty.transform(X_youtube)
-    pca = transformers['pca']
-    youtube_pca_trans = pca.transform(X_youtube_log)
-
-    # Datos a dataframes
-    df_y_trans = DataFrame(y_trans, columns = pt1.get_feature_names_out())
-    df_num_log_trans = DataFrame(X_num_log_trans, columns = pt2.get_feature_names_out())
-    df_num_std_trans = DataFrame(X_num_std_trans, columns = std.get_feature_names_out())
-    df_minmax_trans = DataFrame(X_num_minmax_trans, columns = mm.get_feature_names_out())
-    df_youtube_pca_trans = DataFrame(youtube_pca_trans, columns = pca.get_feature_names_out())
-
-    # Unificar datos transformados
-    df1 = concat([df_num_log_trans, df_num_std_trans], axis=1)
-    df2 = concat([df1, X_trans], axis=1)
-    df3 = concat([df2, df_minmax_trans], axis=1)
-    df4 = concat([df3, df_youtube_pca_trans], axis=1)
-
-    # Aplicamos UMAP usando la matriz generada durante el entrenamiento
-    clip_matrix = vstack(df['v_clip'].values)
-    umap = transformers['umap']
-    clip_reduced = umap.transform(clip_matrix)
+    opt = keras.optimizers.Adam(learning_rate=learning_rate_init, epsilon=1e-8)
+    model.compile(optimizer=opt, loss='mse') 
     
-    for i in range(18):
-        df4[f'clip_umap_{i}'] = clip_reduced[:, i] 
+    return model
+
+class MLPPopularity(PopularityModel):
+    def __init__(self, minio: dict):
+        super().__init__(
+            run_name="mlp-keras-latefusion",
+            model_path=popularidad_mlp_file,
+            minio=minio
+        )
+
+    def _build_pipeline(self, hyperparameters, config, X_train):
+        mlp_params = {k: v for k, v in hyperparameters.items()}
+        transformer_name = mlp_params.pop('transformer', 'power')
+        
+        if transformer_name == 'power':
+            skew_transformer = PowerTransformer(method='yeo-johnson')
+        else:
+            skew_transformer = QuantileTransformer(output_distribution='normal', random_state=seed)
+
+        # Análisis de las características disponibles
+        has_image = 'v_clip' in X_train.columns
+        image_dim = 512 if has_image else 0
+
+        cols_minmax = [c for c in self.COLS_ACOTADAS if c in X_train.columns]
+        cols_sesgadas = [c for c in self.COLS_SESGADAS if c in X_train.columns]
+        cols_binarias = [c for c in self.COLS_BINARIAS if c in X_train.columns]
+        cols_normales = [c for c in X_train.columns if c not in cols_minmax + cols_sesgadas + cols_binarias and c != 'v_clip']
+        
+        transformers = []
+
+        if has_image:
+            clip_pipe = Pipeline([
+                ('extractor', FunctionTransformer(get_image_matrix, validate=False)),
+                ('scale', MinMaxScaler())
+            ])
+            transformers.append(('clip_raw', clip_pipe, ['v_clip']))
+
+        if cols_minmax:
+            transformers.append(('minmax', MinMaxScaler(), cols_minmax))
+        if cols_sesgadas:
+            transformers.append(('sesgadas', skew_transformer, cols_sesgadas))
+        if cols_binarias:
+            transformers.append(('binarias', 'passthrough', cols_binarias))
+        if cols_normales:
+            transformers.append(('normales', StandardScaler(), cols_normales))
+
+        preprocessor = ColumnTransformer(transformers=transformers, remainder='drop')
+
+        early_stopping = EarlyStopping(
+            monitor='val_loss', 
+            patience=20, 
+            min_delta=1e-4, 
+            restore_best_weights=True
+        )
+
+        keras_mlp = KerasRegressor(
+            model=build_keras_late_fusion,
+            model__image_features=image_dim,
+            model__hidden_layer_sizes=mlp_params.get('hidden_layer_sizes', (128, 64)),
+            model__activation=mlp_params.get('activation', 'relu'),
+            model__learning_rate_init=mlp_params.get('learning_rate_init', 0.001),
+            model__alpha=mlp_params.get('alpha', 0.0001),
+            epochs=5000, 
+            batch_size=200, 
+            validation_split=0.1,
+            callbacks=[early_stopping],
+            verbose=0,
+            random_state=seed
+        )
+
+        pipeline = Pipeline([
+            ('prep', preprocessor),
+            ('cast', FunctionTransformer(cast_to_float32)),
+            ('mlp', keras_mlp)
+        ])
+
+        return TransformedTargetRegressor(
+            regressor=pipeline, 
+            func=np.log1p, 
+            inverse_func=safe_expm1
+        )
+
+    def _optimize_hyperparameters(self, data_splits, config):
+        X_train = data_splits["X_train"]
+        y_train = data_splits["y_train"]
+        y_binned_train = data_splits["y_binned_train"]
+
+        def objective(trial):
+            params = {
+                'hidden_layer_sizes': trial.suggest_categorical('hidden_layer_sizes', [(64, 32), (128, 64, 32), (128, 64), (128,)]),
+                'activation': trial.suggest_categorical('activation', ['relu', 'tanh']),
+                'alpha': trial.suggest_categorical('alpha', [0.0001, 0.01, 0.1]),
+                'learning_rate_init': trial.suggest_categorical('learning_rate_init', [0.001, 0.01]),
+                'transformer': trial.suggest_categorical('transformer', ['power', 'quantile'])
+            }
+
+            model = self._build_pipeline(params, config, X_train)
+            cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+            
+            scores = cross_validate(
+                model, X_train, y_train,
+                cv=list(cv.split(X_train, y_binned_train)),
+                scoring='neg_mean_absolute_error',
+                n_jobs=1,
+                error_score='raise'
+            )
+            return -scores['test_score'].mean()
+
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+        study = optuna.create_study(direction="minimize")
+        study.optimize(objective, n_trials=30) 
+        
+        return study.best_params
+
+def main(minio={"minio_write": False, "minio_read": False}):
+    df_raw = read_file(popularity, minio)
     
-    return df4, df_y_trans
-
-def _best_params_mlp(X_train, Y_train):
-    param_grid = {
-        'hidden_layer_sizes': [(64,32), (128, 64, 32), (128,64), (128,)],
-        'activation': ['relu', 'tanh'],
-        'alpha': [0.0001, 0.01, 0.1],
-        'learning_rate_init': [0.001, 0.01]
-    }
-
-    grid = GridSearchCV(MLPRegressor(max_iter=5000, random_state=seed), param_grid=param_grid, cv=5, n_jobs=-1)
-    grid.fit(X_train, Y_train.values.flatten())
-
-    params_mejor_modelo = grid.best_params_
-    print(f'Los parámetros del mejor modelo son:\n{params_mejor_modelo}')
-
-    return params_mejor_modelo
-
-def _best_params_mlp_optuna(X_train, Y_train):
-    def objective(trial):
-        params = {
-            'hidden_layer_sizes': trial.suggest_categorical('hidden_layer_sizes', [(64,32), (128, 64, 32), (128,64), (128,)]),
-            'activation': trial.suggest_categorical('activation', ['relu', 'tanh']),
-            'alpha': trial.suggest_categorical('alpha', [0.0001, 0.01, 0.1]),
-            'learning_rate_init': trial.suggest_categorical('learning_rate_init', [0.001, 0.01])
-        }
-
-        modelo = MLPRegressor(max_iter=5000, random_state=seed, **params)
-        return cross_val_score(modelo, X_train, Y_train.values.flatten(), cv=5, n_jobs=-1).mean()
-
-    study = optuna.create_study(direction='maximize')
-    study.optimize(objective, n_trials=30)
-
-    params_mejor_modelo = study.best_params
-    
-    print(f'Los parámetros del mejor modelo son:\n{params_mejor_modelo}')
-
-    return params_mejor_modelo
-
-def _mlp(X_train, y_train, best_params, model_name, transformers, minio):
-    run = wandb.init(
-        entity="pd1-c2526-team4",
-        project="Popularidad", 
-        name=model_name,
-        job_type='mlp',
-        config=best_params
-    )
-    
-    best_mlp = MLPRegressor(max_iter=10000, random_state=seed, activation=best_params['activation'],
-                             hidden_layer_sizes=best_params['hidden_layer_sizes'], alpha=best_params['alpha'],
-                             learning_rate_init=best_params['learning_rate_init'], early_stopping=True,
-                             n_iter_no_change=20)
-    best_mlp.fit(X_train, y_train.values.flatten())
-
-    os.makedirs(models_popularidad_path(), exist_ok=True)
-    data = {
-        'model': best_mlp,
-        'transformers': transformers,
-        'y_train_min': y_train.values.min(),
-        'y_train_max': y_train.values.max()
-    }
-    write_to_file(data, popularidad_mlp_file, minio)
-    print(f"Modelo guardado en {popularidad_mlp_file}")
-    
-    run.finish()
-
-def transform_mlp(df):
-    return df.copy()
-
-def predict_mlp(model_data, test_df, train_df=None):
-    mlp_model = model_data["model"]
-    transformers_dict = model_data["transformers"]
-    y_min = model_data["y_train_min"]
-    y_max = model_data["y_train_max"]
-    
-    X_test_mlp, _ = _preprocess_test(test_df.copy(), transformers_dict)
-    y_pred_mlp = mlp_model.predict(X_test_mlp)
-    y_pred_clipped_mlp = clip(y_pred_mlp, y_min, y_max)
-    y_pred_real_mlp = transformers_dict['pt1'].inverse_transform(y_pred_clipped_mlp.reshape(-1, 1)).flatten()
-    
-    return y_pred_real_mlp
-
-def main(minio = {"minio_write": False, "minio_read": False}):
-    # Lectura y división de datos
-    print('Leyendo y preprocesando datos...')
-    df = read_file(popularity, minio)
-    df_train, df_test = train_test_split(df, test_size=0.2, random_state=seed)
-
-    # Preprocesamiento
-    X_train_base, y_train, transformers = _preprocess_train(df_train)
-
-    # MLP Regressor con imágenes (umap)
-    print('Encontrando el mejor modelo de MLP con imágenes...')
-    best_params = _best_params_mlp(X_train_base, y_train)
-
-    print('Creando mejor modelo MLP con imágenes...')
-    _mlp(X_train_base, y_train, best_params, 'mlp-umap-img', transformers, minio)
+    modelo_mlp = MLPPopularity(minio=minio)
+    modelo_mlp.run_experiment(df_raw, config={"avoid_multicol": False, "use_log": False})
 
 if __name__ == "__main__":
     main()

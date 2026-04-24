@@ -68,8 +68,6 @@ class LinearRegressionPopularity(PopularityModel):
             transformers.append(('minmax', MinMaxScaler(), cols_minmax))
             output_cols.extend(cols_minmax)
 
-        # PowerTransformer(method='yeo-johnson')
-        # QuantileTransformer(output_distribution='normal', random_state=seed)
         if cols_sesgadas:
             transformers.append(('sesgadas', QuantileTransformer(output_distribution='normal', random_state=seed), cols_sesgadas))
             output_cols.extend(cols_sesgadas)
