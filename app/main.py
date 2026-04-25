@@ -2,11 +2,12 @@
 Archivo web de SteamPredictor.
 
 Para levantar la página:
-> uv run fastapi dev
+> uv run uvicorn main:app --reload --port 8000
 
 Puerto: http://127.0.0.1:8000
 """
 
+from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -14,9 +15,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi import Request
 from pydantic import BaseModel
-from utils.request import read_popularity, read_prices, find_row
 import random
 from joblib import load
+from utils import config
 
 
 # --------------------------------------------------------------------------
@@ -25,14 +26,14 @@ from joblib import load
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: cargar modelos en memoria
-    # app.state.model_popularidad = load('models/popularidad/xgboost_model.pkl')
-    app.state.model_price = load('models/precios/knncompleteclusters.pkl')
-    # app.state.model_reviews = load('models/reviews/logistic_regression_optuna.pkl')
+    # app.state.model_popularidad = load(config.project_root() / 'models/popularidad/xgboost_model.pkl')
+    app.state.model_price = load(config.PRICE_MODEL_PATH)
+    # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
 
 
     # Cargar los datos en memoria
-    app.state.df_popularity = read_popularity()
-    app.state.df_prices = read_prices()
+    app.state.df_popularity = config.read_popularity()
+    app.state.df_prices = config.read_prices()
 
     print("SteamPredictor API iniciada")
     yield
@@ -48,10 +49,10 @@ app = FastAPI(
 )
 
 # Ficheros estáticos
-app.mount("/static", StaticFiles(directory="static", html=True), name="static")
+app.mount("/static", StaticFiles(directory=config.app_dir() / "static"), name="static")
 
 # Plantillas Jinja2
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=config.app_dir() / "templates")
 
 
 # --------------------------------------------------------------------------
@@ -173,7 +174,7 @@ def get_trending():
 def predict_popularidad(req: PredictionRequest):
     """Predicción de popularidad (stub)."""
     print('Predicting popularity')
-    data = find_row(str(req.appid), app.state.df_popularity)
+    data = config.find_row(str(req.appid), app.state.df_popularity)
     
     #TODO: Cargar el modelo y llamar a la función de transformación y función de predicción
     # data = transformación(data)
@@ -199,7 +200,8 @@ def predict_popularidad(req: PredictionRequest):
 def predict_precio(req: PredictionRequest):
     """Predicción de precio (stub)."""
     print('Predicting prices')
-    data = find_row(str(req.appid), app.state.df_prices)
+    data = config.find_row(str(req.appid), app.state.df_prices)
+
     
     # data = transformación(data)
     prediction = app.state.model_price.predict(data)
