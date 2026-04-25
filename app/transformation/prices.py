@@ -22,8 +22,6 @@ HISTORY_COLS = [
     'ema_precio_publishers', 'max_historico_precio_publishers',
 ]
 
-
-
 def _transform_game_dict(game: dict, appid : str, historic_data : pd.DataFrame) -> pd.DataFrame:
     """
     Transforma un diccionario con información de un juego Steam

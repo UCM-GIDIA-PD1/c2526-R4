@@ -19,6 +19,7 @@ import random
 from joblib import load
 from utils import config
 from extraction.steam import get_appdetails, get_image_metadata
+from extraction.youtube import get_video_data
 from transformation.prices import transform_for_prices
 import pandas as pd
 
@@ -187,13 +188,17 @@ def predict_popularidad(req: PredictionRequest):
     data = get_appdetails(str(req.appid))
     print(data)
 
-
     header_url = data['header_url']
     brillo, v_clip = get_image_metadata(header_url)
     print(brillo)
     print(v_clip, len(v_clip))
 
-    
+    name = data['name']
+    release_date = data['release_date']
+    print(name, release_date)
+    yt_data = get_video_data(name, release_date)
+    print(yt_data)
+
     #TODO: Cargar el modelo y llamar a la función de transformación y función de predicción
     # data = transformación(data)
     # PopularityResponse = app.state.model_popularidad.predict(data)

@@ -17,9 +17,6 @@ def price_range(x):
         return '[30.00,39.99]'
     elif x >= 40:
         return '>40'
-    
-    if __name__ == '__name__':
-        pass
 
 def initial_transformations(game: dict, row : dict): 
     # Descripción
@@ -42,10 +39,11 @@ def initial_transformations(game: dict, row : dict):
 
     return row
 
-
 def add_img_info(row : pd.DataFrame, v_clip : list, brillo : float):
     row['v_clip'] = [v_clip]
     row['brillo'] = brillo
 
     return row
 
+if __name__ == '__name__':
+    pass

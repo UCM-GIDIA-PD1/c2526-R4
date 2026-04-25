@@ -3,6 +3,19 @@ import numpy as np
 from sklearn.cluster import KMeans
 from pathlib import Path
 from joblib import load
+from dotenv import load_dotenv
+
+
+def load_env_file():
+    """Carga el archivo .env si existe en la raíz del proyecto."""
+    path_env = project_root() / ".env"
+    
+    if path_env.exists():
+        load_dotenv(dotenv_path=path_env)
+        print(f".env cargado con exito")
+    else:
+        print("Advertencia: No se encontró .env, se usarán variables de entorno del sistema.")
+
 
 def project_root():
     """Devuelve un objecto Path con la raíz del proyecto"""
