@@ -16,4 +16,5 @@ dependencies = [
     "requests>=2.33.1",
     "pillow>=12.2.0",
     "openai-clip>=1.0.1",
+    "sentence-transformers>=5.4.1",
 ]

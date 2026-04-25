@@ -18,7 +18,9 @@ from pydantic import BaseModel
 import random
 from joblib import load
 from utils import config
-
+from utils.steam import get_appdetails, get_image_metadata
+from utils.transform import general_transformation
+import pandas as pd
 
 # --------------------------------------------------------------------------
 # Lifespan: se ejecuta al arrancar (startup) y al apagar (shutdown)
@@ -27,11 +29,12 @@ from utils import config
 async def lifespan(app: FastAPI):
     # Startup: cargar modelos en memoria
     # app.state.model_popularidad = load(config.project_root() / 'models/popularidad/xgboost_model.pkl')
-    app.state.model_price = load(config.PRICE_MODEL_PATH)
+    # app.state.model_price = load(config.PRICE_MODEL_PATH)
     # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
 
 
     # Cargar los datos en memoria
+    app.state.games_info = config.read_gamesinfo() #Necesario para transformar calcular el historial del desarrollador
     app.state.df_popularity = config.read_popularity()
     app.state.df_prices = config.read_prices()
 
@@ -174,7 +177,15 @@ def get_trending():
 def predict_popularidad(req: PredictionRequest):
     """Predicción de popularidad (stub)."""
     print('Predicting popularity')
-    data = config.find_row(str(req.appid), app.state.df_popularity)
+    data = get_appdetails(str(req.appid))
+    print(data)
+
+
+    header_url = data['header_url']
+    brillo, v_clip = get_image_metadata(header_url)
+    print(brillo)
+    print(v_clip, len(v_clip))
+
     
     #TODO: Cargar el modelo y llamar a la función de transformación y función de predicción
     # data = transformación(data)
@@ -200,13 +211,24 @@ def predict_popularidad(req: PredictionRequest):
 def predict_precio(req: PredictionRequest):
     """Predicción de precio (stub)."""
     print('Predicting prices')
-    data = config.find_row(str(req.appid), app.state.df_prices)
+    data = get_appdetails(str(req.appid))
+    print(data)
 
-    
+    header_url = data['header_url']
+    brillo, v_clip = get_image_metadata(header_url)
+    print(brillo)
+    print(v_clip, len(v_clip))
+
+    new_data = {}
+    new_data['appdetails'] = data
+    new_data = pd.DataFrame(new_data)
+    new_data = general_transformation(new_data)
+    print(new_data)
+
     # data = transformación(data)
-    prediction = app.state.model_price.predict(data)
-    print('Predicción', prediction)
-    return prediction
+    # prediction = app.state.model_price.predict(data)
+    # print('Predicción', prediction)
+    # return prediction
 
 @app.post("/api/predict/reviews", response_model=PredictionResponse)
 def predict_reviews(req: PredictionRequest):

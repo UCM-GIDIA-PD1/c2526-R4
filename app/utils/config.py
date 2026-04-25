@@ -3,6 +3,9 @@ import numpy as np
 from sklearn.cluster import KMeans
 from pathlib import Path
 from joblib import load
+import json
+import gzip
+from utils.transform import general_transformation
 
 def project_root():
     """Devuelve un objecto Path con la raíz del proyecto"""
@@ -18,6 +21,7 @@ def app_dir():
     return project_root() / "app"
 
 # Rutas de archivos de datos
+GAMESINFOJSONL_DATA_PATH = project_root() / "data/raw/games_info.jsonl"
 POPULARITY_DATA_PATH = project_root() / "data/processed/popularidad.parquet"
 PRICES_DATA_PATH = project_root() / "data/processed/precios.parquet"
 PRICE_MODEL_PATH = project_root() / "models/precios/knncompleteclusters.pkl"
@@ -51,7 +55,19 @@ def read_prices():
     data = data.drop(columns=['v_clip'])
 
     return data
+
+def read_gamesinfo():
+    print(f'Reading data from {GAMESINFOJSONL_DATA_PATH}')
+
+    with open(GAMESINFOJSONL_DATA_PATH, "rt", encoding="utf-8") as f:
+        data = [json.loads(line) for line in f if line.strip()]
     
+    print('Transforming games_info')
+    data = pd.DataFrame(data)
+    data = general_transformation(data)
+    return data
+
+
 def find_row(appid, df):
     """Dado un appid de un juego, obtiene la fila correspendiente a ese juego en 
     el dataFrame"""

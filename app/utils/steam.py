@@ -58,6 +58,26 @@ def get_appdetails(appid : str) -> dict:
 
     return appdetails
 
+def get_image_metadata(url: str) -> tuple[float, list]:
+    """Obtiene el embedding y el brillo a partir de la url de la imagen
+    """
+    print(f"Obteniendo metadatos de la imagen {url}")
+    # Cargar imagen desde URL
+    response = requests.get(url)
+    img = Image.open(BytesIO(response.content)).convert('RGB')
+    
+    # Obtener brilo
+    stat = ImageStat.Stat(img)
+    brillo = round(stat.mean[0], 4)
+    
+    # Extraer embedding
+    feat_clip = MODEL_CLIP.encode(img)
+    vector_clip = [round(float(x), 4) for x in feat_clip.tolist()]
+    
+    img.close()
+    
+    return brillo, vector_clip
+
 def _request_url(url : str ,params : dict) -> dict:
     """Hace un request.get de la url con los parámetros dados.
     Si el request ha sido correcto se devuelve el json de los datos.
@@ -91,25 +111,3 @@ def _parse_supported_languages(raw_html : str) -> list:
     processed_languages = raw_languages.replace("<strong>*</strong>","")
     language_list = [language.strip() for language in processed_languages.split(",")]
     return language_list
-
-def get_image_metadata(url: str) -> tuple[float, list]:
-    """Obtiene el embedding y el brillo a partir de la url de la imagen
-    """
-    print(f"Obteniendo metadatos de la imagen {url}")
-    # Cargar imagen desde URL
-    response = requests.get(url)
-    img = Image.open(BytesIO(response.content)).convert('RGB')
-    
-    # Obtener brilo
-    stat = ImageStat.Stat(img)
-    brillo = round(stat.mean[0], 4)
-    
-    # Extraer embedding
-    feat_clip = MODEL_CLIP.encode(img)
-    vector_clip = [round(float(x), 4) for x in feat_clip.tolist()]
-    
-    img.close()
-    
-    return brillo, vector_clip
-
-
