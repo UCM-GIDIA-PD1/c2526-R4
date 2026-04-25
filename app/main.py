@@ -18,7 +18,8 @@ from pydantic import BaseModel
 import random
 from joblib import load
 from utils import config
-from utils.steam import get_appdetails, get_image_metadata
+from extraction.steam import get_appdetails, get_image_metadata
+from transformation.prices import transform_for_prices
 import pandas as pd
 
 
@@ -217,7 +218,8 @@ def predict_popularidad(req: PredictionRequest):
 def predict_precio(req: PredictionRequest):
     """Predicción de precio (stub)."""
     print('Predicting prices')
-    data = get_appdetails(str(req.appid))
+    appid = str(req.appid)
+    data = get_appdetails(appid)
     print(data)
 
     header_url = data['header_url']
@@ -225,6 +227,9 @@ def predict_precio(req: PredictionRequest):
     print(brillo)
     print(v_clip, len(v_clip))
 
+    print("Transforming data to dataFrame")
+    row = transform_for_prices(data, appid, app.state.historic_data, v_clip, brillo )
+    print(row)
     # data = transformación(data)
     # prediction = app.state.model_price.predict(data)
     # print('Predicción', prediction)

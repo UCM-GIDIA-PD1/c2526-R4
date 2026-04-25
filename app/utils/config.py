@@ -3,8 +3,6 @@ import numpy as np
 from sklearn.cluster import KMeans
 from pathlib import Path
 from joblib import load
-import json
-import gzip
 
 def project_root():
     """Devuelve un objecto Path con la raíz del proyecto"""
@@ -58,7 +56,7 @@ def read_prices():
 def read_historic_games_data():
     print(f'Reading data from {HISTORIC_GAMES_DATA_PATH}')
     try:
-        data = pd.read_parquet(POPULARITY_DATA_PATH)
+        data = pd.read_parquet(HISTORIC_GAMES_DATA_PATH)
     except FileNotFoundError:
         raise FileNotFoundError("Historic games data file not found")
     print('Data read correctly')
