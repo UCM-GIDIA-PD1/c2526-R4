@@ -111,3 +111,6 @@ def _parse_supported_languages(raw_html : str) -> list:
     processed_languages = raw_languages.replace("<strong>*</strong>","")
     language_list = [language.strip() for language in processed_languages.split(",")]
     return language_list
+
+if __name__ == '__main__':
+    pass

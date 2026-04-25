@@ -19,9 +19,10 @@ import random
 from joblib import load
 from utils import config
 from utils.steam import get_appdetails, get_image_metadata
-from utils.transform import general_transformation
 import pandas as pd
 
+
+# region startup/shutdown
 # --------------------------------------------------------------------------
 # Lifespan: se ejecuta al arrancar (startup) y al apagar (shutdown)
 # --------------------------------------------------------------------------
@@ -34,9 +35,7 @@ async def lifespan(app: FastAPI):
 
 
     # Cargar los datos en memoria
-    app.state.games_info = config.read_gamesinfo() #Necesario para transformar calcular el historial del desarrollador
-    app.state.df_popularity = config.read_popularity()
-    app.state.df_prices = config.read_prices()
+    app.state.historic_data = config.read_historic_games_data()
 
     print("SteamPredictor API iniciada")
     yield
@@ -57,7 +56,9 @@ app.mount("/static", StaticFiles(directory=config.app_dir() / "static"), name="s
 # Plantillas Jinja2
 templates = Jinja2Templates(directory=config.app_dir() / "templates")
 
+#endregion
 
+# region classes
 # --------------------------------------------------------------------------
 # Modelos Pydantic
 # --------------------------------------------------------------------------
@@ -97,7 +98,9 @@ class GameInfo(BaseModel):
     positive_reviews: int
     negative_reviews: int
 
+# endregion
 
+# region search
 # --------------------------------------------------------------------------
 # Datos mock para desarrollo (se reemplazarán con datos reales)
 # --------------------------------------------------------------------------
@@ -172,6 +175,9 @@ def get_trending():
         })
     return trending
 
+# endregion
+
+#region predictions
 
 @app.post("/api/predict/popularidad", response_model=PredictionResponse)
 def predict_popularidad(req: PredictionRequest):
@@ -219,12 +225,6 @@ def predict_precio(req: PredictionRequest):
     print(brillo)
     print(v_clip, len(v_clip))
 
-    new_data = {}
-    new_data['appdetails'] = data
-    new_data = pd.DataFrame(new_data)
-    new_data = general_transformation(new_data)
-    print(new_data)
-
     # data = transformación(data)
     # prediction = app.state.model_price.predict(data)
     # print('Predicción', prediction)
@@ -251,3 +251,6 @@ def predict_reviews(req: PredictionRequest):
             "history": _generate_mock_history(ratio * 100),
         },
     )
+
+
+# endregion
