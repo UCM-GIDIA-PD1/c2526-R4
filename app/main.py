@@ -6,7 +6,6 @@ Para levantar la página:
 
 Puerto: http://127.0.0.1:8000
 """
-
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -24,7 +23,6 @@ from transformation.prices import transform_for_prices
 from transformation.popularity import transform_for_popularity
 import pandas as pd
 
-
 # region startup/shutdown
 # --------------------------------------------------------------------------
 # Lifespan: se ejecuta al arrancar (startup) y al apagar (shutdown)
@@ -35,7 +33,6 @@ async def lifespan(app: FastAPI):
     # app.state.model_popularidad = load(config.project_root() / 'models/popularidad/xgboost_model.pkl')
     # app.state.model_price = load(config.PRICE_MODEL_PATH)
     # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
-
 
     # Cargar los datos en memoria
     app.state.historic_data = config.read_historic_games_data()
@@ -206,7 +203,7 @@ def predict_popularidad(req: PredictionRequest):
     print(row)
     print(row.columns)
 
-
+    #TODO: Transformaciones del modelo y predecir
 
     return PredictionResponse(
         value=round(base),
@@ -224,7 +221,7 @@ def predict_popularidad(req: PredictionRequest):
     )
 
 
-@app.post("/api/predict/precio", response_model=PredictionResponse)
+@app.post("/api/predict/precio", response_model=PriceResponse)
 def predict_precio(req: PredictionRequest):
     """Predicción de precio (stub)."""
     print('Predicting prices')
@@ -240,6 +237,9 @@ def predict_precio(req: PredictionRequest):
     print("Transforming data to dataFrame")
     row = transform_for_prices(data, appid, app.state.historic_data, v_clip, brillo )
     print(row)
+    print(row.columns)
+
+    
     # data = transformación(data)
     # prediction = app.state.model_price.predict(data)
     # print('Predicción', prediction)

@@ -56,7 +56,25 @@ def _transform_game_dict(game: dict, appid : str, historic_data : pd.DataFrame) 
 
     return pd.DataFrame([row])
 
-def transform_for_prices(game : dict, appid : str, historic_data : pd.DataFrame, v_clip : list, brillo : float):
+def transform_for_prices(game : dict, appid : str, historic_data : pd.DataFrame, v_clip : list, brillo : float) -> pd.DataFrame:
+    """Dados los datos en crudo de la extracción de datos los transforma a dataFrame con las columnas necesarias para que el modelo pueda
+    hacer un predict.
+
+    Columnas resultantes: 
+    Index(['description_len', 'num_languages', 'release_year', 'Action',
+       'Adventure', 'Casual', 'Early Access', 'Free To Play', 'Indie', 'RPG',
+       'Simulation', 'Strategy', 'Co-op', 'Custom Volume Controls',
+       'Family Sharing', 'Full controller support', 'Multi-player',
+       'Online Co-op', 'Online PvP', 'Partial Controller Support',
+       'Playable without Timed Input', 'PvP', 'Remote Play Together',
+       'Shared/Split Screen', 'Single-player', 'Steam Achievements',
+       'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards',
+       'num_juegos_previos_developers', 'es_primer_juego_developers',
+       'ema_precio_developers', 'max_historico_precio_developers',
+       'num_juegos_previos_publishers', 'es_primer_juego_publishers',
+       'ema_precio_publishers', 'max_historico_precio_publishers', 'brillo',
+       'v_clip'],
+    """
     row = _transform_game_dict(game, appid, historic_data)
     row = add_img_info(row ,v_clip, brillo)
 
