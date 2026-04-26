@@ -18,7 +18,7 @@ from pydantic import BaseModel
 import random
 from joblib import load
 from utils import config
-from extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram
+from extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
 from extraction.youtube import get_video_data
 from transformation.prices import transform_for_prices
 from transformation.popularity import transform_for_popularity
@@ -248,6 +248,12 @@ def predict_precio(req: PredictionRequest):
 @app.post("/api/predict/reviews", response_model=PredictionResponse)
 def predict_reviews(req: PredictionRequest):
     """Predicción de sentimiento de reseñas (stub)."""
+    appid = str(req.appid)
+    reviews_list = get_reviews_text(appid)
+    print(reviews_list)
+    print(len(reviews_list))
+
+
     ratio = round(random.uniform(0.55, 0.96), 2)
     return PredictionResponse(
         value=ratio,

@@ -9,6 +9,7 @@ from io import BytesIO
 # Url de la API de appdetails
 APPDETAILS_URL = "https://store.steampowered.com/api/appdetails"
 APPREVIEWSHISTOGRAM_URL = "https://store.steampowered.com/appreviewhistogram/"
+APPREVIEWS_URL = "https://store.steampowered.com/appreviews/"
 
 # Modelo CLIP para las imágenes
 MODEL_CLIP = SentenceTransformer('clip-ViT-B-32')
@@ -148,7 +149,41 @@ def get_appreviewshistogram(appid: str, release_date : str):
     }
 
     return appreviewhistogram
-        
+
+def get_reviews_text(appid : str) -> list[dict]:
+    """Dado un APPID obtiene 100 reseñas de ese juego.
+    """
+    url = APPREVIEWS_URL + appid
+    params = {
+        "json": 1,
+        "language": "english",
+        "purchase_type": "all",
+        "filter": "recent",
+        "num_per_page": 100,
+        "cursor": "*"
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data_json = response.json()
+    except Exception:
+        return []
+
+    reviews_list = []
+    for rev in data_json.get("reviews", []):
+        review = {
+            "id_resenya":   rev["recommendationid"],
+            "id_usuario":   rev["author"].get("steamid"),
+            "texto":        rev["review"].strip(),
+            "valoracion":   rev["voted_up"],
+            "peso":         rev["weighted_vote_score"],
+            "early_access": rev["written_during_early_access"],
+        }
+        reviews_list.append(review)
+
+    return reviews_list
+
 def _request_url(url : str ,params : dict) -> dict:
     """Hace un request.get de la url con los parámetros dados.
     Si el request ha sido correcto se devuelve el json de los datos.
