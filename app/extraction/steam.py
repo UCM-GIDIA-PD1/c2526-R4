@@ -8,6 +8,7 @@ from io import BytesIO
 
 # Url de la API de appdetails
 APPDETAILS_URL = "https://store.steampowered.com/api/appdetails"
+APPREVIEWSHISTOGRAM_URL = "https://store.steampowered.com/appreviewhistogram/"
 
 # Modelo CLIP para las imágenes
 MODEL_CLIP = SentenceTransformer('clip-ViT-B-32')
@@ -78,6 +79,76 @@ def get_image_metadata(url: str) -> tuple[float, list]:
     
     return brillo, vector_clip
 
+def get_appreviewshistogram(appid: str, release_date : str):
+    url = APPREVIEWSHISTOGRAM_URL + appid
+
+    params_info = {"l": "english"}
+    appreviewhistogram = {}
+
+    data = _request_url (url, params_info)
+
+    # Caso en el que no haya ninguna review: los rollups están vacíos
+    if data.get("results") is None or data["results"].get("rollups") is None:
+        raise ValueError("Appreviewhistogram request with no content", appid)
+
+    appreviewhistogram["start_date"] = _unix_to_date_string(data["results"]["start_date"])
+    appreviewhistogram["end_date"] = _unix_to_date_string(data["results"]["end_date"])
+    appreviewhistogram["rollup_type"] = data["results"]["rollup_type"]
+    release_day = release_date.split("-")[2]
+
+    # Buscamos que barra del histograma hay que coger
+    idx = 0
+    rollups = data["results"].get("rollups", [])
+
+    if not rollups:
+        raise ValueError("No rollups found", appid)
+    
+           
+    # indice del primer rollup en el que la fecha es mayor o igual a la fecha de salida
+    for i in range(len(rollups)):
+        idx = i
+        rollup_start_date = _unix_to_date_string(rollups[i].get("date"))
+        if rollup_start_date > release_date:
+            idx = max(0, idx-1)
+            break
+    
+    hist_date = _unix_to_date_string(rollups[idx].get("date"))
+    hist_day = hist_date.split("-")[2]
+    days = 0
+    data = {"date" : hist_date, "recommendations_up" : 0, "recommendations_down" : 0}
+
+    if appreviewhistogram.get("rollup_type") == "week":
+        for rollup in rollups[idx : idx + 4]:
+            days += 7 # numero de dias en una semana
+            data["recommendations_up"] += rollup.get("recommendations_up", 0)
+            data["recommendations_down"] += rollup.get("recommendations_down", 0)
+        days -= (int(release_day) - int(hist_day))
+            
+    elif appreviewhistogram.get("rollup_type") == "month":
+        days = 30 - int(release_day)
+        data["recommendations_up"] += rollups[idx].get("recommendations_up", 0)
+        data["recommendations_down"] += rollups[idx].get("recommendations_down", 0)
+
+        if int(release_day) > 15 and idx+1 < len(rollups):
+            days = 60 - int(release_day)
+            data["recommendations_up"] += rollups[idx+1].get("recommendations_up", 0)
+            data["recommendations_down"] += rollups[idx+1].get("recommendations_down", 0)
+        
+    days = max(days, 1)
+            
+    appreviewhistogram["rollups"] = {
+        "date": data["date"], 
+        "recommendations_up": data["recommendations_up"], 
+        "recommendations_down": data["recommendations_down"],
+        "recommendations_up_per_day": round(data["recommendations_up"] / days, 2),
+        "recommendations_down_per_day": round(data["recommendations_down"] / days, 2),
+        "total_recommendations": data["recommendations_up"] + data["recommendations_down"],
+        "total_recommendations_per_day": round((data["recommendations_up"] + data["recommendations_down"]) / days, 2),
+        "dias":days
+    }
+
+    return appreviewhistogram
+        
 def _request_url(url : str ,params : dict) -> dict:
     """Hace un request.get de la url con los parámetros dados.
     Si el request ha sido correcto se devuelve el json de los datos.
@@ -111,6 +182,22 @@ def _parse_supported_languages(raw_html : str) -> list:
     processed_languages = raw_languages.replace("<strong>*</strong>","")
     language_list = [language.strip() for language in processed_languages.split(",")]
     return language_list
+
+def _unix_to_date_string(timestamp):
+    """
+    Convierte un timestamp Unix a formato YYYY-MM-DD
+    
+    Args:
+        timestamp (int): Timestamp Unix
+    
+    Returns:
+        str: Fecha en formato YYYY-MM-DD
+    """
+    try:
+        dt = datetime.datetime.fromtimestamp(timestamp)
+        return dt.strftime('%Y-%m-%d')
+    except ValueError:
+        return None
 
 if __name__ == '__main__':
     pass

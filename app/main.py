@@ -18,7 +18,7 @@ from pydantic import BaseModel
 import random
 from joblib import load
 from utils import config
-from extraction.steam import get_appdetails, get_image_metadata
+from extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram
 from extraction.youtube import get_video_data
 from transformation.prices import transform_for_prices
 import pandas as pd
@@ -185,7 +185,10 @@ def get_trending():
 def predict_popularidad(req: PredictionRequest):
     """Predicción de popularidad (stub)."""
     print('Predicting popularity')
-    data = get_appdetails(str(req.appid))
+    appid = str(req.appid)
+    data = get_appdetails(appid)
+    release_date = data['release_date']
+    data['appreviewshistogram'] = get_appreviewshistogram(appid, release_date)
     print(data)
 
     header_url = data['header_url']
@@ -194,7 +197,6 @@ def predict_popularidad(req: PredictionRequest):
     print(v_clip, len(v_clip))
 
     name = data['name']
-    release_date = data['release_date']
     print(name, release_date)
     yt_data = get_video_data(name, release_date)
     print(yt_data)
