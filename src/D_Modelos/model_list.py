@@ -34,13 +34,13 @@ models_popularidad = {
         "type": "class",
         "class_ref": LinearRegressionPopularity,
         "kwargs": {"run_name": "linear-regression-raw", "model_path": popularidad_linear_regression_file},
-        "config": {"use_log": False}
+        "config": {"use_log": False, "avoid_multicol": False} # Se encarga forward selection
     },
     "Linear Regression (Log)": {
         "type": "class",
         "class_ref": LinearRegressionPopularity,
         "kwargs": {"run_name": "linear-regression-log", "model_path": popularidad_linear_regression_log_file},
-        "config": {"use_log": True}
+        "config": {"use_log": True, "avoid_multicol": False} # Se encarga forward selection
     },
     "XGBoost (Normal)": {
         "type": "class",

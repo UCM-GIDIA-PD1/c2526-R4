@@ -14,6 +14,10 @@ from src.utils.config import popularity, seed
 from src.utils.files import read_file
 from src.D_Modelos.model_list import models_popularidad
 
+from src.D_Modelos.Popularidad.linear_regression import get_clip_matrix, select_features
+from src.D_Modelos.Popularidad.knn import slice_umap
+from src.D_Modelos.Popularidad.mlp import get_image_matrix, cast_to_float32, safe_expm1, build_keras_heavyweight
+
 def evaluate_models(minio):
     run = wandb.init(
         entity="pd1-c2526-team4",
