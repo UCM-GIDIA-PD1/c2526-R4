@@ -14,7 +14,7 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_s
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split, cross_val_score
 from src.utils.config import reviews_logistic_regression_gridsearch_file, reviews_logistic_regression_optuna_file, models_reviews_path
 
 from nltk.stem import PorterStemmer
@@ -22,7 +22,7 @@ from nltk.corpus import stopwords
 
 from tqdm import tqdm
 
-from src.D_Modelos.Reviews.utils.preprocesamiento import clean_text_stem, train_val_test_split
+from src.D_Modelos.Reviews.utils.preprocesamiento import clean_text_stem
 from src.utils.config import seed
 
 from src.D_Modelos.Reviews.utils.utils import get_metrics
@@ -57,27 +57,24 @@ def _preprocess(df):
     
     return X, y
 
-def build_objective(X_train, y_train, X_val, y_val):
+def build_objective(X_train, y_train, cv=5):
     '''
     Función que se encarga de encontrar los mejores hiperparámetros
-    a partir de la función objective de Optuna.
+    usando validación cruzada en lugar de conjunto de validación fijo.
     
     Args:
-        - X_train (pd.Series) : Conjunto de textos de entrenamiento.
-        - y_train (pd.Series) : Etiquetas asociadas al conjunto entrenamiento.
-        - X_val (pd.Series) : Conjunto de textos de validación.
-        - y_val (pd.Series) : Etiquetas asociadas al conjunto validación.
+        - X_train (pd.Series): Textos de entrenamiento.
+        - y_train (pd.Series): Etiquetas.
+        - cv (int): Número de folds para cross-validation.
         
     Returns:
-        - objective (function) : Función que recibe objeto `trial` de Optuna y 
-        se encarga de la optimización de hiperparámetros.
+        - objective (function): Función para Optuna.
     '''
     
-    # Función de optimización usada por Optuna para encontrar los mejores hiperparámetros
     def objective(trial):
         tfidf = TfidfVectorizer(
             analyzer="word",
-            ngram_range=(1,2),
+            ngram_range=(1, 2),
             min_df=trial.suggest_int("min_df", 1, 5),
             max_df=trial.suggest_float("max_df", 0.7, 1.0),
             max_features=trial.suggest_categorical("max_features", [20000, 40000, 60000, None]),
@@ -98,13 +95,17 @@ def build_objective(X_train, y_train, X_val, y_val):
             ("tfidf", tfidf),
             ("clf", clf),
         ])
-        
-        pipe.fit(X_train, y_train)
-        y_pred = pipe.predict(X_val)
-        
-        score = balanced_accuracy_score(y_val, y_pred)
-        
-        return score
+
+        scores = cross_val_score(
+            pipe,
+            X_train,
+            y_train,
+            cv=cv,
+            scoring="balanced_accuracy",
+            n_jobs=-1
+        )
+
+        return scores.mean()
 
     return objective
 
@@ -161,14 +162,11 @@ def train_optuna(minio):
             sampler=optuna.samplers.TPESampler(seed=42)
         )
 
-    study.optimize(build_objective(X_train, y_train, X_val, y_val), n_trials=20, show_progress_bar= True)
+    study.optimize(build_objective(X_train, y_train), n_trials=20, show_progress_bar= True)
     
     best_logistic_model = best_model_optuna(study.best_params)
 
-    X_train_val = np.concatenate([X_train, X_val])
-    y_train_val = np.concatenate([y_train, y_val])
-
-    best_logistic_model.fit(X_train_val, y_train_val)
+    best_logistic_model.fit(X_train, y_train)
     
     y_pred_test = best_logistic_model.predict(X_test)
 
@@ -210,9 +208,6 @@ def train_gridsearch(minio):
         job_type='logistic-regression'
     )
     
-    X_train_val = np.concatenate([X_train, X_val])
-    y_train_val = np.concatenate([y_train, y_val])
-
     pipe = Pipeline([("tfidf", TfidfVectorizer(
             analyzer="word",
             ngram_range=(1,2),
@@ -244,7 +239,7 @@ def train_gridsearch(minio):
         n_jobs=-1
     )
     
-    grid.fit(X_train_val, y_train_val)
+    grid.fit(X_train, y_train)
     
     best_params = grid.best_params_
     
@@ -285,11 +280,12 @@ def main(minio = {"minio_write": False, "minio_read": False}):
     print("Preprocesado de los datos")
     X, y = _preprocess(df)
 
-    global X_train, X_val, X_test, y_train, y_val, y_test
-    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X, y)
+    global X_train, X_test, y_train, y_test
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed, stratify=y)
 
     use_optuna = True
-
+    print(1)
     if use_optuna:
         train_optuna(minio)
     else:
