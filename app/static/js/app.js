@@ -572,8 +572,8 @@ function initNoise() {
 const canvas = document.getElementById('hero-canvas');
 const ctx = canvas.getContext('2d');
 
-const frameCount = 240;
-const currentFrame = index => `/static/img/frames/ezgif-frame-${index.toString().padStart(3, '0')}.jpg`;
+const frameCount = 234;
+const currentFrame = index => `/static/img/frames/header${String(86399 + index).padStart(8, '0')}.jpg`;
 
 const images = [];
 const heroSequence = { frame: 0 };
