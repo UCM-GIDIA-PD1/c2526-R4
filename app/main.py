@@ -22,6 +22,18 @@ from extraction.youtube import get_video_data
 from transformation.prices import transform_for_prices
 from transformation.popularity import transform_for_popularity
 import pandas as pd
+from sklearn.preprocessing import OrdinalEncoder
+
+
+PRICE_ORDER = [
+    '[0.01,4.99]', 
+    '[5.00,9.99]', 
+    '[10.00,14.99]', 
+    '[15.00,19.99]', 
+    '[20.00,29.99]', 
+    '[30.00,39.99]', 
+    '>40'
+]
 
 # region startup/shutdown
 # --------------------------------------------------------------------------
@@ -31,6 +43,7 @@ import pandas as pd
 async def lifespan(app: FastAPI):
     # Startup: cargar modelos en memoria
     # app.state.model_popularidad = load(config.project_root() / 'models/popularidad/xgboost_model.pkl')
+    print("Cargando modelo de precios")
     app.state.model_price = load(config.PRICE_MODEL_PATH)
     # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
 
@@ -81,7 +94,7 @@ class PopularityResponse(BaseModel):
 class PriceResponse(BaseModel):
     price : str
 
-class ReviewsResponse():
+class ReviewsResponse(BaseModel):
     value : bool
     topics : list
 
@@ -178,7 +191,6 @@ def get_trending():
 # endregion
 
 #region predictions
-
 @app.post("/api/predict/popularidad", response_model=PredictionResponse)
 def predict_popularidad(req: PredictionRequest):
     """Predicción de popularidad (stub)."""
@@ -220,7 +232,6 @@ def predict_popularidad(req: PredictionRequest):
         },
     )
 
-
 @app.post("/api/predict/precio", response_model=PriceResponse)
 def predict_precio(req: PredictionRequest):
     """Predicción de precio (stub)."""
@@ -239,11 +250,14 @@ def predict_precio(req: PredictionRequest):
     print(row)
     print(row.columns)
 
-    
-    # data = transformación(data)
-    # prediction = app.state.model_price.predict(data)
-    # print('Predicción', prediction)
-    # return prediction
+    prediction = app.state.model_price.predict(row)
+
+    idx = int(round(float(prediction[0])))
+    idx = max(0, min(idx, len(PRICE_ORDER) - 1))
+    range_label = PRICE_ORDER[idx]
+
+    print('Predicción', range_label, prediction)
+    return PriceResponse(price=range_label)
 
 @app.post("/api/predict/reviews", response_model=PredictionResponse)
 def predict_reviews(req: PredictionRequest):
