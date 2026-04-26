@@ -31,7 +31,7 @@ import pandas as pd
 async def lifespan(app: FastAPI):
     # Startup: cargar modelos en memoria
     # app.state.model_popularidad = load(config.project_root() / 'models/popularidad/xgboost_model.pkl')
-    # app.state.model_price = load(config.PRICE_MODEL_PATH)
+    app.state.model_price = load(config.PRICE_MODEL_PATH)
     # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
 
     # Cargar los datos en memoria
