@@ -21,6 +21,7 @@ from utils import config
 from extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram
 from extraction.youtube import get_video_data
 from transformation.prices import transform_for_prices
+from transformation.popularity import transform_for_popularity
 import pandas as pd
 
 
@@ -201,9 +202,12 @@ def predict_popularidad(req: PredictionRequest):
     yt_data = get_video_data(name, release_date)
     print(yt_data)
 
-    #TODO: Transformación de los datos
-    #TODO: Transformación del modelo y predecir
-    
+    row = transform_for_popularity(data, appid, app.state.historic_data, v_clip, brillo,data['appreviewshistogram'], yt_data)
+    print(row)
+    print(row.columns)
+
+
+
     return PredictionResponse(
         value=round(base),
         confidence=round(random.uniform(0.72, 0.95), 2),
