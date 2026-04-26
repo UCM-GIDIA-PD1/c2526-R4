@@ -80,7 +80,6 @@ class PredictionRequest(BaseModel):
     appid: int
     model_name: str = "default"
 
-
 class PredictionResponse(BaseModel):
     """Resultado de una predicción."""
     value: float
@@ -191,7 +190,7 @@ def get_trending():
 # endregion
 
 #region predictions
-@app.post("/api/predict/popularidad", response_model=PredictionResponse)
+@app.post("/api/predict/popularidad", response_model=PopularityResponse)
 def predict_popularidad(req: PredictionRequest):
     """Predicción de popularidad (stub)."""
     print('Predicting popularity')
@@ -217,20 +216,8 @@ def predict_popularidad(req: PredictionRequest):
 
     #TODO: Transformaciones del modelo y predecir
 
-    return PredictionResponse(
-        value=round(base),
-        confidence=round(random.uniform(0.72, 0.95), 2),
-        model_used="XGBoost (Log)",
-        details={
-            "metric": "estimated_owners",
-            "unit": "jugadores",
-            "history": _generate_mock_history(base),
-            "feature_importance": {
-                "reviews_count": 0.34, "price": 0.21,
-                "genres": 0.18, "developer_reputation": 0.15, "release_year": 0.12,
-            },
-        },
-    )
+    return PopularityResponse(reviews=67)
+
 
 @app.post("/api/predict/precio", response_model=PriceResponse)
 def predict_precio(req: PredictionRequest):

@@ -1,4 +1,6 @@
-
+"""
+Esta clase es un mirror de la clase de src/D_Modelos/Precios/knn/py.
+"""
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.cluster import KMeans
 import numpy as np
@@ -9,7 +11,7 @@ class ClusterEmbeddingsTransformer(BaseEstimator, TransformerMixin):
     Clase para tener la función ClusterEmbeddings en el pipeline y no tener que luego que volver
     entrenar el algoritmo de clustering.
 
-    Realiza el fit de kmeans y almacena el los datos para ser reutilizados.
+    Esta clase es un mirror de la clase de src/D_Modelos/Precios/knn/py.
     """
     def __init__(self, emb_col='v_clip', n_clusters=8, seed = 42):
         self.emb_col = emb_col

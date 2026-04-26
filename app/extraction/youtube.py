@@ -13,6 +13,9 @@ load_env_file()
 API_KEY = os.environ.get("API_KEY_YT")
 
 def get_video_data(game_name: str, release_date: str) -> list[dict]:
+    """Dada un APPID y la fecha de salida de un juego realiza las busquedas en la API de Youtube para obtener los
+    identificadores de un vídeo y luego obtiene las estadísticas de los 4 primeros vídeos.
+    """
     print("Obtaining Youtube Data")
     youtube = build("youtube", "v3", developerKey=API_KEY)
     release_date = f"{release_date}T00:00:00Z"

@@ -80,7 +80,7 @@ def get_image_metadata(url: str) -> tuple[float, list]:
     
     return brillo, vector_clip
 
-def get_appreviewshistogram(appid: str, release_date : str):
+def get_appreviewshistogram(appid: str, release_date : str) -> dict:
     url = APPREVIEWSHISTOGRAM_URL + appid
 
     params_info = {"l": "english"}
@@ -218,7 +218,7 @@ def _parse_supported_languages(raw_html : str) -> list:
     language_list = [language.strip() for language in processed_languages.split(",")]
     return language_list
 
-def _unix_to_date_string(timestamp):
+def _unix_to_date_string(timestamp) ->datetime.datetime:
     """
     Convierte un timestamp Unix a formato YYYY-MM-DD
     
