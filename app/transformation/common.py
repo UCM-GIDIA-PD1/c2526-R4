@@ -1,3 +1,6 @@
+"""Módulo de transformación para la información de los juegos común entre precios y popularidad.
+"""
+
 import pandas as pd
 
 def price_range(x):

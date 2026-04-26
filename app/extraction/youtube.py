@@ -1,3 +1,9 @@
+"""Módulo de extracción de datos de un juego mediante la API de Yotube Data v3
+
+Dependencias:
+    - API_KEY_YT: API key de Youtube (Obtenible desde Google Cloud Console)
+"""
+
 import os
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -49,5 +55,6 @@ def get_video_data(game_name: str, release_date: str) -> list[dict]:
         if e.resp.status == 403 and "quotaExceeded" in str(e.content):
             raise RuntimeError("YouTube API quota exceeded.") from e
         raise
+
 if __name__ == "__main__":
     pass

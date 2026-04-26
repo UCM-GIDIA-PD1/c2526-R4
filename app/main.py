@@ -201,10 +201,9 @@ def predict_popularidad(req: PredictionRequest):
     yt_data = get_video_data(name, release_date)
     print(yt_data)
 
-    #TODO: Cargar el modelo y llamar a la función de transformación y función de predicción
-    # data = transformación(data)
-    # PopularityResponse = app.state.model_popularidad.predict(data)
-    # return PopularityResponse
+    #TODO: Transformación de los datos
+    #TODO: Transformación del modelo y predecir
+    
     return PredictionResponse(
         value=round(base),
         confidence=round(random.uniform(0.72, 0.95), 2),

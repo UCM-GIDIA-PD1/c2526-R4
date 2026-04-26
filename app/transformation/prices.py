@@ -1,4 +1,6 @@
-"""Módulo de transformación de datos para el problema de precios
+"""Módulo de transformación de datos para el problema de precios.
+
+Realiza las transformaciones necesarias para tener los mismos datos que necesita el modelo para predecir.
 """
 
 import pandas as pd
@@ -54,13 +56,11 @@ def _transform_game_dict(game: dict, appid : str, historic_data : pd.DataFrame) 
 
     return pd.DataFrame([row])
 
-
 def transform_for_prices(game : dict, appid : str, historic_data : pd.DataFrame, v_clip : list, brillo : float):
     row = _transform_game_dict(game, appid, historic_data)
     row = add_img_info(row ,v_clip, brillo)
 
     return row
-
 
 if __name__ == '__main__': 
     pass
