@@ -58,7 +58,7 @@ body {
 
 #hero-scroll-container {
     position: relative;
-    height: 400vh;
+    height: 220vh;
     z-index: 1;
     display: block;
 }
@@ -71,10 +71,6 @@ body {
     height: 100vh;
     display: block;
     object-fit: cover;
-
-    /* MÁSCARA DE OPACIDAD: Sólido hasta el 75%, se difumina a transparente en el 100% (abajo) */
-    -webkit-mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
-    mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
 }
 
 #corner-logo {
@@ -86,6 +82,35 @@ body {
     z-index: 100;
     pointer-events: none;
     opacity: 0.85;
+}
+
+#hero-blend-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100vw;
+    height: 250px;
+    background: linear-gradient(to top, rgba(3, 7, 20, 1) 0%, rgba(3, 7, 20, 0) 100%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+#hero-transition {
+    position: relative;
+    z-index: 3;
+    width: 100%;
+    height: 143px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+#hero-echo-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
 }
 
 /* ============================================================

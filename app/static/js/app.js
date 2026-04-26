@@ -571,8 +571,10 @@ function initNoise() {
 
 const canvas = document.getElementById('hero-canvas');
 const ctx = canvas.getContext('2d');
+const echoCanvas = document.getElementById('hero-echo-canvas');
+const echoCtx = echoCanvas.getContext('2d');
 
-const frameCount = 234;
+const frameCount = 192;
 const currentFrame = index => `/static/img/frames/header${String(86399 + index).padStart(8, '0')}.jpg`;
 
 const images = [];
@@ -605,17 +607,17 @@ const updateCanvas = () => {
     const scrollTop = document.documentElement.scrollTop;
     const heroScrollContainer = document.getElementById('hero-scroll-container');
     const maxScroll = heroScrollContainer.scrollHeight - window.innerHeight;
-
     const scrollFraction = scrollTop / maxScroll;
-
-    const frameIndex = Math.min(
-        frameCount - 1,
-        Math.floor(scrollFraction * frameCount)
-    );
-
+    const frameIndex = Math.min(frameCount - 1, Math.floor(scrollFraction * frameCount));
     if (images[frameIndex]) {
         requestAnimationFrame(() => {
             ctx.drawImage(images[frameIndex], 0, 0);
+            const img = images[frameIndex];
+            const ew = echoCanvas.clientWidth, eh = echoCanvas.clientHeight;
+            if (echoCanvas.width !== ew) echoCanvas.width = ew;
+            if (echoCanvas.height !== eh) echoCanvas.height = eh;
+            const es = Math.max(ew / img.naturalWidth, eh / img.naturalHeight);
+            echoCtx.drawImage(img, (ew - img.naturalWidth * es) / 2, eh - img.naturalHeight * es, img.naturalWidth * es, img.naturalHeight * es);
         });
     }
 };
@@ -623,8 +625,7 @@ const updateCanvas = () => {
 window.addEventListener('scroll', updateCanvas);
 
 let isAutoScrolling = true;
-const pixelsPerFrame = window.innerHeight / (frameCount / 2.5);
-
+const pixelsPerFrame = 20;
 const cinematicAutoPlay = () => {
     if (!isAutoScrolling) return;
 
