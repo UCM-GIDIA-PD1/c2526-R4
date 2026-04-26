@@ -2,11 +2,11 @@
 Archivo web de SteamPredictor.
 
 Para levantar la página:
-> uv run fastapi dev
+> uv run uvicorn main:app --reload --port 8000
 
 Puerto: http://127.0.0.1:8000
 """
-
+from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -14,25 +14,41 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi import Request
 from pydantic import BaseModel
-from utils.request import read_popularity, read_prices, find_row
 import random
 from joblib import load
+from utils import config
+from extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
+from extraction.youtube import get_video_data
+from transformation.prices import transform_for_prices
+from transformation.popularity import transform_for_popularity
+import pandas as pd
+from sklearn.preprocessing import OrdinalEncoder
 
 
+PRICE_ORDER = [
+    '[0.01,4.99]', 
+    '[5.00,9.99]', 
+    '[10.00,14.99]', 
+    '[15.00,19.99]', 
+    '[20.00,29.99]', 
+    '[30.00,39.99]', 
+    '>40'
+]
+
+# region startup/shutdown
 # --------------------------------------------------------------------------
 # Lifespan: se ejecuta al arrancar (startup) y al apagar (shutdown)
 # --------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: cargar modelos en memoria
-    # app.state.model_popularidad = load('models/popularidad/xgboost_model.pkl')
-    app.state.model_price = load('models/precios/knncompleteclusters.pkl')
-    # app.state.model_reviews = load('models/reviews/logistic_regression_optuna.pkl')
-
+    # app.state.model_popularidad = load(config.project_root() / 'models/popularidad/xgboost_model.pkl')
+    print("Cargando modelo de precios")
+    app.state.model_price = load(config.PRICE_MODEL_PATH)
+    # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
 
     # Cargar los datos en memoria
-    app.state.df_popularity = read_popularity()
-    app.state.df_prices = read_prices()
+    app.state.historic_data = config.read_historic_games_data()
 
     print("SteamPredictor API iniciada")
     yield
@@ -48,12 +64,14 @@ app = FastAPI(
 )
 
 # Ficheros estáticos
-app.mount("/static", StaticFiles(directory="static", html=True), name="static")
+app.mount("/static", StaticFiles(directory=config.app_dir() / "static"), name="static")
 
 # Plantillas Jinja2
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=config.app_dir() / "templates")
 
+#endregion
 
+# region classes
 # --------------------------------------------------------------------------
 # Modelos Pydantic
 # --------------------------------------------------------------------------
@@ -61,7 +79,6 @@ class PredictionRequest(BaseModel):
     """Datos de entrada para una predicción."""
     appid: int
     model_name: str = "default"
-
 
 class PredictionResponse(BaseModel):
     """Resultado de una predicción."""
@@ -76,7 +93,7 @@ class PopularityResponse(BaseModel):
 class PriceResponse(BaseModel):
     price : str
 
-class ReviewsResponse():
+class ReviewsResponse(BaseModel):
     value : bool
     topics : list
 
@@ -93,7 +110,9 @@ class GameInfo(BaseModel):
     positive_reviews: int
     negative_reviews: int
 
+# endregion
 
+# region search
 # --------------------------------------------------------------------------
 # Datos mock para desarrollo (se reemplazarán con datos reales)
 # --------------------------------------------------------------------------
@@ -168,47 +187,74 @@ def get_trending():
         })
     return trending
 
+# endregion
 
-@app.post("/api/predict/popularidad", response_model=PredictionResponse)
+#region predictions
+@app.post("/api/predict/popularidad", response_model=PopularityResponse)
 def predict_popularidad(req: PredictionRequest):
     """Predicción de popularidad (stub)."""
     print('Predicting popularity')
-    data = find_row(str(req.appid), app.state.df_popularity)
-    
-    #TODO: Cargar el modelo y llamar a la función de transformación y función de predicción
-    # data = transformación(data)
-    # PopularityResponse = app.state.model_popularidad.predict(data)
-    # return PopularityResponse
-    return PredictionResponse(
-        value=round(base),
-        confidence=round(random.uniform(0.72, 0.95), 2),
-        model_used="XGBoost (Log)",
-        details={
-            "metric": "estimated_owners",
-            "unit": "jugadores",
-            "history": _generate_mock_history(base),
-            "feature_importance": {
-                "reviews_count": 0.34, "price": 0.21,
-                "genres": 0.18, "developer_reputation": 0.15, "release_year": 0.12,
-            },
-        },
-    )
+    appid = str(req.appid)
+    data = get_appdetails(appid)
+    release_date = data['release_date']
+    data['appreviewshistogram'] = get_appreviewshistogram(appid, release_date)
+    print(data)
+
+    header_url = data['header_url']
+    brillo, v_clip = get_image_metadata(header_url)
+    print(brillo)
+    print(v_clip, len(v_clip))
+
+    name = data['name']
+    print(name, release_date)
+    yt_data = get_video_data(name, release_date)
+    print(yt_data)
+
+    row = transform_for_popularity(data, appid, app.state.historic_data, v_clip, brillo,data['appreviewshistogram'], yt_data)
+    print(row)
+    print(row.columns)
+
+    #TODO: Transformaciones del modelo y predecir
+
+    return PopularityResponse(reviews=67)
 
 
-@app.post("/api/predict/precio", response_model=PredictionResponse)
+@app.post("/api/predict/precio", response_model=PriceResponse)
 def predict_precio(req: PredictionRequest):
     """Predicción de precio (stub)."""
     print('Predicting prices')
-    data = find_row(str(req.appid), app.state.df_prices)
-    
-    # data = transformación(data)
-    prediction = app.state.model_price.predict(data)
-    print('Predicción', prediction)
-    return prediction
+    appid = str(req.appid)
+    data = get_appdetails(appid)
+    print(data)
+
+    header_url = data['header_url']
+    brillo, v_clip = get_image_metadata(header_url)
+    print(brillo)
+    print(v_clip, len(v_clip))
+
+    print("Transforming data to dataFrame")
+    row = transform_for_prices(data, appid, app.state.historic_data, v_clip, brillo )
+    print(row)
+    print(row.columns)
+
+    prediction = app.state.model_price.predict(row)
+
+    idx = int(round(float(prediction[0])))
+    idx = max(0, min(idx, len(PRICE_ORDER) - 1))
+    range_label = PRICE_ORDER[idx]
+
+    print('Predicción', range_label, prediction)
+    return PriceResponse(price=range_label)
 
 @app.post("/api/predict/reviews", response_model=PredictionResponse)
 def predict_reviews(req: PredictionRequest):
     """Predicción de sentimiento de reseñas (stub)."""
+    appid = str(req.appid)
+    reviews_list = get_reviews_text(appid)
+    print(reviews_list)
+    print(len(reviews_list))
+
+
     ratio = round(random.uniform(0.55, 0.96), 2)
     return PredictionResponse(
         value=ratio,
@@ -227,3 +273,6 @@ def predict_reviews(req: PredictionRequest):
             "history": _generate_mock_history(ratio * 100),
         },
     )
+
+
+# endregion

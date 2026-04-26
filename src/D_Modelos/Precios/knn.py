@@ -17,6 +17,37 @@ from sklearn.pipeline import Pipeline
 import wandb
 import os
 
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.cluster import KMeans
+import numpy as np
+import pandas as pd
+
+class ClusterEmbeddingsTransformer(BaseEstimator, TransformerMixin):
+    """
+    Clase para tener la función ClusterEmbeddings en el pipeline y no tener que luego que volver
+    entrenar el algoritmo de clustering.
+
+    Realiza el fit de kmeans y almacena el los datos para ser reutilizados.
+    """
+    def __init__(self, emb_col='v_clip', n_clusters=8, seed = 42):
+        self.emb_col = emb_col
+        self.n_clusters = n_clusters
+        self.seed = seed
+        self.kmeans_ = None
+
+    def fit(self, X, y=None):
+        embeddings = np.stack(X[self.emb_col].values)
+        self.kmeans_ = KMeans(n_clusters=self.n_clusters, random_state=self.seed)
+        self.kmeans_.fit(embeddings)
+        return self
+
+    def transform(self, X):
+        X = X.copy()
+        embeddings = np.stack(X[self.emb_col].values)
+        X['cluster'] = self.kmeans_.predict(embeddings)
+        X = X.drop(columns=[self.emb_col])
+        return X
+
 def transform_knn(df):
     return df.copy()
 
@@ -91,40 +122,45 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
     print(f'Creando modelo {modelName}...')
     df = df.dropna()
 
+    # Transformación de variable target
     le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
     df['price_range'] = le.fit_transform(df[['price_range']])
 
+    # División de datos
     X_train, X_test, y_train, y_test = get_train_test(df)
 
-    X_train, X_test = cluster_embedings(X_train, X_test, emb_col='v_clip')
-
+    # Definimos transformaciones para el pipeline
     cols_sesgadas = ['num_languages', 'num_juegos_previos_developers', 'ema_precio_developers', 'max_historico_precio_developers',
                      'num_juegos_previos_publishers', 'ema_precio_publishers', 'max_historico_precio_publishers']
     cols_normales = ['description_len']
     cols_minmax = ['release_year', 'brillo']
     cols_ohe = ['cluster']
-
     final_transformers = [
         ('sesgadas', PowerTransformer(method='yeo-johnson'), cols_sesgadas),
         ('normales', StandardScaler(), cols_normales),
         ('minmax', MinMaxScaler(), cols_minmax),
         ('ohe', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cols_ohe)
     ]
-    
     preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
-
-    X_train_transformed = preprocessor.fit_transform(X_train)
-
+    
+    #Iniciamos Weights and Bias
     run = wandb.init(entity="pd1-c2526-team4", project="Precios", name=modelName, job_type='knn')
+    
+    #WARNING: 
+    print(X_train.columns)
+    # Hacemos las transformaciones para buscar los mejoras hiperparámetros
+    clustering_step = ClusterEmbeddingsTransformer(emb_col='v_clip', n_clusters=8)
+    X_train_clustered = clustering_step.fit_transform(X_train)
+    X_train_transformed = preprocessor.fit_transform(X_train_clustered)
 
+    # Obtenemos los mejores hi
     best_params = grid_search_knn_full(X_train_transformed, y_train)
 
-    clf = KNeighborsClassifier(**best_params)
-    clf.fit(X_train_transformed, y_train)
-
+    # Pipeline completo del modelo
     pipeline = Pipeline([
+        ('clustering', ClusterEmbeddingsTransformer(emb_col='v_clip', n_clusters=8)),
         ('preprocessor', preprocessor),
-        ('classifier', clf)
+        ('classifier', KNeighborsClassifier(**best_params))
     ])
     pipeline.fit(X_train, y_train)
     y_pred = pipeline.predict(X_test)
