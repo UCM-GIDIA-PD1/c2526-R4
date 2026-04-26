@@ -22,6 +22,18 @@ from extraction.youtube import get_video_data
 from transformation.prices import transform_for_prices
 from transformation.popularity import transform_for_popularity
 import pandas as pd
+from sklearn.preprocessing import OrdinalEncoder
+
+
+PRICE_ORDER = [
+    '[0.01,4.99]', 
+    '[5.00,9.99]', 
+    '[10.00,14.99]', 
+    '[15.00,19.99]', 
+    '[20.00,29.99]', 
+    '[30.00,39.99]', 
+    '>40'
+]
 
 # region startup/shutdown
 # --------------------------------------------------------------------------
@@ -31,7 +43,8 @@ import pandas as pd
 async def lifespan(app: FastAPI):
     # Startup: cargar modelos en memoria
     # app.state.model_popularidad = load(config.project_root() / 'models/popularidad/xgboost_model.pkl')
-    # app.state.model_price = load(config.PRICE_MODEL_PATH)
+    print("Cargando modelo de precios")
+    app.state.model_price = load(config.PRICE_MODEL_PATH)
     # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
 
     # Cargar los datos en memoria
@@ -67,7 +80,6 @@ class PredictionRequest(BaseModel):
     appid: int
     model_name: str = "default"
 
-
 class PredictionResponse(BaseModel):
     """Resultado de una predicción."""
     value: float
@@ -81,7 +93,7 @@ class PopularityResponse(BaseModel):
 class PriceResponse(BaseModel):
     price : str
 
-class ReviewsResponse():
+class ReviewsResponse(BaseModel):
     value : bool
     topics : list
 
@@ -178,8 +190,7 @@ def get_trending():
 # endregion
 
 #region predictions
-
-@app.post("/api/predict/popularidad", response_model=PredictionResponse)
+@app.post("/api/predict/popularidad", response_model=PopularityResponse)
 def predict_popularidad(req: PredictionRequest):
     """Predicción de popularidad (stub)."""
     print('Predicting popularity')
@@ -205,20 +216,7 @@ def predict_popularidad(req: PredictionRequest):
 
     #TODO: Transformaciones del modelo y predecir
 
-    return PredictionResponse(
-        value=round(base),
-        confidence=round(random.uniform(0.72, 0.95), 2),
-        model_used="XGBoost (Log)",
-        details={
-            "metric": "estimated_owners",
-            "unit": "jugadores",
-            "history": _generate_mock_history(base),
-            "feature_importance": {
-                "reviews_count": 0.34, "price": 0.21,
-                "genres": 0.18, "developer_reputation": 0.15, "release_year": 0.12,
-            },
-        },
-    )
+    return PopularityResponse(reviews=67)
 
 
 @app.post("/api/predict/precio", response_model=PriceResponse)
@@ -239,11 +237,14 @@ def predict_precio(req: PredictionRequest):
     print(row)
     print(row.columns)
 
-    
-    # data = transformación(data)
-    # prediction = app.state.model_price.predict(data)
-    # print('Predicción', prediction)
-    # return prediction
+    prediction = app.state.model_price.predict(row)
+
+    idx = int(round(float(prediction[0])))
+    idx = max(0, min(idx, len(PRICE_ORDER) - 1))
+    range_label = PRICE_ORDER[idx]
+
+    print('Predicción', range_label, prediction)
+    return PriceResponse(price=range_label)
 
 @app.post("/api/predict/reviews", response_model=PredictionResponse)
 def predict_reviews(req: PredictionRequest):

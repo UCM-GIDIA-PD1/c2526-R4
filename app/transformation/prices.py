@@ -7,6 +7,23 @@ import pandas as pd
 import numpy as np
 from transformation.common import  initial_transformations, add_img_info
 
+# Define exactamente el orden de las columnas que espera el modelo (Lista 1)
+UNPROCESSED_COLUMNS = [
+    'description_len', 'num_languages', 'release_year', 'Action',
+    'Adventure', 'Casual', 'Early Access', 'Free To Play', 'Indie', 'RPG',
+    'Simulation', 'Strategy', 'Co-op', 'Custom Volume Controls',
+    'Family Sharing', 'Full controller support', 'Multi-player',
+    'Online Co-op', 'Online PvP', 'Partial Controller Support',
+    'Playable without Timed Input', 'PvP', 'Remote Play Together',
+    'Shared/Split Screen', 'Single-player', 'Steam Achievements',
+    'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards',
+    'num_juegos_previos_developers', 'es_primer_juego_developers',
+    'ema_precio_developers', 'max_historico_precio_developers',
+    'num_juegos_previos_publishers', 'es_primer_juego_publishers',
+    'ema_precio_publishers', 'max_historico_precio_publishers', 
+    'brillo', 'v_clip'
+]
+
 GENRES = ['Action', 'Adventure', 'Casual', 'Early Access', 'Free To Play',
           'Indie', 'RPG', 'Simulation', 'Strategy']
 
@@ -78,7 +95,7 @@ def transform_for_prices(game : dict, appid : str, historic_data : pd.DataFrame,
     row = _transform_game_dict(game, appid, historic_data)
     row = add_img_info(row ,v_clip, brillo)
 
-    return row
+    return row[UNPROCESSED_COLUMNS]
 
 if __name__ == '__main__': 
     pass

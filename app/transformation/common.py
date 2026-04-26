@@ -3,7 +3,7 @@
 
 import pandas as pd
 
-def price_range(x):
+def price_range(x : str) -> str:
     if x == 0:
         return 'Free'
     elif x > 0 and x < 5:
@@ -21,7 +21,15 @@ def price_range(x):
     elif x >= 40:
         return '>40'
 
-def initial_transformations(game: dict, row : dict): 
+def initial_transformations(game: dict, row : dict) -> pd.DataFrame: 
+    """Dado un juego (dict) extrae los campos: 
+
+        - description_len
+        - price_overview
+        - price_range
+        - num_languages
+        - release_year
+    """
     # Descripción
     row['description_len'] = len(game.get('short_description', ''))
 
@@ -42,7 +50,9 @@ def initial_transformations(game: dict, row : dict):
 
     return row
 
-def add_img_info(row : pd.DataFrame, v_clip : list, brillo : float):
+def add_img_info(row : pd.DataFrame, v_clip : list, brillo : float) -> pd.DataFrame:
+    """Añade a un dataframe los embeddins y el brillo de una imagen
+    """
     row['v_clip'] = [v_clip]
     row['brillo'] = brillo
 
