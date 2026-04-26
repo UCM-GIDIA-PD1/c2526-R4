@@ -49,12 +49,43 @@ html {
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    /* El verdadero fondo está en .bg-base; el body sólo necesita el color base por si acaso */
-    background: #002355;
+    background: #050505;
     color: var(--text-primary);
     min-height: 100vh;
     overflow-x: hidden;
     position: relative;
+}
+
+#hero-scroll-container {
+    position: relative;
+    height: 400vh;
+    z-index: 1;
+    display: block;
+}
+
+#hero-canvas {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    object-fit: cover;
+
+    /* MÁSCARA DE OPACIDAD: Sólido hasta el 75%, se difumina a transparente en el 100% (abajo) */
+    -webkit-mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
+}
+
+#corner-logo {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 52px;
+    height: auto;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0.85;
 }
 
 /* ============================================================
@@ -62,12 +93,10 @@ body {
    z-index: bg-base(0) < bg-figures(1) < bg-noise(2) < app-container(10)
    ============================================================ */
 
-/* Capa raíz: degradado radial fijo que cubre toda la pantalla */
 .bg-base {
     position: fixed;
     inset: 0;
     z-index: 0;
-    /* Degradado radial: azul claro en el centro, azul muy oscuro en los bordes */
     background: radial-gradient(ellipse at 50% 50%, #1385b6 0%, #003b7a 45%, #002355 100%);
     overflow: hidden;
     pointer-events: none;
@@ -80,13 +109,11 @@ body {
     overflow: hidden;
 }
 
-/* Viñeteado de fondo inmersivo */
 .bg-vignette {
     position: fixed;
     inset: 0;
     z-index: 1;
     pointer-events: none;
-    /* Degradado oscuro más largo y fuerte en los bordes */
     box-shadow: inset 0 0 350px 150px rgba(0, 4, 15, 0.98),
         inset 0 0 100px 50px rgba(0, 4, 15, 1);
 }
@@ -162,92 +189,25 @@ body {
     }
 }
 
-/* Capa de ruido — rellenada por JS con canvas grain (overlay + opacidad baja = grano de película) */
 .bg-noise {
     position: fixed;
     inset: 0;
     z-index: 5;
     background-repeat: repeat;
     background-size: 150px 150px;
-    /* tile pequeño → grano fino */
     mix-blend-mode: overlay;
-    /* valores grises al 50% no cambian nada; variaciones crean grano sutil */
     opacity: 0.2;
-    /* muy bajo → grano apenas perceptible, como cine */
     pointer-events: none;
 }
 
-/* --- Layout Container --- */
 .app-container {
     position: relative;
     z-index: 10;
     max-width: 1200px;
-    margin: 0 auto;
+    margin: 15vh auto 0;
     padding: 0 24px;
     min-height: 100vh;
 }
-
-/* ============================================================
-   HEADER — Logo + Title superposition (matching wireframe)
-   ============================================================ */
-.header {
-    position: relative;
-    /* z-index ajustado para entrelazar con el ruido (z-index:5) */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 30px 0 0;
-    gap: 0;
-    width: 100%;
-}
-
-.header-brand {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    max-width: 1200px;
-    height: auto;
-    /* Altura automática basada en los hijos */
-    padding: 20px 0 36px 0; /* Margen vertical reducido otro 10% extra */
-    margin: 0 auto;
-    cursor: pointer;
-}
-
-.header-brand:hover .header-logo,
-.header-brand:hover .header-title-group {
-    transform: scale(1.02);
-}
-
-.header-logo {
-    width: 717px; /* Aumentado otro 5% extra */
-    height: auto;
-    filter: drop-shadow(0 0 30px rgba(56, 152, 236, 0.3));
-    position: relative;
-    z-index: 3;
-    pointer-events: none;
-    margin-right: -95px; /* Ajustado proporcionalmente al nuevo tamaño más grande */
-    margin-top: 35px;    /* Lo bajamos ligeramente para alinear con el texto */
-    transition: transform var(--transition);
-}
-
-.header-title-group {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    position: relative;
-    z-index: 6;
-    transition: transform var(--transition);
-}
-
-.header-title-img {
-    height: 218px;
-    /* Reducido un 5% a petición, corrigiendo lo anterior */
-    width: auto;
-    filter: drop-shadow(0 0 20px rgba(56, 152, 236, 0.25));
-}
-
 
 /* ============================================================
    SEARCH BAR

@@ -1,18 +1,6 @@
-/* ============================================================
-   SteamPredictor — Frontend Logic
-   
-   Lógica de la SPA: búsqueda, navegación entre vistas,
-   llamadas fetch() al API y renderizado de gráficas con Chart.js.
-   (Mismo patrón que flower3.html del profesor)
-   ============================================================ */
-
-// ---- State ----
 let currentGame = null;
 let currentPrediction = null;
 let charts = {};
-
-
-
 
 // ============================================================
 // NAVIGATION
@@ -20,16 +8,13 @@ let charts = {};
 function showView(viewId) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) {
+        appContainer.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
 function setupNavigation() {
-    // Logo → home
-    document.querySelector('.header-brand').addEventListener('click', () => {
-        showView('view-home');
-    });
-
-    // Back buttons
     document.getElementById('btn-back-home').addEventListener('click', () => {
         showView('view-home');
     });
@@ -37,7 +22,6 @@ function setupNavigation() {
         showView('view-game');
     });
 }
-
 
 // ============================================================
 // SEARCH (same fetch() pattern as flower3.html)
@@ -59,7 +43,6 @@ function setupSearch() {
         });
     });
 }
-
 
 // ============================================================
 // TRENDING GAMES
@@ -84,7 +67,6 @@ async function loadTrendingGames() {
         });
     });
 }
-
 
 // ============================================================
 // GAME DETAIL VIEW
@@ -137,18 +119,15 @@ async function navigateToGame(appid) {
         </div>
 
         <div id="prediction-results-area" class="prediction-results-area">
-            <!-- Los resultados se cargarán aquí al pulsar un botón -->
-        </div>
+            </div>
     `;
 }
 
-// Nueva función para manejar el clic en los botones grandes
 async function requestPrediction(type, appid) {
     const resultsArea = document.getElementById('prediction-results-area');
     resultsArea.style.display = 'block';
     resultsArea.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
-    // Scroll suave hasta el área de resultados
     resultsArea.scrollIntoView({ behavior: 'smooth' });
 
     const res = await fetch(`/api/predict/${type}`, {
@@ -162,18 +141,13 @@ async function requestPrediction(type, appid) {
     showPredictionView(type, prediction);
 }
 
-// Atajo para mostrar la vista de predicción (anteriormente era un cambio de vista SPA)
-// Ahora la integramos o la mantenemos como vista separada pero activada por los botones
 function showPredictionView(type, prediction) {
-    // Para no romper la lógica SPA original, seguimos llamando a la navegación
-    // Pero ahora el punto de entrada son estos nuevos botones
     document.getElementById('prediction-detail-content').innerHTML = `
         <div class="loading"><div class="spinner"></div></div>
     `;
     showView('view-prediction');
     renderPredictionDetail(type, prediction);
 }
-
 
 async function loadPrediction(type, appid) {
     const card = document.getElementById(`card-${type}`);
@@ -187,7 +161,6 @@ async function loadPrediction(type, appid) {
 
     renderPredictionCard(card, type, prediction);
 }
-
 
 function renderPredictionCard(card, type, prediction) {
     const config = {
@@ -235,15 +208,12 @@ function renderPredictionCard(card, type, prediction) {
         </div>
     `;
 
-    // Mini chart
     renderMiniChart(chartId, prediction.details.history, c.color);
 
-    // Click → detail
     card.addEventListener('click', () => {
         navigateToPredictionDetail(type, prediction);
     });
 }
-
 
 // ============================================================
 // PREDICTION DETAIL VIEW
@@ -370,11 +340,9 @@ function navigateToPredictionDetail(type, prediction) {
         </div>
     `;
 
-    // Full chart
     const colors = { popularidad: '#22d3ee', precio: '#fbbf24', reviews: '#34d399' };
     renderDetailChart('chart-detail-history', prediction.details.history, colors[type]);
 }
-
 
 // ============================================================
 // CHARTS (Chart.js)
@@ -383,7 +351,6 @@ function renderMiniChart(canvasId, history, color) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
 
-    // Destroy previous chart if exists
     if (charts[canvasId]) charts[canvasId].destroy();
 
     const ctx = canvas.getContext('2d');
@@ -475,7 +442,6 @@ function renderDetailChart(canvasId, history, color) {
     });
 }
 
-
 // ============================================================
 // HELPERS
 // ============================================================
@@ -489,7 +455,6 @@ function formatFeatureName(name) {
     return name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-
 // ============================================================
 // BACKGROUND ANIMATION — Floating figures
 // ============================================================
@@ -497,72 +462,58 @@ function initBackground() {
     const container = document.getElementById('bg-figures');
     if (!container) return;
 
-    // ============================================================
-    // CONFIGURACIÓN DEL FONDO (MODIFICAR PARA AJUSTAR ESTÉTICA)
-    // ============================================================
     const CONFIG = {
         IMG_SRC: '/static/img/figura.png',
-        NUM_COLUMNS: 14,            // Aumentar para que haya más cadenas y se superpongan juntas
-        COL_WIDTH: 400,             // Ancho base de cada columna en px (hacer más anchas para que ocupen toda la pantalla y solapen)
-        OVERLAP_OFFSET: -14,         // Dejar que se salgan un poco por los bordes laterales (-5%)
-        OVERLAP_END: 200,           // Fin del area donde se distribuyen (105%)
-        SCALE_MIN: 1.0,             // Escala mínima (deben ser grandes para overlap perfecto)
-        SCALE_MAX: 1.5,             // Escala máxima
-        OPACITY_MIN: 0.22,          // Visibilidad mínima
-        OPACITY_MAX: 0.3,          // Visibilidad máxima
-        DUR_MIN: 40,                // Tiempo mínimo en dar una vuelta completa (vertical)
-        DUR_MAX: 70,                // Tiempo máximo en dar una vuelta completa (vertical)
-        SWAY_MAX_PX: 50,            // Cantidad máxima de píxeles que oscila lateralmente cada cadena (eje X)
-        SWAY_DUR_MIN: 8,            // Tiempo mínimo de un bamboleo (ida y vuelta)
-        SWAY_DUR_MAX: 15,           // Tiempo máximo de un bamboleo
-        BLUR_PX: 2,                 // Suavizado (desenfoque) definido en styles.css pero controlable conceptualmente
+        NUM_COLUMNS: 14,
+        COL_WIDTH: 400,
+        OVERLAP_OFFSET: -14,
+        OVERLAP_END: 200,
+        SCALE_MIN: 1.0,
+        SCALE_MAX: 1.5,
+        OPACITY_MIN: 0.22,
+        OPACITY_MAX: 0.3,
+        DUR_MIN: 40,
+        DUR_MAX: 70,
+        SWAY_MAX_PX: 50,
+        SWAY_DUR_MIN: 8,
+        SWAY_DUR_MAX: 15,
+        BLUR_PX: 2,
     };
-    // ============================================================
 
     const range = CONFIG.OVERLAP_END - CONFIG.OVERLAP_OFFSET;
 
     for (let i = 0; i < CONFIG.NUM_COLUMNS; i++) {
         const col = document.createElement('div');
         col.className = 'bg-chain-col';
-
-        // Ancho forzado desde config
         col.style.width = `${CONFIG.COL_WIDTH}px`;
 
-        // Intercalar dirección
         const goesUp = (i % 2 === 0);
         col.classList.add(goesUp ? 'up' : 'down');
 
-        // Posición horizontal (calculada para abarcar de Offset a End uniformemente)
         const leftPct = CONFIG.OVERLAP_OFFSET + (i / (CONFIG.NUM_COLUMNS - 1)) * range;
         col.style.left = `${leftPct}%`;
 
-        // Tamaño aleatorio y opacidad variable en base a la config
         const scale = CONFIG.SCALE_MIN + Math.random() * (CONFIG.SCALE_MAX - CONFIG.SCALE_MIN);
         col.style.transform = `scale(${scale})`;
         col.style.opacity = (CONFIG.OPACITY_MIN + Math.random() * (CONFIG.OPACITY_MAX - CONFIG.OPACITY_MIN)).toString();
 
-        // Envoltorio para balanceo (sway en el eje X)
         const sway = document.createElement('div');
         sway.className = 'bg-chain-sway';
         const swayAmount = Math.random() * CONFIG.SWAY_MAX_PX;
         const swayDur = CONFIG.SWAY_DUR_MIN + Math.random() * (CONFIG.SWAY_DUR_MAX - CONFIG.SWAY_DUR_MIN);
         sway.style.setProperty('--sway-amount', swayAmount);
         sway.style.setProperty('--sway-dur', `${swayDur}s`);
-        sway.style.animationDelay = `-${Math.random() * swayDur}s`; // Para que no vayan todas a la vez
+        sway.style.animationDelay = `-${Math.random() * swayDur}s`;
 
-        // Pista que contiene las imágenes para el bucle infinito (movimiento Y)
         const track = document.createElement('div');
         track.className = 'bg-chain-track';
 
-        // Duración Vertical
         const durY = CONFIG.DUR_MIN + Math.random() * (CONFIG.DUR_MAX - CONFIG.DUR_MIN);
         track.style.animationDuration = `${durY}s`;
 
-        // Pequeño retraso para que las columnas vecinas no vayan Y-sincronizadas
         const delayY = -(Math.random() * durY);
         track.style.animationDelay = `${delayY}s`;
 
-        // Añadimos 3 copias para cubrir el alto siempre (1 imagen de buffer, 2 expuestas)
         for (let j = 0; j < 3; j++) {
             const img = document.createElement('img');
             img.src = CONFIG.IMG_SRC;
@@ -578,7 +529,6 @@ function initBackground() {
     }
 }
 
-// Arrancar el fondo al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     loadTrendingGames();
     setupSearch();
@@ -587,9 +537,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initNoise();
 });
 
-
 // ============================================================
-// NOISE GRAIN — ruido continuo 0-255, overlay baja opacidad = grano de película
+// NOISE GRAIN
 // ============================================================
 function initNoise() {
     const el = document.getElementById('bg-noise');
@@ -605,10 +554,6 @@ function initNoise() {
     const data = img.data;
 
     for (let i = 0; i < data.length; i += 4) {
-        // Ruido continuo uniforme: todos los píxeles aleatorizados 0-255.
-        // Con mix-blend-mode:overlay a baja opacidad:
-        //   grises ~128 = sin efecto; más claros = aclaran; más oscuros = oscurecen
-        // Resultado: micro-variaciones de brillo = grano cinematográfico sutil
         const v = Math.floor(Math.random() * 256);
         data[i] = v;
         data[i + 1] = v;
@@ -619,3 +564,90 @@ function initNoise() {
     ctx.putImageData(img, 0, 0);
     el.style.backgroundImage = `url('${c.toDataURL()}')`;
 }
+
+/* ============================================================
+   LÓGICA JS PARA EL VÍDEO HERO SCROLLYTELLING (VANILLA JS)
+   ============================================================ */
+
+const canvas = document.getElementById('hero-canvas');
+const ctx = canvas.getContext('2d');
+
+const frameCount = 240;
+const currentFrame = index => `/static/img/frames/ezgif-frame-${index.toString().padStart(3, '0')}.jpg`;
+
+const images = [];
+const heroSequence = { frame: 0 };
+
+const initCanvas = () => {
+    if (canvas.width !== images[0].width) {
+        canvas.width = images[0].width;
+        canvas.height = images[0].height;
+    }
+    ctx.drawImage(images[0], 0, 0);
+};
+
+for (let i = 1; i <= frameCount; i++) {
+    const img = new Image();
+
+    if (i === 1) {
+        img.onload = initCanvas;
+    }
+
+    img.src = currentFrame(i);
+    images.push(img);
+
+    if (i === 1 && img.complete) {
+        initCanvas();
+    }
+}
+
+const updateCanvas = () => {
+    const scrollTop = document.documentElement.scrollTop;
+    const heroScrollContainer = document.getElementById('hero-scroll-container');
+    const maxScroll = heroScrollContainer.scrollHeight - window.innerHeight;
+
+    const scrollFraction = scrollTop / maxScroll;
+
+    const frameIndex = Math.min(
+        frameCount - 1,
+        Math.floor(scrollFraction * frameCount)
+    );
+
+    if (images[frameIndex]) {
+        requestAnimationFrame(() => {
+            ctx.drawImage(images[frameIndex], 0, 0);
+        });
+    }
+};
+
+window.addEventListener('scroll', updateCanvas);
+
+let isAutoScrolling = true;
+const pixelsPerFrame = window.innerHeight / (frameCount / 2.5);
+
+const cinematicAutoPlay = () => {
+    if (!isAutoScrolling) return;
+
+    window.scrollBy(0, pixelsPerFrame);
+
+    const heroScrollContainer = document.getElementById('hero-scroll-container');
+    if (window.scrollY >= heroScrollContainer.scrollHeight - window.innerHeight) {
+        isAutoScrolling = false;
+        return;
+    }
+
+    requestAnimationFrame(cinematicAutoPlay);
+};
+
+window.addEventListener('load', () => {
+    requestAnimationFrame(cinematicAutoPlay);
+});
+
+const stopAutoScroll = () => {
+    isAutoScrolling = false;
+};
+
+window.addEventListener('wheel', stopAutoScroll);
+window.addEventListener('touchstart', stopAutoScroll);
+window.addEventListener('mousedown', stopAutoScroll);
+window.addEventListener('keydown', stopAutoScroll);
