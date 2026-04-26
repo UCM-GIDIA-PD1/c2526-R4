@@ -4,7 +4,6 @@ Módulo de preprocesamiento de dataframe de reviews para el análisis de los com
 
 from src.utils.files import read_file
 from src.utils.config import reviews
-from sklearn.model_selection import train_test_split
 import re
 from nltk.stem import PorterStemmer
 from nltk.stem import WordNetLemmatizer
@@ -40,20 +39,3 @@ def clean_text_lemma(text, lemmatizer=WordNetLemmatizer(), stop_words=set(stopwo
     """Se queda solo lo que es texto, quitando stopwords y aplicando stemming"""
     text = re.sub(r"[^a-z\s]", "", text)
     return " ".join(lemmatizer.lemmatize(word) for word in text.split() if word not in stop_words)
-
-def train_val_test_split(X, y):
-    """Divide los datos en conjuntos de entrenamiento (70%), validación (15%) y prueba (15%).
-
-    Args:
-        X (pd.DataFrame): Matriz de características.
-        y (pd.Series): Vector de etiquetas.
-
-    Returns:
-        tuple: Una tupla conteniendo seis elementos en este orden:
-            X_train, X_val, X_test, y_train, y_val, y_test.
-    """
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed, stratify=y)
-
-    return X_train, X_test, y_train, y_test
-
