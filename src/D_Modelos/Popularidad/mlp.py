@@ -4,7 +4,7 @@ No se reduce la dimensionalidad de las imagenes.
 """
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['CUDA_VISIBLE_DEVICES'] = '' # Ejecución en CPU (estable y sin límite de memoria VRAM)
+os.environ['CUDA_VISIBLE_DEVICES'] = '' # Para forzar CPU
 
 import numpy as np
 import optuna
@@ -62,7 +62,7 @@ def build_keras_heavyweight(hidden_layer_sizes=(256, 128, 64), activation='swish
         if len(hidden_layer_sizes) > 2:
             t = Dense(hidden_layer_sizes[2], activation=activation)(t)
 
-        # FUSIÓN
+        # LATE FUSION
         merged = Concatenate()([v, t])
         z = Dense(64, activation=activation)(merged)
         z = Dense(16, activation=activation)(z)
@@ -83,7 +83,7 @@ def build_keras_heavyweight(hidden_layer_sizes=(256, 128, 64), activation='swish
 class MLPPopularity(PopularityModel):
     def __init__(self, minio: dict):
         super().__init__(
-            run_name="mlp-keras-heavyweight-nolimits",
+            run_name="mlp-keras-latefusion",
             model_path=popularidad_mlp_file,
             minio=minio
         )

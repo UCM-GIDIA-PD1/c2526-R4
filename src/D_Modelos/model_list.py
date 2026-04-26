@@ -3,11 +3,11 @@ from src.utils.config import popularidad_linear_regression_file, popularidad_lin
 from src.utils.config import precios_xgboostumap_file, precios_knncompleteclusters_file, precios_mlp_file, precios_logistic_regression_file
 from src.utils.config import reviews_logistic_regression_optuna_file, reviews_naive_bayes_cv_file, reviews_naive_bayes_tfidf_file
 
-from src.D_Modelos.Popularidad.baseline import transform_baseline, predict_baseline_median, predict_baseline_mean
-from src.D_Modelos.Popularidad.linear_regression import transform_for_linear_regresion, predict_linear_regresion, predict_linear_regresion_log
-from src.D_Modelos.Popularidad.xgboost_model import transform_for_xgboost, predict_xgboost, predict_xgboost_log
-from src.D_Modelos.Popularidad.mlp import transform_mlp, predict_mlp
-from src.D_Modelos.Popularidad.knn import transform_for_knn, predict_knn
+from src.D_Modelos.Popularidad.baseline import predict_baseline_median, predict_baseline_mean
+from src.D_Modelos.Popularidad.linear_regression import LinearRegressionPopularity
+from src.D_Modelos.Popularidad.xgboost_model import XGBoostPopularity
+from src.D_Modelos.Popularidad.mlp import MLPPopularity
+from src.D_Modelos.Popularidad.knn import KNNPopularity
 
 from src.D_Modelos.Precios.baseline import transform_baseline as transform_baseline_precios, predict_baseline_mode
 from src.D_Modelos.Precios.xgboost_model import transform_xgboost as transform_xgboost_precios, predict_xgboost as predict_xgboost_precios
@@ -22,46 +22,50 @@ from src.D_Modelos.Reviews.naive_bayes_TFIDF import transform_naive_bayes_tfidf,
 
 # POPULARIDAD
 models_popularidad = {
-        "Baseline (Median)": {
-            "transform_function": transform_baseline,
-            "model_path": None,
-            "prediction_function": predict_baseline_median,
-        },
-        "Baseline (Mean)": {
-            "transform_function": transform_baseline,
-            "model_path": None,
-            "prediction_function": predict_baseline_mean,
-        },
-        "Linear Regression (Normal)": { 
-            "transform_function": transform_for_linear_regresion,
-            "model_path": popularidad_linear_regression_file,
-            "prediction_function": predict_linear_regresion,
-        },
-        "Linear Regression (Log)": {
-            "transform_function": transform_for_linear_regresion,
-            "model_path": popularidad_linear_regression_log_file,
-            "prediction_function": predict_linear_regresion_log,
-        },
-        "XGBoost (Normal)": {
-            "transform_function": transform_for_xgboost,
-            "model_path": popularidad_xgboost_file,
-            "prediction_function": predict_xgboost,
-        },
-        "XGBoost (Log)": {
-            "transform_function": transform_for_xgboost,
-            "model_path": popularidad_xgboost_log_file,
-            "prediction_function": predict_xgboost_log,
-        },
-        "MLP": {
-            "transform_function": transform_mlp,
-            "model_path": popularidad_mlp_file,
-            "prediction_function": predict_mlp,
-        },
-        "KNN (Log)": {
-            "transform_function": transform_for_knn,
-            "model_path": popularidad_knn_log_file,
-            "prediction_function": predict_knn,
-        }
+    "Baseline (Median)": {
+        "type": "baseline",
+        "prediction_function": predict_baseline_median,
+    },
+    "Baseline (Mean)": {
+        "type": "baseline",
+        "prediction_function": predict_baseline_mean,
+    },
+    "Linear Regression (Normal)": { 
+        "type": "class",
+        "class_ref": LinearRegressionPopularity,
+        "kwargs": {"run_name": "linear-regression-raw", "model_path": popularidad_linear_regression_file},
+        "config": {"use_log": False}
+    },
+    "Linear Regression (Log)": {
+        "type": "class",
+        "class_ref": LinearRegressionPopularity,
+        "kwargs": {"run_name": "linear-regression-log", "model_path": popularidad_linear_regression_log_file},
+        "config": {"use_log": True}
+    },
+    "XGBoost (Normal)": {
+        "type": "class",
+        "class_ref": XGBoostPopularity,
+        "kwargs": {"run_name": "xgboost-with_multicol-raw", "model_path": popularidad_xgboost_file},
+        "config": {"avoid_multicol": False, "use_log": False}
+    },
+    "XGBoost (Log)": {
+        "type": "class",
+        "class_ref": XGBoostPopularity,
+        "kwargs": {"run_name": "xgboost-with_multicol-log", "model_path": popularidad_xgboost_log_file},
+        "config": {"avoid_multicol": False, "use_log": True}
+    },
+    "MLP": {
+        "type": "class",
+        "class_ref": MLPPopularity,
+        "kwargs": {},
+        "config": {"avoid_multicol": False, "use_log": False}
+    },
+    "KNN (Log)": {
+        "type": "class",
+        "class_ref": KNNPopularity,
+        "kwargs": {},
+        "config": {"avoid_multicol": True, "use_log": True}
+    }
 }
 
 # PRECIOS

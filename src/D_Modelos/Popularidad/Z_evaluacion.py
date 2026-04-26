@@ -27,32 +27,29 @@ def evaluate_models(minio):
 
     table = wandb.Table(columns=["Model", "MAE", "RMSE", "MEDAE"])
 
-    for model_name, config in models_popularidad.items():
-        df = config["transform_function"](df_raw)
-
-        bins_strat = [-np.inf, 6, 23, 106, 320, np.inf]
-        y_binned = pd.cut(df[y_variable], bins=bins_strat, labels=False)
+    for model_name, info in models_popularidad.items():
+        print(f"Evaluando: {model_name}...")
         
-        train_df, test_df = train_test_split(df, test_size=0.20, random_state=seed, stratify=y_binned)
+        if info["type"] == "class":
+            model = info["class_ref"](minio=minio, **info.get("kwargs", {}))
+            
+            metricas = model.evaluate(df_raw, config=info["config"])
+            table.add_data(model_name, metricas["mae"], metricas["rmse"], metricas["medae"])
+            
+        elif info["type"] == "baseline":
+            train_df, test_df = train_test_split(df_raw, test_size=0.20, random_state=seed)
+            
+            y_real = test_df[y_variable]
+            y_pred = info["prediction_function"](None, test_df, train_df)
 
-        if config["model_path"] is not None:
-            model_data = read_file(config["model_path"], minio)
-        else:
-            model_data = None
+            mae = mean_absolute_error(y_real, y_pred)
+            rmse = root_mean_squared_error(y_real, y_pred)
+            medae = median_absolute_error(y_real, y_pred)
 
-        y_real = test_df[y_variable]
-        y_pred = config["prediction_function"](model_data, test_df, train_df)
-
-        y_pred = np.maximum(y_pred, 0)
-
-        mae = mean_absolute_error(y_real, y_pred)
-        rmse = root_mean_squared_error(y_real, y_pred)
-        medae = median_absolute_error(y_real, y_pred)
-
-        table.add_data(model_name, mae, rmse, medae)
+            table.add_data(model_name, mae, rmse, medae)
 
     wandb.log({"comparative_table": table})
-
+    print("\nEvaluación completada.")
     run.finish()
 
 
