@@ -7,7 +7,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import ComplementNB
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score, f1_score
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.model_selection import cross_val_score, train_test_split
 import optuna
 import wandb
@@ -72,11 +72,12 @@ def entrenar_modelo_con_gridsearch(X_train, y_train):
         'vect__norm': ['l1', 'l2'],
         'clf__alpha': [0.1, 0.5, 1.0, 2.0]
     }
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
 
     grid_search = GridSearchCV(
         pipeline, 
         param_grid, 
-        cv=5, 
+        cv=cv, 
         scoring='balanced_accuracy',
         n_jobs=-1, 
         verbose=2
