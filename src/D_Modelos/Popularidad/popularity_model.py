@@ -166,6 +166,39 @@ class PopularityModel(ABC):
         df_clean[cols_to_fill] = df_clean[cols_to_fill].fillna(0)
 
         return df_clean
+    
+    def predict(self, data, config):
+        """
+        Genera predicciones para un nuevo conjunto de datos utilizando el modelo guardado (.pkl).
+        
+        Args:
+            data (pd.DataFrame): Datos del juego a predecir.
+            config (dict): Configuración opcional para el preprocesamiento.
+            
+        Returns:
+            np.ndarray: Array con las predicciones.
+        """
+        if config is None:
+            config = {}
+            
+        model_data = read_file(self.model_path, self.minio)
+
+        if model_data is None:
+            raise FileNotFoundError(
+                f"No se encontró el modelo en {self.model_path}. "
+            )
+            
+        modelo_final = model_data["model"]
+
+        df_prep = self._preprocess_data(data, config)
+        X = df_prep
+        
+        if "recomendaciones_totales" in X.columns:
+            X.drop(columns=["recomendaciones_totales"], inplace=True)
+
+        preds = self._predict(modelo_final, X)
+        
+        return preds
 
     def _split_data(self, df_prep):
         X = df_prep.drop(columns=["recomendaciones_totales"])
