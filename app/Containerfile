@@ -1,0 +1,25 @@
+# El Containerfile es una lista de pasos que se ejecutan para crear la imagen del proyecto con la que posteriormente se puede ejecutar un contenedor.
+
+# Base image
+FROM python:3.13-slim 
+
+# Copy uv (fast package manager) from its official image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Working directory
+WORKDIR /app
+
+# Copy only the dependencies file
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies
+RUN uv sync --no-cache
+
+# Copy code and data
+COPY . .
+
+# Listening port
+EXPOSE 8000
+
+# Command to start the app
+CMD ["/app/.venv/bin/fastapi", "run", "main.py", "--port", "8000"]

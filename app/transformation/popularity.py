@@ -7,6 +7,36 @@ import pandas as pd
 import numpy as np
 from transformation.common import  initial_transformations, add_img_info
 
+UNPROCESSED_COLUMNS = ['description_len', 'price_overview', 'num_languages',
+       'release_year', 'Action', 'Adventure', 'Casual', 'Early Access',
+       'Free To Play', 'Indie', 'RPG', 'Simulation', 'Strategy', 'Co-op',
+       'Custom Volume Controls', 'Family Sharing', 'Full controller support',
+       'Multi-player', 'Online Co-op', 'Online PvP',
+       'Partial Controller Support', 'Playable without Timed Input', 'PvP',
+       'Remote Play Together', 'Shared/Split Screen', 'Single-player',
+       'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards',
+       'Steam Trading Cards', 'num_juegos_previos_developers',
+       'es_primer_juego_developers', 'ema_reviews_developers',
+       'max_historico_reviews_developers', 'num_juegos_previos_publishers',
+       'es_primer_juego_publishers', 'ema_reviews_publishers',
+       'max_historico_reviews_publishers', 'v_clip', 'brillo',
+       'video_0_video_statistics.viewCount',
+       'video_0_video_statistics.likeCount',
+       'video_0_video_statistics.commentCount',
+       'video_0_video_statistics.favoriteCount',
+       'video_1_video_statistics.viewCount',
+       'video_1_video_statistics.likeCount',
+       'video_1_video_statistics.commentCount',
+       'video_1_video_statistics.favoriteCount',
+       'video_2_video_statistics.viewCount',
+       'video_2_video_statistics.likeCount',
+       'video_2_video_statistics.commentCount',
+       'video_2_video_statistics.favoriteCount',
+       'video_3_video_statistics.viewCount',
+       'video_3_video_statistics.likeCount',
+       'video_3_video_statistics.commentCount',
+       'video_3_video_statistics.favoriteCount', 'yt_score']
+
 GENRES = ['Action', 'Adventure', 'Casual', 'Early Access', 'Free To Play',
 'Indie', 'RPG', 'Simulation', 'Strategy']
 
@@ -22,6 +52,12 @@ HISTORY_COLS = [
     'ema_reviews_developers', 'max_historico_reviews_developers',
     'num_juegos_previos_publishers', 'es_primer_juego_publishers',
     'ema_reviews_publishers', 'max_historico_reviews_publishers',
+]
+
+YT_STAT_COLS = [
+    f"video_{i}_video_statistics.{stat}"
+    for i in range(4)
+    for stat in ["viewCount", "likeCount", "commentCount", "favoriteCount"]
 ]
 
 def _transform_game_dict(game: dict, appid: str, historic_data: pd.DataFrame) -> pd.DataFrame:
@@ -74,12 +110,6 @@ def _transform_yt_data(row: pd.DataFrame, yt_data: dict) -> pd.DataFrame:
     Dada una fila de dataFrame obtiene todas las columnas de la información de YouTube.
     Añade las métricas por vídeo (viewCount, likeCount, commentCount) y yt_score.
     """
-    YT_STAT_COLS = [
-        f"video_{i}_video_statistics.{stat}"
-        for i in range(4)
-        for stat in ["viewCount", "likeCount", "commentCount", "favoriteCount"]
-    ]
-
     for col in YT_STAT_COLS:
         row[col] = 0
     row["yt_score"] = 0
@@ -166,5 +196,5 @@ def transform_for_popularity(game: dict,
     row = _transform_reviews(row, appreviewshistogram)
     row = _transform_yt_data(row, yt_data)
     row.drop(columns=['price_range'], inplace=True)
-    return row
+    return row[UNPROCESSED_COLUMNS]
 
