@@ -16,7 +16,7 @@ from fastapi import Request
 from pydantic import BaseModel
 import random
 from joblib import load
-from utils import config
+from app.utils import config
 from extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
 from extraction.youtube import get_video_data
 from transformation.prices import transform_for_prices
