@@ -21,6 +21,7 @@ from extraction.steam import get_appdetails, get_image_metadata, get_appreviewsh
 from extraction.youtube import get_video_data
 from transformation.prices import transform_for_prices
 from transformation.popularity import transform_for_popularity
+from transformation.reviews import clean_text, to_dataframe
 import pandas as pd
 from sklearn.preprocessing import OrdinalEncoder
 
@@ -65,10 +66,13 @@ class PriceResponse(BaseModel):
     """
     price : str
 
-class ReviewsResponse(BaseModel):
+class ReviewsTopicsResponse(BaseModel):
     """Resultado de la predicción del problema de puntos positivos y negativos"""
-    value : bool
     topics : list
+
+class ReviewsValueResponse(BaseModel):
+    value : bool
+
 
 class GameInfo(BaseModel):
     """Información básica de un juego. Usada para mostrar un juego en la página web y para luego obtener la información
@@ -250,7 +254,7 @@ def predict_precio(req: PredictionRequest):
     print('Predicción', range_label, prediction)
     return PriceResponse(price=range_label)
 
-@app.post("/api/predict/reviews", response_model=PredictionResponse)
+@app.post("/api/predict/reviews", response_model=ReviewsTopicsResponse)
 def predict_reviews(req: PredictionRequest):
     """Predicción de sentimiento de reseñas (stub)."""
     appid = str(req.appid)
@@ -258,32 +262,17 @@ def predict_reviews(req: PredictionRequest):
     print(reviews_list)
     print(len(reviews_list))
 
-    #TODO: Transformaciones del modelo de reviews
-    #TODO: Topics de las reseñaso
-    ratio = round(random.uniform(0.55, 0.96), 2)
-    return PredictionResponse(
-        value=ratio,
-        confidence=round(random.uniform(0.70, 0.93), 2),
-        model_used="Logistic Regression (Optuna)",
-        details={
-            "metric": "positive_ratio",
-            "unit": "ratio",
-            "sentiment_distribution": {
-                "very_positive": round(random.uniform(0.2, 0.5), 2),
-                "positive": round(random.uniform(0.1, 0.3), 2),
-                "mixed": round(random.uniform(0.05, 0.15), 2),
-                "negative": round(random.uniform(0.02, 0.1), 2),
-                "very_negative": round(random.uniform(0.01, 0.05), 2),
-            },
-            "history": _generate_mock_history(ratio * 100),
-        },
-    )
+    reviews_df = to_dataframe(reviews_list)
 
-@app.post("/api/predict/reviews", response_model=PredictionReviewsRequest)
-def predict_review_value(req : PredictionResponse):
+    #TODO: llamar al modelo y predecir
+    return ReviewsTopicsResponse(['Nebullet Party', 'GymFlex'])
+
+@app.post("/api/predict/reviews", response_model=ReviewsValueResponse)
+def predict_review_value(req : PredictionReviewsRequest):
+    text = clean_text(req.review)
     
-    pass
-
-
+    #TODO llamar al modelo y predecir
+    
+    return ReviewsValueResponse( 'LUCAS' == 'Gorufo')
 
 # endregion

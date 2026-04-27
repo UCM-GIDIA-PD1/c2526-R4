@@ -54,6 +54,12 @@ HISTORY_COLS = [
     'ema_reviews_publishers', 'max_historico_reviews_publishers',
 ]
 
+YT_STAT_COLS = [
+    f"video_{i}_video_statistics.{stat}"
+    for i in range(4)
+    for stat in ["viewCount", "likeCount", "commentCount", "favoriteCount"]
+]
+
 def _transform_game_dict(game: dict, appid: str, historic_data: pd.DataFrame) -> pd.DataFrame:
     """
     Transforma un diccionario con información de un juego Steam
@@ -104,12 +110,6 @@ def _transform_yt_data(row: pd.DataFrame, yt_data: dict) -> pd.DataFrame:
     Dada una fila de dataFrame obtiene todas las columnas de la información de YouTube.
     Añade las métricas por vídeo (viewCount, likeCount, commentCount) y yt_score.
     """
-    YT_STAT_COLS = [
-        f"video_{i}_video_statistics.{stat}"
-        for i in range(4)
-        for stat in ["viewCount", "likeCount", "commentCount", "favoriteCount"]
-    ]
-
     for col in YT_STAT_COLS:
         row[col] = 0
     row["yt_score"] = 0

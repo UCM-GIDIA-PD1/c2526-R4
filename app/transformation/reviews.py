@@ -10,24 +10,28 @@ from langdetect import detect
 import pandas as pd
 
 
-def transform_reviews_list(game_reviews : list) -> pd.DataFrame:
+def transform_reviews_list(game_reviews : list[dict]) -> pd.DataFrame:
     """Dada una lista de reviews de un juego los transforma para que sean aptos para el problema de top
     """
     reviews_df = to_dataframe(game_reviews) # columnas: appid, is_positive, weight, text
 
-    reviews_df["text"] = reviews_df["text"].apply(initial_text_filter) # quitar links y tags markdown
+    reviews_df["text"] = reviews_df["text"].apply(_initial_text_filter) # quitar links y tags markdown
 
-    reviews_df["language"] = reviews_df["text"].apply(detect_language)
+    reviews_df["language"] = reviews_df["text"].apply(_detect_language)
     eng_reviews_df = reviews_df[reviews_df["language"] == "en"].copy()
 
-    eng_reviews_df["text"] = eng_reviews_df["text"].apply(limpieza_final) # emojis, unicode, ascii
+    eng_reviews_df["text"] = eng_reviews_df["text"].apply(_limpieza_final) # emojis, unicode, ascii
     eng_reviews_df["weight"] = eng_reviews_df["weight"].astype(float)
-    # df.drop(columns=["language"], inplace=True)
 
     return eng_reviews_df
 
-def transform_text(text : str) -> pd.DataFrame:
-    pass
+def clean_text(text : str) -> pd.DataFrame:
+    """Dado un texto realiza la limpieza para poder meterlo al modelo de predecir si es positivo o negativo
+    """
+    text = _initial_text_filter(text)
+    text = _limpieza_final(text)
+
+    return text
 
 def to_dataframe(raw : list) -> pd.DataFrame:
     
@@ -56,10 +60,7 @@ def to_dataframe(raw : list) -> pd.DataFrame:
                 })
     return df
 
-def clean_text(text : str) -> str:
-    pass
-
-def detect_language(text : str) -> str:
+def _detect_language(text : str) -> str:
     """
     Usando detect del módulo langdetect, devolvemos el lenguaje en el que está escrito.
     """
@@ -69,7 +70,7 @@ def detect_language(text : str) -> str:
         return "unknown"
 
 
-def initial_text_filter(texto : str) -> str:
+def _initial_text_filter(texto : str) -> str:
     """
     Eliminamos aspectos del texto que no intenresan (corchetes, enlaces...) 
     """
@@ -79,7 +80,7 @@ def initial_text_filter(texto : str) -> str:
     return texto.strip()
 
 
-def limpieza_final(texto : str) -> str: 
+def _limpieza_final(texto : str) -> str: 
     """
     Normalizamos el texto de una review, quitando carácteres raros, acentos, pasar idiomas a unidecode...
     """
