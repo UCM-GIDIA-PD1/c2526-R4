@@ -1,14 +1,14 @@
 import nltk
 nltk.download('stopwords')
 nltk.download('wordnet')
-from src.D_Modelos.Reviews.utils.preprocesamiento import read_reviews, train_val_test_split, clean_text_lemma
+from src.D_Modelos.Reviews.utils.preprocesamiento import read_reviews, clean_text_lemma
 from tqdm import tqdm
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import ComplementNB
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score, f1_score
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, train_test_split
 import optuna
 import wandb
 import os
@@ -17,6 +17,8 @@ from src.D_Modelos.Reviews.utils.utils import get_metrics
 
 from src.utils.files import read_file, write_to_file
 from src.utils.config import reviews_naive_bayes_tfidf_file, models_reviews_path
+from src.utils.config import seed
+from src.utils.config import reviews
 
 class_names = ["Negativo", "Positivo"]
 
@@ -56,9 +58,7 @@ def preprocesar_texto(X_train, X_val, X_test):
     X_test = [clean_text_lemma(review) for review in tqdm(X_test, desc = "Preprocesando prueba")]
     return X_train, X_val, X_test
 
-def entrenar_modelo_con_gridsearch(X_train, X_val, y_train, y_val):
-    X_train_full = X_train + X_val
-    y_train_full = y_train + y_val
+def entrenar_modelo_con_gridsearch(X_train, y_train):
     pipeline = Pipeline([
         ('vect', TfidfVectorizer()),
         ('clf', ComplementNB())
@@ -82,7 +82,7 @@ def entrenar_modelo_con_gridsearch(X_train, X_val, y_train, y_val):
         verbose=2
     )
 
-    grid_search.fit(X_train_full, y_train_full)
+    grid_search.fit(X_train, y_train)
     final_model = Pipeline([
         ('vect', TfidfVectorizer(
             ngram_range=grid_search.best_params_['vect__ngram_range'],
@@ -97,9 +97,7 @@ def entrenar_modelo_con_gridsearch(X_train, X_val, y_train, y_val):
     final_model.fit(X_train, y_train)
     return final_model, grid_search.best_params_
 
-def entrenar_modelo_con_optuna(X_train, X_val, y_train, y_val, n_trials=50):
-    X_train_full = X_train + X_val
-    y_train_full = y_train + y_val
+def entrenar_modelo_con_optuna(X_train, y_train, n_trials=50):
     def objective(trial):
         ngram_max = trial.suggest_int('ngram_max', 1, 2)
         
@@ -123,7 +121,7 @@ def entrenar_modelo_con_optuna(X_train, X_val, y_train, y_val, n_trials=50):
             ('clf', ComplementNB(alpha=param_grid['clf__alpha']))
         ])
 
-        score = cross_val_score(pipeline, X_train_full, y_train_full, n_jobs=-1, cv=5, scoring='balanced_accuracy')
+        score = cross_val_score(pipeline, X_train, y_train, n_jobs=-1, cv=5, scoring='balanced_accuracy')
         return score.mean()
 
 
@@ -176,7 +174,7 @@ def best_standard_params(score_grid, params_grid,score_optuna, params_optuna):
         best_params["ngram_range"] = ngram_range
     return best_params
 
-def _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test):
+def _gridsearch(X_train, X_test, y_train, y_test):
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Reviews", 
@@ -184,7 +182,7 @@ def _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test):
         job_type='naive-bayes-tfidf'
     )
 
-    modelo, mejores_params = entrenar_modelo_con_gridsearch(X_train, X_val, y_train, y_val)
+    modelo, mejores_params = entrenar_modelo_con_gridsearch(X_train, y_train)
     y_pred = modelo.predict(X_test)
     accuracy, balanced_accuracy, precision, recall, f1 = calcular_metricas(y_test, y_pred)
 
@@ -200,7 +198,7 @@ def _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test):
 
     return balanced_accuracy, mejores_params
 
-def _optuna(X_train, X_val, X_test, y_train, y_val, y_test):
+def _optuna(X_train, X_test, y_train, y_test):
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Reviews", 
@@ -208,7 +206,7 @@ def _optuna(X_train, X_val, X_test, y_train, y_val, y_test):
         job_type='naive-bayes-tfidf'
     )
     
-    modelo, mejores_params = entrenar_modelo_con_optuna(X_train, X_val, y_train, y_val)
+    modelo, mejores_params = entrenar_modelo_con_optuna(X_train, y_train)
     y_pred = modelo.predict(X_test)
     accuracy, balanced_accuracy, precision, recall, f1 = calcular_metricas(y_test, y_pred)
 
@@ -243,16 +241,17 @@ def train_best_model(best_params, X_train, y_train):
 
 
 def main(minio = {"minio_write": False, "minio_read": False}):
-    df = read_reviews(minio)
-    reviews = df["text"].to_list() # minusculas y solo caracteres alphanumericos y signos comunes de puntuacion
-    labels = df["is_positive"].to_list()
+    tqdm.pandas(desc="Limpiando texto")
+    print("Leyendo Datos")
+    df = read_file(reviews, minio)
 
-    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(reviews, labels)
-    X_train, X_val, X_test = preprocesar_texto(X_train, X_val, X_test)
+    print("Preprocesado de los datos")
+    X, y = _preprocess(df)
 
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed, stratify=y)
 
-    score_grid, params_grid = _gridsearch(X_train, X_val, X_test, y_train, y_val, y_test)
-    score_optuna, params_optuna = _optuna(X_train, X_val, X_test, y_train, y_val, y_test)
+    score_grid, params_grid = _gridsearch(X_train,X_test, y_train, y_test)
+    score_optuna, params_optuna = _optuna(X_train,X_test, y_train, y_test)
 
     best_params = best_standard_params(score_grid, params_grid,score_optuna, params_optuna)
 
