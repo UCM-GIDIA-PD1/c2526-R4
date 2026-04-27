@@ -35,10 +35,58 @@ PRICE_ORDER = [
     '>40'
 ]
 
+
+# region classes
+
+class PredictionRequest(BaseModel):
+    """Datos de entrada para una predicción."""
+    appid: int
+    model_name: str = "default"
+
+class PredictionReviewsRequest(BaseModel):
+    """Datos de entrada para el problema de predecir la valoración de una review.
+    """
+    review : str
+
+class PredictionResponse(BaseModel):
+    """Resultado de una predicción."""
+    value: float
+    confidence: float
+    model_used: str
+    details: dict
+
+class PopularityResponse(BaseModel):
+    """Resultado de la predicción del problema de popularidad
+    """
+    reviews : int
+
+class PriceResponse(BaseModel):
+    """Resultado de la predicción del problema de precios
+    """
+    price : str
+
+class ReviewsResponse(BaseModel):
+    """Resultado de la predicción del problema de puntos positivos y negativos"""
+    value : bool
+    topics : list
+
+class GameInfo(BaseModel):
+    """Información básica de un juego. Usada para mostrar un juego en la página web y para luego obtener la información
+    de dicho juego en cada modelo"""
+    appid: int
+    name: str
+    banner_url: str
+    release_date: str
+    developer: str
+    genres: list[str]
+    price: float
+    positive_reviews: int
+    negative_reviews: int
+
+# endregion
+
 # region startup/shutdown
-# --------------------------------------------------------------------------
-# Lifespan: se ejecuta al arrancar (startup) y al apagar (shutdown)
-# --------------------------------------------------------------------------
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: cargar modelos en memoria
@@ -71,51 +119,8 @@ templates = Jinja2Templates(directory=config.app_dir() / "templates")
 
 #endregion
 
-# region classes
-# --------------------------------------------------------------------------
-# Modelos Pydantic
-# --------------------------------------------------------------------------
-class PredictionRequest(BaseModel):
-    """Datos de entrada para una predicción."""
-    appid: int
-    model_name: str = "default"
-
-class PredictionResponse(BaseModel):
-    """Resultado de una predicción."""
-    value: float
-    confidence: float
-    model_used: str
-    details: dict
-
-class PopularityResponse(BaseModel):
-    reviews : int
-
-class PriceResponse(BaseModel):
-    price : str
-
-class ReviewsResponse(BaseModel):
-    value : bool
-    topics : list
-
-class GameInfo(BaseModel):
-    """Información básica de un juego. Usada para mostrar un juego en la página web y para luego obtener la información
-    de dicho juego en cada modelo"""
-    appid: int
-    name: str
-    banner_url: str
-    release_date: str
-    developer: str
-    genres: list[str]
-    price: float
-    positive_reviews: int
-    negative_reviews: int
-
-# endregion
-
 # region search
-# --------------------------------------------------------------------------
-# Datos mock para desarrollo (se reemplazarán con datos reales)
-# --------------------------------------------------------------------------
+
 MOCK_GAMES = [
     GameInfo(appid=413150, name="Stardew Valley", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg", release_date="26 Feb, 2016", developer="ConcernedApe", genres=["RPG", "Simulation", "Farming"], price=13.99, positive_reviews=523847, negative_reviews=5891),
     GameInfo(appid=1245620, name="Elden Ring", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1245620/header.jpg", release_date="25 Feb, 2022", developer="FromSoftware Inc.", genres=["Action", "RPG", "Open World"], price=49.99, positive_reviews=412893, negative_reviews=62341),
@@ -130,7 +135,6 @@ MOCK_GAMES = [
     #NOTE: Este juego es uno de prueba para probar que el request funcione
     GameInfo(appid=99700, name="Luxor: 5th Passage", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg", release_date="26 Feb, 2016", developer="ConcernedApe", genres=["RPG", "Simulation", "Farming"], price=13.99, positive_reviews=523847, negative_reviews=5891),
 ]
-
 
 def _generate_mock_history(base_value: float, months: int = 12) -> list[dict]:
     """Genera datos históricos mock para gráficas."""
@@ -254,7 +258,8 @@ def predict_reviews(req: PredictionRequest):
     print(reviews_list)
     print(len(reviews_list))
 
-
+    #TODO: Transformaciones del modelo de reviews
+    #TODO: Topics de las reseñaso
     ratio = round(random.uniform(0.55, 0.96), 2)
     return PredictionResponse(
         value=ratio,
@@ -273,6 +278,12 @@ def predict_reviews(req: PredictionRequest):
             "history": _generate_mock_history(ratio * 100),
         },
     )
+
+@app.post("/api/predict/reviews", response_model=PredictionReviewsRequest)
+def predict_review_value(req : PredictionResponse):
+    
+    pass
+
 
 
 # endregion

@@ -7,6 +7,36 @@ import pandas as pd
 import numpy as np
 from transformation.common import  initial_transformations, add_img_info
 
+UNPROCESSED_COLUMNS = ['description_len', 'price_overview', 'num_languages',
+       'release_year', 'Action', 'Adventure', 'Casual', 'Early Access',
+       'Free To Play', 'Indie', 'RPG', 'Simulation', 'Strategy', 'Co-op',
+       'Custom Volume Controls', 'Family Sharing', 'Full controller support',
+       'Multi-player', 'Online Co-op', 'Online PvP',
+       'Partial Controller Support', 'Playable without Timed Input', 'PvP',
+       'Remote Play Together', 'Shared/Split Screen', 'Single-player',
+       'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards',
+       'Steam Trading Cards', 'num_juegos_previos_developers',
+       'es_primer_juego_developers', 'ema_reviews_developers',
+       'max_historico_reviews_developers', 'num_juegos_previos_publishers',
+       'es_primer_juego_publishers', 'ema_reviews_publishers',
+       'max_historico_reviews_publishers', 'v_clip', 'brillo',
+       'video_0_video_statistics.viewCount',
+       'video_0_video_statistics.likeCount',
+       'video_0_video_statistics.commentCount',
+       'video_0_video_statistics.favoriteCount',
+       'video_1_video_statistics.viewCount',
+       'video_1_video_statistics.likeCount',
+       'video_1_video_statistics.commentCount',
+       'video_1_video_statistics.favoriteCount',
+       'video_2_video_statistics.viewCount',
+       'video_2_video_statistics.likeCount',
+       'video_2_video_statistics.commentCount',
+       'video_2_video_statistics.favoriteCount',
+       'video_3_video_statistics.viewCount',
+       'video_3_video_statistics.likeCount',
+       'video_3_video_statistics.commentCount',
+       'video_3_video_statistics.favoriteCount', 'yt_score']
+
 GENRES = ['Action', 'Adventure', 'Casual', 'Early Access', 'Free To Play',
 'Indie', 'RPG', 'Simulation', 'Strategy']
 
@@ -166,5 +196,5 @@ def transform_for_popularity(game: dict,
     row = _transform_reviews(row, appreviewshistogram)
     row = _transform_yt_data(row, yt_data)
     row.drop(columns=['price_range'], inplace=True)
-    return row
+    return row[UNPROCESSED_COLUMNS]
 
