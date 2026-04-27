@@ -167,33 +167,12 @@ class PopularityModel(ABC):
 
         return df_clean
 
-    def _create_stratified_bins(self, y, n_bins=5):
-        """
-        Crea exactamente 5 bins estratificados. 
-        Si hay empates masivos, los desempata al 
-        azar para que todos los grupos tengan el mismo tamaño.
-        """
-        # Cortes basados en los datos:
-        # 0 - 6 (Percentil 0-50)
-        # 6 - 23 (Percentil 50-75)
-        # 23 - 106 (Percentil 75-90)
-        # 106 - 320 (Percentil 90-95)
-        # 320+ (Top 5%)
-        
-        bins = pd.cut(
-            y, 
-            bins=[-np.inf, 6, 23, 106, 320, np.inf], 
-            labels=False
-        )
-        return bins.values
-
     def _split_data(self, df_prep):
         X = df_prep.drop(columns=["recomendaciones_totales"])
         y = df_prep["recomendaciones_totales"]
         
-        y_binned = self._create_stratified_bins(y, n_bins=5)
-        X_train, X_test, y_train, y_test, y_binned_train, _ = train_test_split(
-            X, y, y_binned, test_size=0.2, stratify=y_binned, random_state=seed
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=seed
         )
         
         return {
@@ -201,7 +180,6 @@ class PopularityModel(ABC):
             "X_test": X_test,
             "y_train": y_train, 
             "y_test": y_test,
-            "y_binned_train": y_binned_train
         }
 
     def _calculate_metrics(self, y_true, y_pred) -> dict:

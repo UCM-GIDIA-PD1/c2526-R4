@@ -13,7 +13,7 @@ import warnings
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.preprocessing import PowerTransformer, QuantileTransformer, MinMaxScaler, StandardScaler, FunctionTransformer
-from sklearn.model_selection import StratifiedKFold, cross_validate
+from sklearn.model_selection import KFold, cross_validate
 
 import keras
 from keras.models import Model
@@ -147,7 +147,6 @@ class MLPPopularity(PopularityModel):
     def _optimize_hyperparameters(self, data_splits, config):
         X_train = data_splits["X_train"]
         y_train = data_splits["y_train"]
-        y_binned_train = data_splits["y_binned_train"]
 
         def objective(trial):
             params = {
@@ -165,11 +164,11 @@ class MLPPopularity(PopularityModel):
             }
 
             model = self._build_pipeline(params, config, X_train)
-            cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+            cv = KFold(n_splits=5, shuffle=True, random_state=seed)
             
             scores = cross_validate(
                 model, X_train, y_train, 
-                cv=list(cv.split(X_train, y_binned_train)), 
+                cv=cv, 
                 scoring='neg_mean_absolute_error', 
                 n_jobs=1, 
                 error_score='raise'

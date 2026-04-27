@@ -10,7 +10,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.preprocessing import PowerTransformer, MinMaxScaler, QuantileTransformer, FunctionTransformer, StandardScaler
 from sklearn.neighbors import KNeighborsRegressor
-from sklearn.model_selection import StratifiedKFold, cross_validate
+from sklearn.model_selection import KFold, cross_validate
 from umap import UMAP
 
 from src.utils.files import read_file
@@ -154,11 +154,11 @@ class KNNPopularity(PopularityModel):
                     params[f'use_{var}'] = trial.suggest_categorical(f'use_{var}', [True, False])
 
             model = self._build_pipeline(params, config, X_train)
-            cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+            cv = KFold(n_splits=5, shuffle=True, random_state=seed)
             
             scores = cross_validate(
                 model, X_train, y_train,
-                cv=list(cv.split(X_train, y_binned_train)),
+                cv=cv,
                 scoring='neg_mean_absolute_error',
                 n_jobs=-1,
                 error_score='raise'
