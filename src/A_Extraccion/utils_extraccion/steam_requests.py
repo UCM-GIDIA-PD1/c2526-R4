@@ -33,7 +33,7 @@ def _request_url(session, params_info, url):
     Realiza una petición GET a una URL específica utilizando una sesión.
 
     Args:
-        sesion (requests.Session): Sesión de la librería requests para 
+        session (requests.Session): Sesión de la librería requests para 
             'reciclar' la conexión.
         params_info (dict): Diccionario con los parámetros de consulta.
         url (str): Dirección URL del endpoint de la API.
@@ -64,7 +64,7 @@ def get_appids(n_appids=1000000, last_appid = 0):
     
     Args:
         n_appids (int): número de appids que se quiere extraer
-        last_appid (string): appid por el que se quiere comenzar a extraer, no se incluye
+        last_appid (str): appid por el que se quiere comenzar a extraer, no se incluye
     
     Returns:
         list: Lista de los APPIDs
@@ -187,7 +187,7 @@ def get_appreviewhistogram(appid, session, release_date):
 
     Args:
         appid (str): El ID del juego en Steam (APPID).
-        sesion (requests.Session): Sesión ya abierta de requests.
+        session (requests.Session): Sesión ya abierta de requests.
         release_date (str): Formato YYYY-MM-DD
 
     Returns:
@@ -274,6 +274,7 @@ def get_resenyas(id, sesion, is_top_100):
     Args:
         id (int): Identificador númerico único de cada juego de Steam.
         sesion (requests.Session): Sesión persistente para las peticiones de HTTP.
+        is_top_100 (bool): Indica si el juego está en el top 100 para extraer más reseñas.
 
     Returns:
         dict: Contiene un campo con la información general acerca de las 

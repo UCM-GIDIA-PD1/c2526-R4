@@ -30,7 +30,7 @@ def C1_informacion_youtube_busquedas(minio):
     Obtiene la información de youtube de los juegos especificados en el fichero games_info.jsonl.gz
 
     Args:
-        minio (dic): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y 
+        minio (dict): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y 
                 desactivar subida y bajada de MinIO
     
     Returns:

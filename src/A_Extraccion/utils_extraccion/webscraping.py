@@ -105,7 +105,7 @@ def renew_tor_ip(session):
     crea otro ChromiumPage ya configurado con la nueva IP.
 
     Args:
-        sesion (ChromiumPage): sesión de trabajo anterior.
+        session (ChromiumPage): sesión de trabajo anterior.
 
     Returns:
         ChromiumPage: Nueva sesión de ChromiumPage con IP nueva.
@@ -158,9 +158,9 @@ def search_youtube(game_name, date, session):
     antes de la misma, y la sesión de DrissionPage actual.
 
     Args:
-        nombre_juego (str): nombre completo del juego. 
-        fecha (str): fecha en formato YYYY-MM-DD.
-        sesion (ChromiumPage): sesión de trabajo actual. 
+        game_name (str): nombre completo del juego. 
+        date (str): fecha en formato YYYY-MM-DD.
+        session (ChromiumPage): sesión de trabajo actual. 
 
     Returns:
         list: Devuelve una lista de diccionarios con IDs de vídeos de YouTube de

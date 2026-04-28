@@ -31,13 +31,14 @@ def _analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet,
 
     Args:
         img_path (str): ruta del archivo de imagen.
+        url (str): URL de la imagen a descargar.
         trans (callable): transformaciones de preprocesamiento (ej. Resize, Normalize).
         appid (int): appid del juego analizado
         download_images (bool): hay o no hay que descargar la imagen
         model_resnet (torch.nn.Module): modelo preentrenado para extracción de embeddings.
         model_clip (sentence_transformers.SentenceTransformer): modelo preentrenado para extracción de embeddings.
         model_convnext (torch.nn.Module): modelo preentrenado para extracción de embeddings.
-        sesion (Session): Sesion de requests ya abierta.
+        sesion (requests.Session): Sesion de requests ya abierta.
 
     Returns:
         dict: diccionario con el brillo medio y vector de características de la imagen
@@ -89,6 +90,16 @@ def _analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet,
     return caracteristicas
     
 def E_metadatos_imagenes(minio):
+    """
+    Extrae metadatos de las imágenes de los juegos (brillo y embeddings).
+
+    Args:
+        minio (dict): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y 
+                desactivar subida y bajada de MinIO
+    
+    Returns:
+        None
+    """
     environ['TORCH_HOME'] = str(data_path() / "torch_cache")
 
     # Configuración de modelos
