@@ -563,6 +563,7 @@ body {
     min-height: 500px;
     max-width: 900px;
     margin: 0 auto;
+    align-items: start; /* Prevents cards from stretching vertically */
 }
 
 .sidebar-filters {
@@ -1432,5 +1433,333 @@ body {
     .search-input {
         font-size: 0.9rem;
         padding: 14px 16px 14px 44px;
+    }
+}
+
+/* ============================================================
+   APPLE VISION OS STYLE - AI INSIGHTS DASHBOARD
+   ============================================================ */
+
+.vision-glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid transparent;
+    border-right: 1px solid transparent;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    border-radius: var(--radius-lg);
+}
+
+.game-hero-section {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    margin-bottom: 30px;
+    padding: 30px;
+}
+
+.hero-left .hero-banner {
+    width: 380px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+}
+
+.hero-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.hero-name {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+}
+
+.hero-desc {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.hero-genres {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 5px;
+}
+
+.glow-chip {
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+}
+
+.game-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.meta-card {
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.meta-card:hover {
+    transform: translateY(-5px);
+}
+
+.meta-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.meta-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.predictions-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.predictions-row-top {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.pred-card {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.pred-title {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+.pred-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.confidence-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 80%;
+}
+
+.conf-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.conf-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.conf-fill {
+    height: 100%;
+    background: var(--accent-cyan);
+    border-radius: 10px;
+    box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+.market-label {
+    align-self: flex-start;
+    padding: 6px 14px;
+    background: rgba(251, 191, 36, 0.15);
+    color: var(--accent-gold);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.nlp-card {
+    padding: 25px;
+}
+
+/* --- ANIMACIÓN CONSOLA / ZOOM --- */
+@keyframes consoleZoomIn {
+    0% {
+        transform: scale(0.9) translateY(15px);
+        opacity: 0;
+        filter: blur(8px);
+    }
+
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+.console-transition {
+    animation: consoleZoomIn 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    will-change: transform, opacity, filter;
+}
+
+/* --- ESTILOS NLP: LISTA Y MEDIDORES --- */
+.nlp-themes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.nlp-theme-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 12px 20px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.3s ease;
+}
+
+.nlp-theme-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nlp-theme-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nlp-theme-name {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.nlp-theme-keywords {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+/* Mini Gauge SVG container */
+.nlp-mini-gauge {
+    position: relative;
+    width: 65px;
+    height: 38px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.gauge-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.gauge-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 8;
+    stroke-linecap: round;
+}
+
+.gauge-fill {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 125.6;
+    transition: stroke-dashoffset 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nlp-mini-gauge.positive .gauge-fill {
+    stroke: var(--accent-green);
+}
+
+.nlp-mini-gauge.excellent .gauge-fill {
+    stroke: var(--accent-cyan);
+}
+
+.nlp-mini-gauge.negative .gauge-fill {
+    stroke: var(--accent-red);
+}
+
+.gauge-score {
+    font-size: 0.9rem;
+    font-weight: 800;
+    margin-bottom: -6px;
+}
+
+.nlp-mini-gauge.positive .gauge-score {
+    color: var(--accent-green);
+}
+
+.nlp-mini-gauge.excellent .gauge-score {
+    color: var(--accent-cyan);
+}
+
+.nlp-mini-gauge.negative .gauge-score {
+    color: var(--accent-red);
+}
+
+@media (max-width: 768px) {
+    .game-hero-section {
+        flex-direction: column;
+    }
+
+    .hero-left .hero-banner {
+        width: 100%;
+    }
+
+    .game-meta-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .predictions-row-top {
+        grid-template-columns: 1fr;
+    }
+
+    .nlp-content {
+        flex-direction: column;
     }
 }

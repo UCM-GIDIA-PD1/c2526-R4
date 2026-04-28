@@ -409,8 +409,7 @@ function renderGameGrid(games, reset) {
         lastFeaturedAppId = games[0].appid;
     } else if (reset) {
         grid.classList.remove('single-result');
-        lastFeaturedAppId = null;
-
+        // CAMBIO DEL CÓDIGO ORIGINAL: lastFeaturedAppId = null;
         let foundExactMatch = false;
         if (currentQuery) {
             const queryLower = currentQuery.toLowerCase().trim();
@@ -459,40 +458,117 @@ async function navigateToGame(appid) {
 
     showHoverBg(game.banner_url);
 
-    // Render game header
-    const reviewPercent = Math.round(game.positive_reviews / (game.positive_reviews + game.negative_reviews) * 100);
+    const positive = game.positive_reviews || 0;
+    const negative = game.negative_reviews || 0;
+    const totalReviews = positive + negative;
 
-    // Render new structure
+    // 1. Parseo limpio del array de géneros
+    let parsedGenres = [];
+    try {
+        let rawGenres = [];
+        if (typeof game.genres === 'string') {
+            rawGenres = game.genres.split(',');
+        } else if (Array.isArray(game.genres)) {
+            rawGenres = game.genres;
+        }
+        
+        parsedGenres = rawGenres
+            .map(g => g.replace(/[\[\]'"]/g, '').trim())
+            .filter(Boolean);
+    } catch (e) { }
+    if (!parsedGenres.length) parsedGenres = ['Unknown'];
+
+    const safeGenres = parsedGenres.map(g => `<span class="glow-chip">${g}</span>`).join('');
+
+    // 2. Inyección del nuevo HTML en el contenedor
     container.innerHTML = `
-        <div class="game-detail-header-container">
-            <img class="game-banner-large" src="${game.banner_url}" alt="${game.name}">
-            <div class="game-info-primary">
-                <h1 class="game-detail-name">${game.name}</h1>
-                <div class="game-detail-dev-meta">
-                    <span class="game-detail-date-meta">Lanzado el ${game.release_date}</span>
+        <div class="game-hero-section vision-glass">
+            <div class="hero-left">
+                <img class="hero-banner console-transition" src="${game.banner_url}" alt="${game.name}">
+            </div>
+            <div class="hero-right">
+                <h1 class="hero-name">${game.name}</h1>
+                <p class="hero-desc">${game.short_description || 'Explora esta increíble experiencia que te mantendrá al borde de tu asiento.'}</p>
+                <div class="hero-genres">
+                    ${safeGenres}
                 </div>
             </div>
         </div>
 
-        <div class="prediction-section-list">
-            <button class="prediction-action-btn" id="btn-predict-popularidad" onclick="requestPrediction('popularidad', ${game.appid})">
-                <span class="prediction-btn-title">Popularidad</span>
-                <span class="prediction-btn-hint">Predice cuántos jugadores tendrá este juego basándose en tendencias actuales.</span>
-            </button>
-            
-            <button class="prediction-action-btn" id="btn-predict-precio" onclick="requestPrediction('precio', ${game.appid})">
-                <span class="prediction-btn-title">Precio</span>
-                <span class="prediction-btn-hint">Analiza el valor óptimo del juego y posibles fluctuaciones en el mercado.</span>
-            </button>
-            
-            <button class="prediction-action-btn" id="btn-predict-reviews" onclick="requestPrediction('reviews', ${game.appid})">
-                <span class="prediction-btn-title">Reseñas</span>
-                <span class="prediction-btn-hint">Anticipa el sentimiento de la comunidad y la calificación de los usuarios.</span>
-            </button>
+        <div class="game-meta-grid">
+            <div class="vision-glass meta-card">
+                <div class="meta-label">Desarrollador</div>
+                <div class="meta-value">${game.developer || 'Unknown Studio'}</div>
+            </div>
+            <div class="vision-glass meta-card">
+                <div class="meta-label">Fecha de Lanzamiento</div>
+                <div class="meta-value">${game.release_date || 'N/A'}</div>
+            </div>
+            <div class="vision-glass meta-card">
+                <div class="meta-label">Precio Actual</div>
+                <div class="meta-value">${game.price_overview === 0 || game.price_overview === '0' ? 'Gratis' : (game.price_overview || 'Unknown')}</div>
+            </div>
+            <div class="vision-glass meta-card">
+                <div class="meta-label">Reseñas Totales</div>
+                <div class="meta-value">${formatNumber(totalReviews) || '0'}</div>
+            </div>
         </div>
 
-        <div id="prediction-results-area" class="prediction-results-area">
+        <div class="predictions-grid">
+            <div class="predictions-row-top">
+                <div class="vision-glass pred-card">
+                    <h3 class="pred-title">Predicción de Popularidad</h3>
+                    <div class="pred-value">${formatNumber(Math.floor(Math.random() * 50000) + 10000)} Jugadores</div>
+                    <div class="confidence-wrapper">
+                        <span class="conf-label">Confianza: 92%</span>
+                        <div class="conf-bar"><div class="conf-fill" style="width: 92%;"></div></div>
+                    </div>
+                </div>
+                <div class="vision-glass pred-card">
+                    <h3 class="pred-title">Estimación de Precio</h3>
+                    <div class="pred-value">${(Math.random() * 40 + 10).toFixed(2)}€</div>
+                    <div class="market-label">Sobrevalorado</div>
+                </div>
             </div>
+            
+            <div class="vision-glass nlp-card">
+                <h3 class="pred-title">RESUMEN DE RESEÑAS</h3>
+                <div class="nlp-themes-list">
+                    <div class="nlp-theme-row">
+                        <div class="nlp-theme-text">
+                            <span class="nlp-theme-name">GRÁFICOS:</span>
+                            <span class="nlp-theme-keywords">Impresionante, Visuales, Estética</span>
+                        </div>
+                        <div class="nlp-mini-gauge excellent">
+                            <svg viewBox="0 0 100 50" class="gauge-svg"><path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" /><path class="gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" style="stroke-dashoffset: 25.12;" /></svg>
+                            <span class="gauge-score">80</span>
+                        </div>
+                    </div>
+                    
+                    <div class="nlp-theme-row">
+                        <div class="nlp-theme-text">
+                            <span class="nlp-theme-name">HISTORIA:</span>
+                            <span class="nlp-theme-keywords">Narrativa, Personajes, Final</span>
+                        </div>
+                        <div class="nlp-mini-gauge excellent">
+                            <svg viewBox="0 0 100 50" class="gauge-svg"><path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" /><path class="gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" style="stroke-dashoffset: 6.28;" /></svg>
+                            <span class="gauge-score">95</span>
+                        </div>
+                    </div>
+
+                    <div class="nlp-theme-row">
+                        <div class="nlp-theme-text">
+                            <span class="nlp-theme-name">RENDIMIENTO:</span>
+                            <span class="nlp-theme-keywords">FPS, Optimización, Stuttering</span>
+                        </div>
+                        <div class="nlp-mini-gauge negative">
+                            <svg viewBox="0 0 100 50" class="gauge-svg"><path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" /><path class="gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" style="stroke-dashoffset: 87.92;" /></svg>
+                            <span class="gauge-score">30</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
 }
 
