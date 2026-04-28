@@ -20,14 +20,12 @@ from src.D_Modelos.Popularidad.popularity_model import PopularityModel
 
 warnings.filterwarnings('ignore')
 
-def get_clip_matrix(X):
-    return np.vstack(X.iloc[:, 0].values)
 
-def select_features(X, indices=None):
-    return X[:, indices]
 
 class LinearRegressionPopularity(PopularityModel):
-    
+    def select_features(X, indices=None):
+        return X[:, indices]
+
     def _preprocess_data(self, df_raw, config):
         """Limpieza base asegurando que v_clip no se destruya."""
         df_clean = super()._preprocess_data(df_raw, config)
@@ -57,7 +55,7 @@ class LinearRegressionPopularity(PopularityModel):
 
         if 'v_clip' in X_train.columns:
             clip_pipe = Pipeline([
-                ('extractor', FunctionTransformer(get_clip_matrix, validate=False)),
+                ('extractor', FunctionTransformer(self.get_clip_matrix, validate=False)),
                 ('pca', PCA(n_components=10, random_state=seed)),
                 ('scale', MinMaxScaler())
             ])
@@ -143,7 +141,7 @@ class LinearRegressionPopularity(PopularityModel):
         
         if selected_vars:
             indices_ganadores = [output_cols.index(v) for v in selected_vars if v in output_cols]
-            selector = FunctionTransformer(select_features, kw_args={'indices': indices_ganadores}, validate=False)
+            selector = FunctionTransformer(self.select_features, kw_args={'indices': indices_ganadores}, validate=False)
             
             pipeline = Pipeline([
                 ('prep', preprocessor),

@@ -16,16 +16,13 @@ from src.D_Modelos.Popularidad.popularity_model import PopularityModel
 import warnings
 warnings.filterwarnings('ignore')
 
-def get_clip_matrix(X):
-    return np.vstack(X.iloc[:, 0].values)
-
 class XGBoostPopularity(PopularityModel):
     def _build_preprocessor(self, X_train):
         """Crea el transformador columnas para las variables del DataFrame"""
         numeric_columns = [col for col in X_train.columns if col != 'v_clip']
         
         clip_pipe = Pipeline([
-            ('extractor', FunctionTransformer(get_clip_matrix, validate=False)),
+            ('extractor', FunctionTransformer(self.get_clip_matrix, validate=False)),
             ('umap', UMAP(n_components=10, random_state=seed))
         ])
         

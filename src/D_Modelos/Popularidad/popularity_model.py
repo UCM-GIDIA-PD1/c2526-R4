@@ -48,6 +48,9 @@ class PopularityModel(ABC):
         self.model_path = model_path
         self.minio = minio
         self.entity = "pd1-c2526-team4"
+    
+    def get_clip_matrix(X):
+        return np.vstack(X.iloc[:, 0].values)
 
     @abstractmethod
     def _optimize_hyperparameters(self, data_splits, config):
