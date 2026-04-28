@@ -17,11 +17,11 @@ from pydantic import BaseModel
 import random
 from joblib import load
 from app.utils import config
-from extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
-from extraction.youtube import get_video_data
-from transformation.prices import transform_for_prices
-from transformation.popularity import transform_for_popularity
-from transformation.reviews import clean_text, to_dataframe
+from app.extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
+from app.extraction.youtube import get_video_data
+from app.transformation.prices import transform_for_prices
+from app.transformation.popularity import transform_for_popularity
+from app.transformation.reviews import clean_text, to_dataframe
 import pandas as pd
 from sklearn.preprocessing import OrdinalEncoder
 
@@ -102,6 +102,10 @@ async def lifespan(app: FastAPI):
     # Cargar los datos en memoria
     app.state.historic_data = config.read_historic_games_data()
 
+    # Cargar catálogo de juegos desde MinIO
+    print("Cargando lista de juegos")
+    app.state.games_df = config.read_games_fetch_data()
+
     print("SteamPredictor API iniciada")
     yield
     print("SteamPredictor API detenida")
@@ -125,21 +129,6 @@ templates = Jinja2Templates(directory=config.app_dir() / "templates")
 
 # region search
 
-MOCK_GAMES = [
-    GameInfo(appid=413150, name="Stardew Valley", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg", release_date="26 Feb, 2016", developer="ConcernedApe", genres=["RPG", "Simulation", "Farming"], price=13.99, positive_reviews=523847, negative_reviews=5891),
-    GameInfo(appid=1245620, name="Elden Ring", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1245620/header.jpg", release_date="25 Feb, 2022", developer="FromSoftware Inc.", genres=["Action", "RPG", "Open World"], price=49.99, positive_reviews=412893, negative_reviews=62341),
-    GameInfo(appid=1091500, name="Cyberpunk 2077", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1091500/header.jpg", release_date="10 Dec, 2020", developer="CD PROJEKT RED", genres=["RPG", "Open World", "Action"], price=29.99, positive_reviews=498234, negative_reviews=119823),
-    GameInfo(appid=892970, name="Valheim", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/892970/header.jpg", release_date="2 Feb, 2021", developer="Iron Gate AB", genres=["Survival", "Open World", "Co-op"], price=19.99, positive_reviews=345123, negative_reviews=23456),
-    GameInfo(appid=1174180, name="Red Dead Redemption 2", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1174180/header.jpg", release_date="5 Dec, 2019", developer="Rockstar Games", genres=["Action", "Adventure", "Open World"], price=39.99, positive_reviews=389234, negative_reviews=67891),
-    GameInfo(appid=105600, name="Terraria", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/105600/header.jpg", release_date="16 May, 2011", developer="Re-Logic", genres=["Action", "Adventure", "Sandbox"], price=9.99, positive_reviews=967123, negative_reviews=12345),
-    GameInfo(appid=570, name="Dota 2", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/570/header.jpg", release_date="9 Jul, 2013", developer="Valve", genres=["MOBA", "Strategy", "Free to Play"], price=0.00, positive_reviews=1823456, negative_reviews=345678),
-    GameInfo(appid=730, name="Counter-Strike 2", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/730/header.jpg", release_date="21 Aug, 2012", developer="Valve", genres=["FPS", "Shooter", "Competitive"], price=0.00, positive_reviews=7234567, negative_reviews=1234567),
-    GameInfo(appid=1086940, name="Baldur's Gate 3", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1086940/header.jpg", release_date="3 Aug, 2023", developer="Larian Studios", genres=["RPG", "Strategy", "Adventure"], price=59.99, positive_reviews=512345, negative_reviews=15234),
-    GameInfo(appid=367520, name="Hollow Knight", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/367520/header.jpg", release_date="24 Feb, 2017", developer="Team Cherry", genres=["Metroidvania", "Action", "Indie"], price=14.99, positive_reviews=289345, negative_reviews=4567),
-    #NOTE: Este juego es uno de prueba para probar que el request funcione
-    GameInfo(appid=99700, name="Luxor: 5th Passage", banner_url="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg", release_date="26 Feb, 2016", developer="ConcernedApe", genres=["RPG", "Simulation", "Farming"], price=13.99, positive_reviews=523847, negative_reviews=5891),
-]
-
 def _generate_mock_history(base_value: float, months: int = 12) -> list[dict]:
     """Genera datos históricos mock para gráficas."""
     history = []
@@ -151,6 +140,23 @@ def _generate_mock_history(base_value: float, months: int = 12) -> list[dict]:
         current = max(0.01, current + variation)
         history.append({"month": month_names[i % 12], "value": round(current, 2)})
     return history
+
+
+def _df_rows_to_list(df, offset: int = 0, limit: int = 20) -> dict:
+    """Convierte las filas especificadas del DataFrame a una particion paginada con id, name, img."""
+    total = len(df)
+    subset = df.iloc[offset:offset+limit][["id", "name", "img"]].copy()
+    
+    # Asegurar que no hay NaNs en campos críticos antes de enviarlos como JSON
+    subset["id"] = subset["id"].fillna(0).astype(int)
+    subset["name"] = subset["name"].fillna("Unknown")
+    subset["img"] = subset["img"].fillna("")
+    
+    subset.rename(columns={"id": "appid", "img": "banner_url"}, inplace=True)
+    return {
+        "games": subset.to_dict("records"),
+        "has_more": offset + limit < total
+    }
 
 
 # --------------------------------------------------------------------------
@@ -166,34 +172,69 @@ def index(request: Request):
 # --------------------------------------------------------------------------
 
 @app.get("/api/search")
-def search_games(q: str = ""):
-    """Buscar juegos por nombre."""
-    if not q:
-        return [g.model_dump() for g in MOCK_GAMES]
-    query = q.lower()
-    return [g.model_dump() for g in MOCK_GAMES if query in g.name.lower()]
+def search_games(q: str = "", page: int = 1, limit: int = 40):
+    """Buscar juegos por nombre (filtra del catálogo real cargado desde MinIO)."""
+    try:
+        offset = (page - 1) * limit
+        df = app.state.games_df
+        if not q:
+            return _df_rows_to_list(df, offset=offset, limit=limit)
+        query = q.lower()
+        # Filtrar por nombre o por ID
+        name_mask = df["name"].astype(str).str.lower().str.contains(query, na=False)
+        id_mask = df["id"].astype(str).str.contains(query, na=False)
+        filtered = df[name_mask | id_mask]
+        return _df_rows_to_list(filtered, offset=offset, limit=limit)
+    except Exception as e:
+        print(f"Error en /api/search: {e}")
+        return {"games": [], "has_more": False}
 
 
 @app.get("/api/game/{appid}")
 def get_game(appid: int):
     """Obtener detalles de un juego."""
-    for g in MOCK_GAMES:
-        if g.appid == appid:
-            return g.model_dump()
-    return JSONResponse(status_code=404, content={"error": "Juego no encontrado"})
+    try:
+        df = app.state.games_df
+        # Tolerancia a tipos: convertir la columna a numérico para asegurar el match
+        match = df[pd.to_numeric(df["id"], errors='coerce') == appid]
+        if match.empty:
+            return JSONResponse(status_code=404, content={"error": "Juego no encontrado"})
+        
+        row_dict = match.iloc[0].fillna("").to_dict()
+        
+        # Asegurar compatibilidad de nombres de clave esperados por el frontend
+        row_dict["appid"] = int(row_dict.get("id", appid))
+        row_dict["banner_url"] = row_dict.get("img", "")
+        
+        # En caso de que se llamen positive/negative en lugar de positive_reviews/negative_reviews
+        row_dict["positive_reviews"] = int(row_dict.get("positive", 0) or row_dict.get("positive_reviews", 0) or 0)
+        row_dict["negative_reviews"] = int(row_dict.get("negative", 0) or row_dict.get("negative_reviews", 0) or 0)
+        
+        row_dict["developer"] = str(row_dict.get("developer", "Unknown"))
+        row_dict["release_date"] = str(row_dict.get("release_date", "Unknown"))
+        
+        genres_data = row_dict.get("genres", "")
+        if isinstance(genres_data, str) and genres_data:
+            row_dict["genres"] = [g.strip() for g in genres_data.split(",")]
+        elif not isinstance(genres_data, list):
+            row_dict["genres"] = ["Aventura"] # Default si está vacío
+            
+        return row_dict
+    except Exception as e:
+        print(f"Error en /api/game/{appid}: {e}")
+        return JSONResponse(status_code=500, content={"error": "Error interno del servidor"})
 
 
 @app.get("/api/trending")
-def get_trending():
-    """Juegos trending con predicción de tendencia."""
-    trending = []
-    for g in MOCK_GAMES:
-        trending.append({
-            **g.model_dump(),
-            "trend": random.choice(["up", "down"]),
-            "change_percent": round(random.uniform(1, 25), 1),
-        })
-    return trending
+def get_trending(page: int = 1, limit: int = 40):
+    """Todos los juegos del catálogo (ya ordenado por reviews)."""
+    try:
+        offset = (page - 1) * limit
+        df = app.state.games_df
+        return _df_rows_to_list(df, offset=offset, limit=limit)
+    except Exception as e:
+        print(f"Error en /api/trending: {e}")
+        return {"games": [], "has_more": False}
 
 # endregion
 

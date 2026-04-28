@@ -17,6 +17,7 @@ function showView(viewId) {
 function setupNavigation() {
     document.getElementById('btn-back-home').addEventListener('click', () => {
         showView('view-home');
+        checkAndRestoreBg();
     });
     document.getElementById('btn-back-game').addEventListener('click', () => {
         showView('view-game');
@@ -24,48 +25,261 @@ function setupNavigation() {
 }
 
 // ============================================================
+// SEARCH & TRENDING STATE
+// ============================================================
+let currentPage = 1;
+let currentQuery = '';
+let isLoading = false;
+let hasMore = true;
+
+// ============================================================
 // SEARCH (same fetch() pattern as flower3.html)
 // ============================================================
 function setupSearch() {
     const input = document.getElementById('search-input');
+    let debounceTimer = null;
 
     input.addEventListener('input', () => {
-        const q = input.value.trim().toLowerCase();
-        const cards = document.querySelectorAll('.game-card');
+        const q = input.value.trim();
+        clearTimeout(debounceTimer);
 
-        cards.forEach(card => {
-            const name = (card.dataset.name || '').toLowerCase();
-            if (!q || name.includes(q)) {
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
-            }
-        });
+        debounceTimer = setTimeout(() => {
+            currentQuery = q;
+            currentPage = 1;
+            hasMore = true;
+            fetchGames(true);
+        }, 300);
+
+        // Keep icon hidden while there's text
+        const icon = input.closest('.search-wrapper').querySelector('.search-icon');
+        if (q) icon.classList.add('icon-hidden');
+        else icon.classList.add('icon-hidden'); // still focused, keep hidden
     });
+
+    // Glow animation + icon toggle on focus / blur
+    const wrapper = input.closest('.search-wrapper');
+    const icon = wrapper.querySelector('.search-icon');
+    input.addEventListener('focus', () => {
+        wrapper.classList.remove('glow-out');
+        wrapper.classList.add('glow-in');
+        icon.classList.add('icon-hidden');
+    });
+    input.addEventListener('blur', () => {
+        wrapper.classList.remove('glow-in');
+        wrapper.classList.add('glow-out');
+        if (!input.value.trim()) {
+            icon.classList.remove('icon-hidden');
+        }
+    });
+
+    setupInfiniteScroll();
+
+    // Setup hover background crossfade layers (global for reuse)
+    const grid = document.getElementById('game-grid');
+    window._hoverBg = {
+        layers: [
+            document.getElementById('hover-bg-a'),
+            document.getElementById('hover-bg-b'),
+        ],
+        activeLayer: 0,
+        currentSrc: null,
+        hideTimer: null,
+    };
+
+    // Click delegation
+    grid.addEventListener('click', (e) => {
+        const card = e.target.closest('.game-card');
+        if (card) {
+            navigateToGame(parseInt(card.dataset.appid));
+        }
+    });
+
+    // Hover delegation
+    grid.addEventListener('mouseover', (e) => {
+        const card = e.target.closest('.game-card');
+        if (!card) return;
+        if (window._hoverBg.hideTimer) { clearTimeout(window._hoverBg.hideTimer); window._hoverBg.hideTimer = null; }
+        const img = card.querySelector('.game-card-banner');
+        if (img && img.src) showHoverBg(img.src);
+    });
+
+    grid.addEventListener('mouseout', (e) => {
+        const related = e.relatedTarget;
+        
+        if (!related || !related.closest('.game-card')) {
+            // Check if there is an active exact match that should persist
+            let keepBg = false;
+            if (grid.classList.contains('single-result')) {
+                keepBg = true;
+            } else if (currentQuery) {
+                const queryLower = currentQuery.toLowerCase().trim();
+                const exactCard = Array.from(grid.querySelectorAll('.game-card')).find(c => c.dataset.name.toLowerCase() === queryLower);
+                if (exactCard) {
+                    keepBg = true;
+                    const img = exactCard.querySelector('.game-card-banner');
+                    if (img && img.src) showHoverBg(img.src);
+                }
+            }
+            
+            if (!keepBg) {
+                window._hoverBg.hideTimer = setTimeout(() => hideHoverBg(), 150);
+            }
+        }
+    });
+}
+
+function checkAndRestoreBg() {
+    const grid = document.getElementById('game-grid');
+    let keepBg = false;
+    if (grid.classList.contains('single-result')) {
+        keepBg = true;
+    } else if (currentQuery) {
+        const queryLower = currentQuery.toLowerCase().trim();
+        const exactCard = Array.from(grid.querySelectorAll('.game-card')).find(c => c.dataset.name.toLowerCase() === queryLower);
+        if (exactCard) {
+            keepBg = true;
+            const img = exactCard.querySelector('.game-card-banner');
+            if (img && img.src) showHoverBg(img.src);
+        }
+    }
+    
+    if (!keepBg) {
+        window._hoverBg.hideTimer = setTimeout(() => hideHoverBg(), 150);
+    }
+}
+
+function showHoverBg(src) {
+    const hb = window._hoverBg;
+    if (!hb || src === hb.currentSrc) return;
+    hb.currentSrc = src;
+    const oldLayer = hb.layers[hb.activeLayer];
+    hb.activeLayer = 1 - hb.activeLayer;
+    const newLayer = hb.layers[hb.activeLayer];
+    newLayer.style.backgroundImage = `url('${src}')`;
+    newLayer.classList.add('active');
+    oldLayer.classList.remove('active');
+}
+
+function hideHoverBg() {
+    // Si estamos en la vista de juego, no ocultamos el fondo
+    const viewGame = document.getElementById('view-game');
+    if (viewGame && viewGame.classList.contains('active')) return;
+
+    const hb = window._hoverBg;
+    if (!hb) return;
+    hb.currentSrc = null;
+    hb.layers[0].classList.remove('active');
+    hb.layers[1].classList.remove('active');
+}
+
+function setupInfiniteScroll() {
+    const sentinel = document.getElementById('scroll-sentinel');
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !isLoading && hasMore) {
+            currentPage++;
+            fetchGames(false);
+        }
+    }, { rootMargin: '100px' });
+
+    observer.observe(sentinel);
+}
+
+// ============================================================
+// FETCH & RENDER GAME GRID
+// ============================================================
+async function fetchGames(reset = false) {
+    if (isLoading) return;
+    isLoading = true;
+
+    const sentinel = document.getElementById('scroll-sentinel');
+    const grid = document.getElementById('game-grid');
+
+    if (reset) {
+        grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+        if (sentinel) sentinel.style.display = 'none';
+        // Removed window.scrollTo to prevent jumping to top while typing
+    } else if (sentinel && hasMore) {
+        sentinel.style.display = 'flex';
+    }
+
+    const url = currentQuery
+        ? `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=40`
+        : `/api/trending?page=${currentPage}&limit=40`;
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        hasMore = data.has_more;
+        renderGameGrid(data.games, reset);
+    } catch (e) {
+        console.error(e);
+        if (reset) grid.innerHTML = '<div class="search-no-results">Error al cargar resultados</div>';
+    } finally {
+        isLoading = false;
+        if (sentinel) {
+            sentinel.style.display = hasMore ? 'flex' : 'none';
+        }
+    }
+}
+
+function renderGameGrid(games, reset) {
+    const grid = document.getElementById('game-grid');
+
+    if (reset) {
+        if (!games.length) {
+            grid.innerHTML = '<div class="search-no-results">Sin resultados</div>';
+            hideHoverBg();
+            return;
+        }
+        grid.innerHTML = '';
+    }
+
+    if (!games.length && !reset) return;
+
+    const html = games.map(g => `
+        <div class="game-card" data-appid="${g.appid}" data-name="${g.name}">
+            <img class="game-card-banner" src="${g.banner_url}" alt="${g.name}" loading="lazy">
+            <div class="game-card-name">${g.name}</div>
+        </div>
+    `).join('');
+
+    grid.insertAdjacentHTML('beforeend', html);
+
+    // If exactly one result after a search reset, show its background and enlarge
+    if (reset && games.length === 1 && !hasMore && games[0].banner_url) {
+        showHoverBg(games[0].banner_url);
+        grid.classList.add('single-result');
+        const card = grid.querySelector('.game-card');
+        if (card) card.classList.add('game-card-featured');
+    } else if (reset) {
+        grid.classList.remove('single-result');
+        
+        let foundExactMatch = false;
+        if (currentQuery) {
+            const queryLower = currentQuery.toLowerCase().trim();
+            const exactMatch = games.find(g => g.name.toLowerCase() === queryLower);
+            if (exactMatch && exactMatch.banner_url) {
+                showHoverBg(exactMatch.banner_url);
+                foundExactMatch = true;
+            }
+        }
+        
+        if (!foundExactMatch) {
+            hideHoverBg();
+        }
+    }
 }
 
 // ============================================================
 // TRENDING GAMES
 // ============================================================
-async function loadTrendingGames() {
-    const grid = document.getElementById('game-grid');
-    grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-
-    const res = await fetch('/api/trending');
-    const games = await res.json();
-
-    grid.innerHTML = games.map(g => `
-        <div class="game-card" data-appid="${g.appid}" data-name="${g.name}">
-            <img class="game-card-banner" src="${g.banner_url}" alt="${g.name}" loading="lazy">
-        </div>
-    `).join('');
-
-    // Click to navigate to game detail
-    grid.querySelectorAll('.game-card').forEach(card => {
-        card.addEventListener('click', () => {
-            navigateToGame(parseInt(card.dataset.appid));
-        });
-    });
+function loadTrendingGames() {
+    currentQuery = '';
+    currentPage = 1;
+    hasMore = true;
+    fetchGames(true);
 }
 
 // ============================================================
@@ -82,6 +296,8 @@ async function navigateToGame(appid) {
     const game = await res.json();
     currentGame = game;
 
+    showHoverBg(game.banner_url);
+
     // Render game header
     const reviewPercent = Math.round(game.positive_reviews / (game.positive_reviews + game.negative_reviews) * 100);
 
@@ -92,11 +308,7 @@ async function navigateToGame(appid) {
             <div class="game-info-primary">
                 <h1 class="game-detail-name">${game.name}</h1>
                 <div class="game-detail-dev-meta">
-                    <span>Desarrollado por <strong>${game.developer}</strong></span>
                     <span class="game-detail-date-meta">Lanzado el ${game.release_date}</span>
-                </div>
-                <div class="genre-tags-list">
-                    ${game.genres.map(g => `<span class="genre-chip">${g}</span>`).join('')}
                 </div>
             </div>
         </div>
@@ -629,10 +841,18 @@ const pixelsPerFrame = 20;
 const cinematicAutoPlay = () => {
     if (!isAutoScrolling) return;
 
+    const heroScrollContainer = document.getElementById('hero-scroll-container');
+    const maxScroll = heroScrollContainer.scrollHeight - window.innerHeight;
+
+    if (maxScroll <= 0) {
+        // Layout not ready yet, retry
+        requestAnimationFrame(cinematicAutoPlay);
+        return;
+    }
+
     window.scrollBy(0, pixelsPerFrame);
 
-    const heroScrollContainer = document.getElementById('hero-scroll-container');
-    if (window.scrollY >= heroScrollContainer.scrollHeight - window.innerHeight) {
+    if (window.scrollY >= maxScroll) {
         isAutoScrolling = false;
         return;
     }
@@ -641,7 +861,18 @@ const cinematicAutoPlay = () => {
 };
 
 window.addEventListener('load', () => {
-    requestAnimationFrame(cinematicAutoPlay);
+    // Reset scroll position on reload to avoid stuck state
+    window.scrollTo(0, 0);
+    // Wait a tick for layout to settle, then start
+    setTimeout(() => {
+        if (images[0] && images[0].complete) {
+            requestAnimationFrame(cinematicAutoPlay);
+        } else {
+            images[0].addEventListener('load', () => {
+                requestAnimationFrame(cinematicAutoPlay);
+            });
+        }
+    }, 100);
 });
 
 const stopAutoScroll = () => {
