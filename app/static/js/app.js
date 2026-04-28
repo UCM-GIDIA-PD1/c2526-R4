@@ -506,7 +506,19 @@ async function navigateToGame(appid) {
             </div>
             <div class="vision-glass meta-card">
                 <div class="meta-label">Precio Actual</div>
-                <div class="meta-value">${game.price_overview === 0 || game.price_overview === '0' ? 'Gratis' : (game.price_overview || 'Unknown')}</div>
+                <div class="meta-value">
+                    ${game.discount_percent > 0 ? `
+                        <div class="price-discount-wrapper">
+                            <span class="price-old">${game.price_overview}€</span>
+                            <div class="price-new-row">
+                                <span class="price-new">${game.discount}</span>
+                                <div class="discount-badge">-${game.discount_percent}%</div>
+                            </div>
+                        </div>
+                    ` : `
+                        ${game.price_overview === 0 || game.price_overview === '0' ? 'Gratis' : (game.price_overview + '€' || 'Unknown')}
+                    `}
+                </div>
             </div>
             <div class="vision-glass meta-card">
                 <div class="meta-label">Reseñas en lanzamiento</div>
@@ -527,7 +539,7 @@ async function navigateToGame(appid) {
                 <div class="vision-glass pred-card">
                     <h3 class="pred-title">Estimación de Precio</h3>
                     <div class="pred-value" id="pred-price-value">Cargando...</div>
-                    <div class="market-label">Basado en IA</div>
+                    <div class="market-label">Estimación realizada con KNN y clustering</div>
                 </div>
             </div>
             

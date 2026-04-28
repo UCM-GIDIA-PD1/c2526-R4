@@ -233,10 +233,20 @@ def get_game(appid: int):
         row_dict["positive_reviews"] = int(row_dict.get("positive", 0) or row_dict.get("positive_reviews", 0) or 0)
         row_dict["negative_reviews"] = int(row_dict.get("negative", 0) or row_dict.get("negative_reviews", 0) or 0)
         
-        # Nuevos mapeos solicitados por el usuario
+        # Mapeos de datos del Parquet
         row_dict["developer"] = str(row_dict.get("developers", "Unknown"))
         row_dict["total_reviews_at_launch"] = int(row_dict.get("total_reviews", 0) or 0)
-        
+
+        # Obtener posibles descuentos en tiempo real de Steam para el price_overview
+        try:
+            steam_info = get_appdetails(str(appid))
+            row_dict["discount"] = steam_info.get("price_overview", {}).get("final_formatted", "Unknown")
+            row_dict["discount_percent"] = steam_info.get("price_overview", {}).get("discount_percent", 0)
+        except Exception as e:
+            print(f"No se pudo obtener price_overview de Steam para {appid}: {e}")
+            row_dict["discount"] = "Unknown"
+            row_dict["discount_percent"] = 0
+
         row_dict["release_date"] = str(row_dict.get("release_date", "Unknown"))
         
         genres_data = row_dict.get("genres", "")

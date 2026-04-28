@@ -834,23 +834,34 @@ body {
 .back-btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    background: none;
-    border: 1px solid var(--border-glass);
-    color: var(--text-secondary);
-    padding: 10px 20px;
-    border-radius: 50px;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid transparent;
+    border-right: 1px solid transparent;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    color: var(--text-primary);
+    padding: 12px 28px;
+    border-radius: var(--radius-lg);
     font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: all var(--transition);
-    margin-bottom: 24px;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    margin-bottom: 30px;
 }
 
 .back-btn:hover {
-    border-color: var(--accent-blue);
-    color: var(--text-primary);
-    background: rgba(56, 152, 236, 0.08);
+    transform: translateY(-3px) scale(1.02);
+    background: rgba(255, 255, 255, 0.08);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+    color: #fff;
 }
 
 /* --- Game Detail Design (Sketch Revision) --- */
@@ -1538,6 +1549,46 @@ body {
     font-size: 1.4rem;
     font-weight: 700;
     color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.price-discount-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
+.price-old {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-decoration: line-through;
+    opacity: 0.5;
+    margin-bottom: -2px;
+}
+
+.price-new-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.price-new {
+    font-size: 1.6rem;
+    color: #4ade80;
+    text-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
+}
+
+.discount-badge {
+    background: #4ade80;
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 900;
+    line-height: 1.2;
 }
 
 .predictions-grid {
