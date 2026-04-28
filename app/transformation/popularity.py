@@ -5,7 +5,7 @@ Realiza las transformaciones necesarias para tener los mismos datos que necesita
 
 import pandas as pd
 import numpy as np
-from transformation.common import  initial_transformations, add_img_info
+from app.transformation.common import  initial_transformations, add_img_info
 
 UNPROCESSED_COLUMNS = ['description_len', 'price_overview', 'num_languages',
        'release_year', 'Action', 'Adventure', 'Casual', 'Early Access',

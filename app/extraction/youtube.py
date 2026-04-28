@@ -7,7 +7,7 @@ Dependencias:
 import os
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from utils.config import load_env_file
+from app.utils.config import load_env_file
 
 load_env_file()
 API_KEY = os.environ.get("API_KEY_YT")
