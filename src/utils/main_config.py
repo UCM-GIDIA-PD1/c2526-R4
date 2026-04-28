@@ -118,19 +118,11 @@ main_transformacion_info = {
 }
 
 main_modelos_info = {
-    "A1": {"fichero": "Popularidad.xgboost_model", 
-           "salida": popularidad_xgboost_file.name, 
-           "mensaje": "Popularidad XGBoost",
-           "path": popularidad_xgboost_file, 
-           "ejecutable": "main1", 
-           "usar": False, 
-           "dependences": [dep.popularity_dependence, dep.wandb_dependence]
-    },
     "A2": {"fichero": "Popularidad.xgboost_model", 
-           "mensaje": "Popularidad XGBoost (log)",
-           "salida": popularidad_xgboost_log_file.name, 
-           "path": popularidad_xgboost_log_file, 
-           "ejecutable": "main2", 
+           "mensaje": "Popularidad XGBoost (4 modelos)",
+           "salida": [popularidad_xgboost_log_file.name, popularidad_xgboost_file.name], 
+           "path": [popularidad_xgboost_log_file, popularidad_xgboost_file], 
+           "ejecutable": "main", 
            "usar": False, 
            "dependences": [dep.popularity_dependence, dep.wandb_dependence]
     },

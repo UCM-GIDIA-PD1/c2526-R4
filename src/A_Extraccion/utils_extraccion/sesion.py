@@ -54,7 +54,7 @@ def handle_input(initial_message, isResponseValid = lambda x: True):
         isResponseValid (function): función que verifica la validez de un input dado.
 
     Returns:
-        bool: True si el input es correcto, False en caso contrario.
+        str: El input del usuario validado.
     """
     respuesta = input(initial_message).strip()
 

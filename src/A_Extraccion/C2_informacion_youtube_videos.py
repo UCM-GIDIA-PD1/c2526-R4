@@ -103,7 +103,7 @@ def C2_informacion_youtube_videos(minio):
     Obtiene la información de los juegos especificados en el fichero info_steam_youtube1.jsonl.gz
 
     Args:
-        minio (dic): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y 
+        minio (dict): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y 
                 desactivar subida y bajada de MinIO
     
     Returns:

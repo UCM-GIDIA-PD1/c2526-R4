@@ -27,7 +27,7 @@ def _download_game_data(game, curr_idx, sesion):
     Args:
         game (dict): Diccionario con la información de un juego
         curr_idx (int): Indice del progreso de la extraccion
-        sesion(session.Requests): Sesion de requests
+        sesion (requests.Session): Sesion de requests
     Returns:
         None
     """
@@ -35,6 +35,16 @@ def _download_game_data(game, curr_idx, sesion):
     game["reviews"] = get_resenyas(game["id"], sesion, curr_idx < 100)
 
 def D_informacion_resenyas(minio):
+    """
+    Obtiene la información de las reseñas de los juegos.
+
+    Args:
+        minio (dict): diccionario de la forma {"minio_write": False, "minio_read": False} para activar y 
+                desactivar subida y bajada de MinIO
+    
+    Returns:
+        None
+    """
     try:
         # por si da un error en get_pending_games, evitar un UnboundLocalError en el finally
         start_idx, curr_idx, end_idx = -1,-1,-1
