@@ -1,10 +1,12 @@
 """Módulo de requests a las distintas APIs de Steam.
 """
 import requests
-import datetime
 from sentence_transformers import SentenceTransformer
 from PIL import Image, ImageStat
 from io import BytesIO
+
+from src.utils.date import format_date_string, unix_to_date_string
+from src.A_Extraccion.utils_extraccion.steam_requests import _parse_supported_languages
 
 # Url de la API de appdetails
 APPDETAILS_URL = "https://store.steampowered.com/api/appdetails"
@@ -51,12 +53,12 @@ def get_appdetails(appid : str) -> dict:
     appdetails["genres"] = game_data.get("genres")
     appdetails["metacritic"] = game_data.get("metacritic")
     release_data = game_data.get("release_date",{})
-    release_date = _format_date_string(release_data.get("date",""))
+    release_date = format_date_string(release_data.get("date",""))
     if release_data.get("coming_soon", True):
         raise ValueError("Coming soon game", appid)
     if release_date is None:
         raise ValueError(f"Failed to parse date: '{release_data.get('date','')}'", appid)
-    appdetails["release_date"] = _format_date_string(release_data.get("date","")) 
+    appdetails["release_date"] = format_date_string(release_data.get("date","")) 
 
     return appdetails
 
@@ -92,8 +94,8 @@ def get_appreviewshistogram(appid: str, release_date : str) -> dict:
     if data.get("results") is None or data["results"].get("rollups") is None:
         raise ValueError("Appreviewhistogram request with no content", appid)
 
-    appreviewhistogram["start_date"] = _unix_to_date_string(data["results"]["start_date"])
-    appreviewhistogram["end_date"] = _unix_to_date_string(data["results"]["end_date"])
+    appreviewhistogram["start_date"] = unix_to_date_string(data["results"]["start_date"])
+    appreviewhistogram["end_date"] = unix_to_date_string(data["results"]["end_date"])
     appreviewhistogram["rollup_type"] = data["results"]["rollup_type"]
     release_day = release_date.split("-")[2]
 
@@ -108,12 +110,12 @@ def get_appreviewshistogram(appid: str, release_date : str) -> dict:
     # indice del primer rollup en el que la fecha es mayor o igual a la fecha de salida
     for i in range(len(rollups)):
         idx = i
-        rollup_start_date = _unix_to_date_string(rollups[i].get("date"))
+        rollup_start_date = unix_to_date_string(rollups[i].get("date"))
         if rollup_start_date > release_date:
             idx = max(0, idx-1)
             break
     
-    hist_date = _unix_to_date_string(rollups[idx].get("date"))
+    hist_date = unix_to_date_string(rollups[idx].get("date"))
     hist_day = hist_date.split("-")[2]
     days = 0
     data = {"date" : hist_date, "recommendations_up" : 0, "recommendations_down" : 0}
@@ -195,44 +197,6 @@ def _request_url(url : str ,params : dict) -> dict:
         raise ValueError("Request does not return a json")
     return response.json()
 
-def _format_date_string(date : str) -> datetime.datetime:
-    """
-    Convierte fechas de Steam a formato 'YYYY-MM-DD'.
-    Soporta múltiples formatos.
-    """
-    try:
-        dt = datetime.datetime.strptime(date, "%d %b, %Y")
-        return dt.strftime("%Y-%m-%d")
-    except ValueError:
-        return None
-    
-def _parse_supported_languages(raw_html : str) -> list:
-    """
-    Parsea los idiomas del campo supported_languages de la API de Steam.
-    Devuelve una lista de idiomas.
-    """
-    if not raw_html:
-        return []
-    raw_languages = raw_html.split("<br>")[0]
-    processed_languages = raw_languages.replace("<strong>*</strong>","")
-    language_list = [language.strip() for language in processed_languages.split(",")]
-    return language_list
-
-def _unix_to_date_string(timestamp) ->datetime.datetime:
-    """
-    Convierte un timestamp Unix a formato YYYY-MM-DD
-    
-    Args:
-        timestamp (int): Timestamp Unix
-    
-    Returns:
-        str: Fecha en formato YYYY-MM-DD
-    """
-    try:
-        dt = datetime.datetime.fromtimestamp(timestamp)
-        return dt.strftime('%Y-%m-%d')
-    except ValueError:
-        return None
 
 if __name__ == '__main__':
     pass

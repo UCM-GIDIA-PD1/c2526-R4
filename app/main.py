@@ -6,7 +6,6 @@ Para levantar la página:
 
 Puerto: http://127.0.0.1:8000
 """
-from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -14,16 +13,18 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi import Request
 from pydantic import BaseModel
-import random
 from joblib import load
-from app.utils import config
+import random
+import pandas as pd
+
 from app.extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
 from app.extraction.youtube import get_video_data
 from app.transformation.prices import transform_for_prices
 from app.transformation.popularity import transform_for_popularity
 from app.transformation.reviews import clean_text, to_dataframe
-import pandas as pd
-from sklearn.preprocessing import OrdinalEncoder
+from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir
+from src.utils.files import read_file
+
 
 
 PRICE_ORDER = [
@@ -96,15 +97,16 @@ async def lifespan(app: FastAPI):
     # Startup: cargar modelos en memoria
     # app.state.model_popularidad = load(config.project_root() / 'models/popularidad/xgboost_model.pkl')
     print("Cargando modelo de precios")
-    app.state.model_price = load(config.PRICE_MODEL_PATH)
+    app.state.model_price = read_file(precios_knncompleteclusters_file)
     # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
 
-    # Cargar los datos en memoria
-    app.state.historic_data = config.read_historic_games_data()
+    # Cargar los datos en 
+    print("Cargando datos históricos de juegos")
+    app.state.historic_data = read_file(HISTORIC_GAMES_DATA_PATH)
 
     # Cargar catálogo de juegos desde MinIO
     print("Cargando lista de juegos")
-    app.state.games_df = config.read_games_fetch_data()
+    app.state.games_df = read_file(GAME_FETCH_DATA_PATH)
 
     print("SteamPredictor API iniciada")
     yield
@@ -120,10 +122,10 @@ app = FastAPI(
 )
 
 # Ficheros estáticos
-app.mount("/static", StaticFiles(directory=config.app_dir() / "static"), name="static")
+app.mount("/static", StaticFiles(directory= app_dir() / "static"), name="static")
 
 # Plantillas Jinja2
-templates = Jinja2Templates(directory=config.app_dir() / "templates")
+templates = Jinja2Templates(directory= app_dir() / "templates")
 
 #endregion
 

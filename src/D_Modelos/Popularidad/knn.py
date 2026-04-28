@@ -33,11 +33,7 @@ VARIABLES_GANADORAS = [
  'Custom Volume Controls', 'Online PvP', 'Single-player', 'Playable without Timed Input', 
  'Shared/Split Screen', 'clip_umap_0', 'PvP']
 
-def get_clip_matrix(X):
-    return np.vstack(X.iloc[:, 0].values)
 
-def slice_umap(X):
-    return X[:, [0]]
 
 class KNNPopularity(PopularityModel):
     def __init__(self, minio: dict):
@@ -46,6 +42,9 @@ class KNNPopularity(PopularityModel):
             model_path=popularidad_knn_log_file,
             minio=minio
         )
+
+    def slice_umap(self, X):
+        return X[:, [0]]
 
     def _preprocess_data(self, df_raw, config):
         """
@@ -91,10 +90,10 @@ class KNNPopularity(PopularityModel):
         transformer = PowerTransformer(method='yeo-johnson') if transformer_name == 'power' else QuantileTransformer(output_distribution='normal', random_state=seed)
 
         # Porque solo vamos a usar la componente 0
-        slice_components = FunctionTransformer(slice_umap, validate=False)
+        slice_components = FunctionTransformer(self.slice_umap, validate=False)
 
         clip_pipe = Pipeline([
-            ('extractor', FunctionTransformer(get_clip_matrix, validate=False)),
+            ('extractor', FunctionTransformer(self.get_clip_matrix, validate=False)),
             ('umap', UMAP(n_components=10, random_state=seed)),
             ('slicer', slice_components),
             ('scale', MinMaxScaler())
@@ -138,7 +137,6 @@ class KNNPopularity(PopularityModel):
         """Optimiza hiperparámetros y realiza Feature Selection simultánea."""
         X_train = data_splits["X_train"]
         y_train = data_splits["y_train"]
-        y_binned_train = data_splits["y_binned_train"]
 
         def objective(trial):
             params = {

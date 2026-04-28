@@ -123,6 +123,10 @@ def processed_data_path():
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def app_dir():
+    """Devuelve un objecto Path con el directorio de la aplicación (app/)"""
+    return project_root() / "app"
+
 def config_path():
     """Devuelve un objecto Path con el directorio de config.
 
@@ -153,7 +157,7 @@ def load_env_file():
     else:
         print("Advertencia: No se encontró .env, se usarán variables de entorno del sistema.")
 
-# ------ VARIABLES DEL PROYECTO ------ #
+# region ------ VARIABLES DEL PROYECTO ------ #
 
 # Total de miembros del equipo de extracción para dividirla en bloques
 members = 6
@@ -162,7 +166,8 @@ seed = 42
 # Config Path
 config_file = config_path() / "config.json"
 
-# ------ SCRIPTS DE EXTRACCIÓN ------ #
+#endregion
+# region ------ SCRIPTS DE EXTRACCIÓN ------ #
 
 # Script A
 appidlist_file = raw_data_path() / "appids_list.json.gz"
@@ -186,8 +191,8 @@ steam_reviews_file = raw_data_path() / "steam_reviews.jsonl.gz"
 banners_file = raw_data_path() / "info_imagenes.jsonl.gz"
 banners_file_popularity = raw_data_path() / "info_imagenes_popularidad.jsonl.gz"
 banners_file_prices = raw_data_path() / "info_imagenes_precios.jsonl.gz"
-
-# ------ SCRIPTS DE TRANSFORMACIÓN ------ #
+#endregion
+# region ------ SCRIPTS DE TRANSFORMACIÓN ------ #
 
 # Script B
 steam_games_parquet_file = processed_data_path() / "games_info.parquet"
@@ -214,9 +219,8 @@ reviews =  processed_data_path() / "resenyas.parquet"
 
 # Reducción en modelo de precios
 reduced_prices = processed_data_path() / "precios_reducido.parquet"
-
-# ------ PATHS A MODELOS ------ #
-
+#endregion
+# region ------ PATHS A MODELOS ------ #
 # Popularidad
 popularidad_xgboost_file = models_popularidad_path() / "xgboost_model.pkl"
 popularidad_xgboost_log_file = models_popularidad_path() / "xgboost_model_log.pkl"
@@ -242,3 +246,9 @@ reviews_logistic_regression_optuna_file = models_reviews_path() / "logistic_regr
 reviews_logistic_regression_gridsearch_file = models_reviews_path() / "logistic_regression_gridsearch.pkl"
 reviews_naive_bayes_cv_file = models_reviews_path() / "naive_bayes_cv.pkl"
 reviews_naive_bayes_tfidf_file = models_reviews_path() / "naive_bayes_tfidf.pkl"
+#endregion
+# region ------ PATHS A DATOS PARA APP  ------ #
+GAME_FETCH_DATA_PATH =  processed_data_path() / "games_info_fetch.parquet"
+HISTORIC_GAMES_DATA_PATH = processed_data_path() / "historic_games_data.parquet"
+#endregion
+

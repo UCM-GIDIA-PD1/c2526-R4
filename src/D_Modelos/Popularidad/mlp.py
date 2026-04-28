@@ -28,57 +28,7 @@ from src.D_Modelos.Popularidad.popularity_model import PopularityModel
 
 warnings.filterwarnings('ignore')
 
-def get_image_matrix(X):
-    """Extrae los embeddings puros de 512 dimensiones sin comprimir"""
-    return np.vstack(X.iloc[:, 0].values).astype(np.float32)
 
-def cast_to_float32(X):
-    return X.astype(np.float32)
-
-def safe_expm1(y):
-    return np.expm1(np.clip(y, a_min=0, a_max=16))
-
-def build_keras_heavyweight(hidden_layer_sizes=(256, 128, 64), activation='swish', learning_rate_init=0.001, alpha=0.0001, drop_rate=0.4, image_features=512, meta=None):
-    keras.utils.set_random_seed(seed)
-    
-    n_features = meta["n_features_in_"]
-    inputs = Input(shape=(n_features,))
-
-    if image_features > 0:
-        image_inputs = inputs[:, :image_features]
-        tabular_inputs = inputs[:, image_features:]
-
-        # BRAZO VISUAL
-        v = Dense(256, activation=activation, kernel_regularizer=l2(alpha * 5))(image_inputs)
-        v = Dropout(drop_rate)(v)
-        v = Dense(64, activation=activation, kernel_regularizer=l2(alpha))(v)
-        v = Dropout(drop_rate / 2)(v) # Menos dropout según se comprime
-        v = Dense(16, activation=activation)(v)
-
-        # BRAZO TABULAR 
-        t = Dense(hidden_layer_sizes[0], activation=activation, kernel_regularizer=l2(alpha))(tabular_inputs)
-        if len(hidden_layer_sizes) > 1:
-            t = Dense(hidden_layer_sizes[1], activation=activation)(t)
-        if len(hidden_layer_sizes) > 2:
-            t = Dense(hidden_layer_sizes[2], activation=activation)(t)
-
-        # LATE FUSION
-        merged = Concatenate()([v, t])
-        z = Dense(64, activation=activation)(merged)
-        z = Dense(16, activation=activation)(z)
-        outputs = Dense(1)(z)
-        
-    else:
-        t = Dense(hidden_layer_sizes[0], activation=activation, kernel_regularizer=l2(alpha))(inputs)
-        for size in hidden_layer_sizes[1:]:
-            t = Dense(size, activation=activation)(t)
-        outputs = Dense(1)(t)
-
-    model = Model(inputs=inputs, outputs=outputs)
-    opt = keras.optimizers.Adam(learning_rate=learning_rate_init)
-    model.compile(optimizer=opt, loss='mse') 
-    
-    return model
 
 class MLPPopularity(PopularityModel):
     def __init__(self, minio: dict):
@@ -87,6 +37,58 @@ class MLPPopularity(PopularityModel):
             model_path=popularidad_mlp_file,
             minio=minio
         )
+
+    def get_image_matrix(self, X):
+        """Extrae los embeddings puros de 512 dimensiones sin comprimir"""
+        return np.vstack(X.iloc[:, 0].values).astype(np.float32)
+
+    def cast_to_float32(self, X):
+        return X.astype(np.float32)
+
+    def safe_expm1(self, y):
+        return np.expm1(np.clip(y, a_min=0, a_max=16))
+
+    def build_keras_heavyweight(hidden_layer_sizes=(256, 128, 64), activation='swish', learning_rate_init=0.001, alpha=0.0001, drop_rate=0.4, image_features=512, meta=None):
+        keras.utils.set_random_seed(seed)
+        
+        n_features = meta["n_features_in_"]
+        inputs = Input(shape=(n_features,))
+
+        if image_features > 0:
+            image_inputs = inputs[:, :image_features]
+            tabular_inputs = inputs[:, image_features:]
+
+            # BRAZO VISUAL
+            v = Dense(256, activation=activation, kernel_regularizer=l2(alpha * 5))(image_inputs)
+            v = Dropout(drop_rate)(v)
+            v = Dense(64, activation=activation, kernel_regularizer=l2(alpha))(v)
+            v = Dropout(drop_rate / 2)(v) # Menos dropout según se comprime
+            v = Dense(16, activation=activation)(v)
+
+            # BRAZO TABULAR 
+            t = Dense(hidden_layer_sizes[0], activation=activation, kernel_regularizer=l2(alpha))(tabular_inputs)
+            if len(hidden_layer_sizes) > 1:
+                t = Dense(hidden_layer_sizes[1], activation=activation)(t)
+            if len(hidden_layer_sizes) > 2:
+                t = Dense(hidden_layer_sizes[2], activation=activation)(t)
+
+            # LATE FUSION
+            merged = Concatenate()([v, t])
+            z = Dense(64, activation=activation)(merged)
+            z = Dense(16, activation=activation)(z)
+            outputs = Dense(1)(z)
+            
+        else:
+            t = Dense(hidden_layer_sizes[0], activation=activation, kernel_regularizer=l2(alpha))(inputs)
+            for size in hidden_layer_sizes[1:]:
+                t = Dense(size, activation=activation)(t)
+            outputs = Dense(1)(t)
+
+        model = Model(inputs=inputs, outputs=outputs)
+        opt = keras.optimizers.Adam(learning_rate=learning_rate_init)
+        model.compile(optimizer=opt, loss='mse') 
+        
+        return model
 
     def _build_pipeline(self, hyperparameters, config, X_train):
         mlp_params = {k: v for k, v in hyperparameters.items()}
@@ -105,7 +107,7 @@ class MLPPopularity(PopularityModel):
 
         if has_image:
             clip_pipe = Pipeline([
-                ('extractor', FunctionTransformer(get_image_matrix, validate=False)),
+                ('extractor', FunctionTransformer(self.get_image_matrix, validate=False)),
                 ('scale', MinMaxScaler()) 
             ])
             transformers.append(('clip_raw', clip_pipe, ['v_clip']))
@@ -121,7 +123,7 @@ class MLPPopularity(PopularityModel):
         reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=15, min_lr=1e-6, verbose=0)
 
         keras_mlp = KerasRegressor(
-            model=build_keras_heavyweight,
+            model=self.build_keras_heavyweight,
             model__image_features=image_dim,
             model__hidden_layer_sizes=mlp_params.get('hidden_layer_sizes', (256, 128, 64)),
             model__activation=mlp_params.get('activation', 'swish'),
@@ -138,11 +140,11 @@ class MLPPopularity(PopularityModel):
 
         pipeline = Pipeline([
             ('prep', preprocessor),
-            ('cast', FunctionTransformer(cast_to_float32)),
+            ('cast', FunctionTransformer(self.cast_to_float32)),
             ('mlp', keras_mlp)
         ])
 
-        return TransformedTargetRegressor(regressor=pipeline, func=np.log1p, inverse_func=safe_expm1)
+        return TransformedTargetRegressor(regressor=pipeline, func=np.log1p, inverse_func=self.safe_expm1)
 
     def _optimize_hyperparameters(self, data_splits, config):
         X_train = data_splits["X_train"]

@@ -2,24 +2,7 @@
 """
 
 import pandas as pd
-
-def price_range(x : str) -> str:
-    if x == 0:
-        return 'Free'
-    elif x > 0 and x < 5:
-        return '[0.01,4.99]'
-    elif x >= 5 and x < 10:
-        return '[5.00,9.99]'
-    elif x >= 10 and x < 15:
-        return '[10.00,14.99]'
-    elif x >= 15 and x < 20:
-        return '[15.00,19.99]'
-    elif x >= 20 and x < 30:
-        return '[20.00,29.99]'
-    elif x >= 30 and x < 40:
-        return '[30.00,39.99]'
-    elif x >= 40:
-        return '>40'
+from src.B_Transformacion.B_games_info_transformacion import price_range
 
 def initial_transformations(game: dict, row : dict) -> pd.DataFrame: 
     """Dado un juego (dict) extrae los campos: 
