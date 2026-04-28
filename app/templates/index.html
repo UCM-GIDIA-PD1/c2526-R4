@@ -38,7 +38,7 @@
         <section id="view-home" class="view active">
 
             <div class="search-container">
-            <div class="search-wrapper">
+                <div class="search-wrapper">
                     <span class="search-icon">SEARCH</span>
                     <input type="text" id="search-input" class="search-input" autocomplete="off">
                 </div>
@@ -50,8 +50,26 @@
                     <div class="spinner"></div>
                 </div>
             </div>
-            
-            <div id="scroll-sentinel" class="loading" style="display: none; padding: 2rem 0; width: 100%; justify-content: center;">
+
+            <aside class="sidebar-filters hidden">
+                <div class="sidebar-filter-item" id="side-btn-sort" title="Ordenar por popularidad">
+                    <span class="sidebar-icon-arrow">↓</span>
+                    <span class="sidebar-text">POPULARIDAD</span>
+                </div>
+                <div class="sidebar-filter-item" id="side-btn-genre" title="Filtrar por género">
+                    <span class="sidebar-icon">▤</span>
+                    <span class="sidebar-text">GÉNEROS</span>
+                    <div id="genre-dropdown" class="filter-dropdown"></div>
+                </div>
+                <div class="sidebar-filter-item" id="side-btn-price" title="Filtrar por precio">
+                    <span class="sidebar-icon">€</span>
+                    <span class="sidebar-text">PRECIO</span>
+                    <div id="price-dropdown" class="filter-dropdown"></div>
+                </div>
+            </aside>
+
+            <div id="scroll-sentinel" class="loading"
+                style="display: none; padding: 2rem 0; width: 100%; justify-content: center;">
                 <div class="spinner"></div>
             </div>
 

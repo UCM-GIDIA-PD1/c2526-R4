@@ -31,6 +31,11 @@ let currentPage = 1;
 let currentQuery = '';
 let isLoading = false;
 let hasMore = true;
+let currentSort = 'desc';
+let currentGenre = 'all';
+let currentMinPrice = 0;
+let currentMaxPrice = -1;
+let lastFeaturedAppId = null;
 
 // ============================================================
 // SEARCH (same fetch() pattern as flower3.html)
@@ -72,7 +77,20 @@ function setupSearch() {
         }
     });
 
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && lastFeaturedAppId) {
+            navigateToGame(lastFeaturedAppId);
+            input.blur();
+        }
+    });
+
     setupInfiniteScroll();
+
+    // Sort Toggle
+        // Top sort button removed. Logic moved to sidebar click.
+
+    // Initialize Filters
+    initFilters(wrapper, input);
 
     // Setup hover background crossfade layers (global for reuse)
     const grid = document.getElementById('game-grid');
@@ -105,7 +123,7 @@ function setupSearch() {
 
     grid.addEventListener('mouseout', (e) => {
         const related = e.relatedTarget;
-        
+
         if (!related || !related.closest('.game-card')) {
             // Check if there is an active exact match that should persist
             let keepBg = false;
@@ -120,12 +138,149 @@ function setupSearch() {
                     if (img && img.src) showHoverBg(img.src);
                 }
             }
-            
+
             if (!keepBg) {
                 window._hoverBg.hideTimer = setTimeout(() => hideHoverBg(), 150);
             }
         }
     });
+}
+
+/**
+ * Initialize Genre and Price filters
+ */
+async function initFilters(wrapper, input) {
+    const genreDropdown = document.getElementById('genre-dropdown');
+    const priceDropdown = document.getElementById('price-dropdown');
+
+    // Helper to toggle dropdowns
+    const toggleDropdown = (dropdown) => {
+        const isVisible = dropdown.classList.contains('visible');
+        document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('visible'));
+        if (!isVisible) dropdown.classList.add('visible');
+    };
+
+    // Helper to trigger glow
+    const triggerSearchGlow = () => {
+        wrapper.classList.remove('glow-in', 'glow-out');
+        void wrapper.offsetWidth;
+        wrapper.classList.add('glow-in');
+        
+        if (window._glowTimeout) clearTimeout(window._glowTimeout);
+        window._glowTimeout = setTimeout(() => {
+            if (document.activeElement !== input) {
+                wrapper.classList.remove('glow-in');
+                wrapper.classList.add('glow-out');
+            }
+        }, 400);
+    };
+
+    // Top buttons removed.
+
+    // Close on click outside
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('visible'));
+    });
+
+    // Sidebar Bindings
+    const sideSort = document.getElementById('side-btn-sort');
+    const sideGenre = document.getElementById('side-btn-genre');
+    const sidePrice = document.getElementById('side-btn-price');
+
+    if (sideSort) {
+        sideSort.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentSort = (currentSort === 'desc') ? 'asc' : 'desc';
+            updateSidebarSortIcon();
+            currentPage = 1;
+            hasMore = true;
+            fetchGames(true);
+            triggerSearchGlow();
+            triggerSidebarAnimation(sideSort);
+        });
+    }
+
+    if (sideGenre) {
+        sideGenre.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown(genreDropdown);
+            triggerSidebarAnimation(sideGenre, 'anim-genre');
+        });
+    }
+
+    if (sidePrice) {
+        sidePrice.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown(priceDropdown);
+            triggerSidebarAnimation(sidePrice, 'anim-price');
+        });
+    }
+
+    function triggerSidebarAnimation(item, animClass) {
+        // Underline animation
+        item.classList.remove('anim-active');
+        void item.offsetWidth;
+        item.classList.add('anim-active');
+        setTimeout(() => item.classList.remove('anim-active'), 850);
+
+        // Icon animation
+        if (animClass) {
+            const icon = item.querySelector('.sidebar-icon');
+            if (!icon) return;
+            icon.classList.remove(animClass);
+            void icon.offsetWidth;
+            icon.classList.add(animClass);
+            setTimeout(() => icon.classList.remove(animClass), 700);
+        }
+    }
+
+    // Fetch and populate options
+    try {
+        const res = await fetch('/api/filter-options');
+        const options = await res.json();
+
+        // Genres
+        genreDropdown.innerHTML = `<div class="filter-option active" data-val="all">Todos los géneros</div>`;
+        options.genres.forEach(g => {
+            genreDropdown.innerHTML += `<div class="filter-option" data-val="${g}">${g}</div>`;
+        });
+
+        // Prices
+        priceDropdown.innerHTML = '';
+        options.prices.forEach(p => {
+            const activeClass = (p.min === 0 && p.max === -1) ? 'active' : '';
+            priceDropdown.innerHTML += `<div class="filter-option ${activeClass}" data-min="${p.min}" data-max="${p.max}">${p.label}</div>`;
+        });
+
+        // Event delegation for options
+        [genreDropdown, priceDropdown].forEach(dropdown => {
+            dropdown.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevents parent sidebar item from toggling the menu back
+                const opt = e.target.closest('.filter-option');
+                if (!opt) return;
+
+                if (dropdown === genreDropdown) {
+                    currentGenre = opt.dataset.val;
+                    sideGenre.title = currentGenre === 'all' ? 'Filtrar por género' : `Géneros: ${currentGenre}`;
+                } else {
+                    currentMinPrice = parseFloat(opt.dataset.min);
+                    currentMaxPrice = parseFloat(opt.dataset.max);
+                    const label = opt.textContent;
+                    sidePrice.title = (currentMinPrice === 0 && currentMaxPrice === -1) ? 'Filtrar por precio' : `Precio: ${label}`;
+                }
+
+                dropdown.querySelectorAll('.filter-option').forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+
+                triggerSearchGlow();
+                currentPage = 1;
+                fetchGames(true);
+            });
+        });
+
+    } catch (err) {
+        console.error("Error loading filter options:", err);
+    }
 }
 
 function checkAndRestoreBg() {
@@ -142,7 +297,7 @@ function checkAndRestoreBg() {
             if (img && img.src) showHoverBg(img.src);
         }
     }
-    
+
     if (!keepBg) {
         window._hoverBg.hideTimer = setTimeout(() => hideHoverBg(), 150);
     }
@@ -204,9 +359,7 @@ async function fetchGames(reset = false) {
         sentinel.style.display = 'flex';
     }
 
-    const url = currentQuery
-        ? `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=40`
-        : `/api/trending?page=${currentPage}&limit=40`;
+    const url = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=40&sort=${currentSort}&genre=${currentGenre}&min_price=${currentMinPrice}&max_price=${currentMaxPrice}`;
 
     try {
         const res = await fetch(url);
@@ -253,9 +406,11 @@ function renderGameGrid(games, reset) {
         grid.classList.add('single-result');
         const card = grid.querySelector('.game-card');
         if (card) card.classList.add('game-card-featured');
+        lastFeaturedAppId = games[0].appid;
     } else if (reset) {
         grid.classList.remove('single-result');
-        
+        lastFeaturedAppId = null;
+
         let foundExactMatch = false;
         if (currentQuery) {
             const queryLower = currentQuery.toLowerCase().trim();
@@ -263,9 +418,10 @@ function renderGameGrid(games, reset) {
             if (exactMatch && exactMatch.banner_url) {
                 showHoverBg(exactMatch.banner_url);
                 foundExactMatch = true;
+                lastFeaturedAppId = exactMatch.appid;
             }
         }
-        
+
         if (!foundExactMatch) {
             hideHoverBg();
         }
@@ -279,6 +435,11 @@ function loadTrendingGames() {
     currentQuery = '';
     currentPage = 1;
     hasMore = true;
+    currentSort = 'desc';
+    currentGenre = 'all';
+    currentMinPrice = 0;
+    currentMaxPrice = -1;
+    lastFeaturedAppId = null;
     fetchGames(true);
 }
 
@@ -747,7 +908,36 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
     initBackground();
     initNoise();
+    setupSidebarVisibility();
 });
+
+function setupSidebarVisibility() {
+    const sidebar = document.querySelector('.sidebar-filters');
+    const target = document.querySelector('.search-container');
+    
+    if (!sidebar || !target) return;
+
+    const updateVisibility = () => {
+        const rect = target.getBoundingClientRect();
+        // Show 400px after the search container starts entering the viewport
+        if (rect.top < (window.innerHeight * 0.9 - 400)) {
+            sidebar.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('hidden');
+        }
+    };
+
+    window.addEventListener('scroll', updateVisibility);
+    updateVisibility();
+}
+
+let sidebarSortRotation = 0;
+function updateSidebarSortIcon() {
+    const arrow = document.querySelector('.sidebar-icon-arrow');
+    if (!arrow) return;
+    sidebarSortRotation += 180;
+    arrow.style.transform = `rotate(${sidebarSortRotation}deg)`;
+}
 
 // ============================================================
 // NOISE GRAIN

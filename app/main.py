@@ -2,7 +2,7 @@
 Archivo web de SteamPredictor.
 
 Para levantar la página:
-> uv run uvicorn main:app --reload --port 8000
+> uv run uvicorn app.main:app --reload --port 8000
 
 Puerto: http://127.0.0.1:8000
 """
@@ -172,19 +172,42 @@ def index(request: Request):
 # --------------------------------------------------------------------------
 
 @app.get("/api/search")
-def search_games(q: str = "", page: int = 1, limit: int = 40):
-    """Buscar juegos por nombre (filtra del catálogo real cargado desde MinIO)."""
+def search_games(q: str = "", page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", min_price: float = 0.0, max_price: float = -1.0):
+    """Buscar juegos por nombre, género y rango de precio."""
     try:
         offset = (page - 1) * limit
         df = app.state.games_df
-        if not q:
-            return _df_rows_to_list(df, offset=offset, limit=limit)
-        query = q.lower()
-        # Filtrar por nombre o por ID
-        name_mask = df["name"].astype(str).str.lower().str.contains(query, na=False)
-        id_mask = df["id"].astype(str).str.contains(query, na=False)
-        filtered = df[name_mask | id_mask]
-        return _df_rows_to_list(filtered, offset=offset, limit=limit)
+        
+        # Filtrado por búsqueda
+        if q:
+            query = q.lower()
+            name_mask = df["name"].astype(str).str.lower().str.contains(query, na=False)
+            id_mask = df["id"].astype(str).str.contains(query, na=False)
+            df = df[name_mask | id_mask]
+            
+        # Filtrado por género
+        if genre and genre != "all":
+            # Asumimos que 'genres' es una lista or string que contiene el género
+            # En el dataframe suele venir como string representativo de lista o lista real
+            def has_genre(row_genres):
+                if isinstance(row_genres, list):
+                    return genre in row_genres
+                if isinstance(row_genres, str):
+                    return genre.lower() in row_genres.lower()
+                return False
+            df = df[df["genres"].apply(has_genre)]
+            
+        # Filtrado por precio
+        if max_price >= 0:
+            df = df[(df["price_overview"] >= min_price) & (df["price_overview"] <= max_price)]
+        elif min_price > 0:
+            df = df[df["price_overview"] >= min_price]
+        
+        # Ordenación
+        if sort == "asc":
+            df = df.iloc[::-1] # Asumimos que el DF ya viene ordenado por popularidad/desc
+            
+        return _df_rows_to_list(df, offset=offset, limit=limit)
     except Exception as e:
         print(f"Error en /api/search: {e}")
         return {"games": [], "has_more": False}
@@ -226,15 +249,48 @@ def get_game(appid: int):
 
 
 @app.get("/api/trending")
-def get_trending(page: int = 1, limit: int = 40):
-    """Todos los juegos del catálogo (ya ordenado por reviews)."""
+def get_trending(page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", min_price: float = 0.0, max_price: float = -1.0):
+    """Todos los juegos del catálogo con filtros."""
+    return search_games(q="", page=page, limit=limit, sort=sort, genre=genre, min_price=min_price, max_price=max_price)
+
+@app.get("/api/filter-options")
+def get_filter_options():
+    """Obtener lista de géneros únicos y opciones de precio."""
     try:
-        offset = (page - 1) * limit
         df = app.state.games_df
-        return _df_rows_to_list(df, offset=offset, limit=limit)
+        
+        # Extraer géneros
+        all_genres = set()
+        for g_list in df["genres"]:
+            if isinstance(g_list, list):
+                all_genres.update(g_list)
+            elif isinstance(g_list, str):
+                # Limpiar si es string tipo "['A','B']" o "A, B"
+                cleaned = g_list.replace("[", "").replace("]", "").replace("'", "").split(",")
+                all_genres.update([c.strip() for c in cleaned if c.strip()])
+        
+        sorted_genres = sorted(list(all_genres))
+        
+        # Opciones de precio específicas
+        price_options = [
+            {"label": "Gratis", "min": 0, "max": 0},
+            {"label": "0.01 - 5€", "min": 0.01, "max": 5},
+            {"label": "5.01 - 10€", "min": 5.01, "max": 10},
+            {"label": "10.01 - 15€", "min": 10.01, "max": 15},
+            {"label": "15.01 - 20€", "min": 15.01, "max": 20},
+            {"label": "20.01 - 30€", "min": 20.01, "max": 30},
+            {"label": "30.01 - 40€", "min": 30.01, "max": 40},
+            {"label": "> 40€", "min": 40.01, "max": -1},
+            {"label": "Todos", "min": 0, "max": -1}
+        ]
+        
+        return {
+            "genres": sorted_genres,
+            "prices": price_options
+        }
     except Exception as e:
-        print(f"Error en /api/trending: {e}")
-        return {"games": [], "has_more": False}
+        print(f"Error en /api/filter-options: {e}")
+        return {"genres": [], "prices": []}
 
 # endregion
 
