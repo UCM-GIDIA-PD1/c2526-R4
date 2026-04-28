@@ -48,7 +48,7 @@ def project_root():
     current = Path(__file__).resolve()
 
     for parent in current.parents:
-        if (parent / ".git").exists():
+        if (parent / "pyproject.toml").exists():
             current = parent
             break
     return current
