@@ -5,7 +5,7 @@ from umap import UMAP
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.preprocessing import FunctionTransformer
-from sklearn.model_selection import StratifiedKFold, cross_validate
+from sklearn.model_selection import KFold, cross_validate
 
 from src.utils.files import read_file
 from src.utils.config import popularity, seed
@@ -54,7 +54,6 @@ class XGBoostPopularity(PopularityModel):
     def _optimize_hyperparameters(self, data_splits, config):
         X_train = data_splits["X_train"]
         y_train = data_splits["y_train"]
-        y_binned_train = data_splits["y_binned_train"]
         use_log = config.get("use_log", True)
 
         def objective(trial):
@@ -79,11 +78,11 @@ class XGBoostPopularity(PopularityModel):
 
             model = self._build_pipeline(param, config, X_train)
             
-            cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+            cv = KFold(n_splits=5, shuffle=True, random_state=seed)
             cv_results = cross_validate(
                 model, X_train, y_train, 
                 scoring='neg_mean_absolute_error', 
-                cv=list(cv.split(X_train, y_binned_train)), n_jobs=1
+                cv=cv, n_jobs=1
             )
             return -cv_results['test_score'].mean()
 

@@ -43,7 +43,7 @@ class KNNPopularity(PopularityModel):
             minio=minio
         )
 
-    def slice_umap(X):
+    def slice_umap(self, X):
         return X[:, [0]]
 
     def _preprocess_data(self, df_raw, config):
@@ -137,7 +137,6 @@ class KNNPopularity(PopularityModel):
         """Optimiza hiperparámetros y realiza Feature Selection simultánea."""
         X_train = data_splits["X_train"]
         y_train = data_splits["y_train"]
-        y_binned_train = data_splits["y_binned_train"]
 
         def objective(trial):
             params = {

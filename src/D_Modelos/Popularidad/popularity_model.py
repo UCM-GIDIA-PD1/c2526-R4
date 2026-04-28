@@ -49,7 +49,7 @@ class PopularityModel(ABC):
         self.minio = minio
         self.entity = "pd1-c2526-team4"
     
-    def get_clip_matrix(X):
+    def get_clip_matrix(self, X):
         return np.vstack(X.iloc[:, 0].values)
 
     @abstractmethod

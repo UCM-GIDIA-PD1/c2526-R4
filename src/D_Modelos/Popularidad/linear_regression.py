@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 
 
 class LinearRegressionPopularity(PopularityModel):
-    def select_features(X, indices=None):
+    def select_features(self, X, indices=None):
         return X[:, indices]
 
     def _preprocess_data(self, df_raw, config):
@@ -85,7 +85,6 @@ class LinearRegressionPopularity(PopularityModel):
         """Optimiza variables usando Forward Selection (AIC) y evalúa el resultado con CV."""
         X_train_raw = data_splits["X_train"]
         y_train_raw = data_splits["y_train"]
-        y_binned_train = data_splits["y_binned_train"]
         
         X_train = X_train_raw.copy()
         y_train = y_train_raw.copy()

@@ -38,14 +38,14 @@ class MLPPopularity(PopularityModel):
             minio=minio
         )
 
-    def get_image_matrix(X):
+    def get_image_matrix(self, X):
         """Extrae los embeddings puros de 512 dimensiones sin comprimir"""
         return np.vstack(X.iloc[:, 0].values).astype(np.float32)
 
-    def cast_to_float32(X):
+    def cast_to_float32(self, X):
         return X.astype(np.float32)
 
-    def safe_expm1(y):
+    def safe_expm1(self, y):
         return np.expm1(np.clip(y, a_min=0, a_max=16))
 
     def build_keras_heavyweight(hidden_layer_sizes=(256, 128, 64), activation='swish', learning_rate_init=0.001, alpha=0.0001, drop_rate=0.4, image_features=512, meta=None):
