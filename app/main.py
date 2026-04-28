@@ -27,13 +27,13 @@ from sklearn.preprocessing import OrdinalEncoder
 
 
 PRICE_ORDER = [
-    '[0.01,4.99]', 
-    '[5.00,9.99]', 
-    '[10.00,14.99]', 
-    '[15.00,19.99]', 
-    '[20.00,29.99]', 
-    '[30.00,39.99]', 
-    '>40'
+    'Entre 0.01€ y 4.99€', 
+    'Entre 5.00€ y 9.99€', 
+    'Entre 10.00€ y 14.99€', 
+    'Entre 15.00€ y 19.99€', 
+    'Entre 20.00€ y 29.99€', 
+    'Entre 30.00€ y 39.99€', 
+    'Más de 40€'
 ]
 
 
@@ -233,7 +233,10 @@ def get_game(appid: int):
         row_dict["positive_reviews"] = int(row_dict.get("positive", 0) or row_dict.get("positive_reviews", 0) or 0)
         row_dict["negative_reviews"] = int(row_dict.get("negative", 0) or row_dict.get("negative_reviews", 0) or 0)
         
-        row_dict["developer"] = str(row_dict.get("developer", "Unknown"))
+        # Nuevos mapeos solicitados por el usuario
+        row_dict["developer"] = str(row_dict.get("developers", "Unknown"))
+        row_dict["total_reviews_at_launch"] = int(row_dict.get("total_reviews", 0) or 0)
+        
         row_dict["release_date"] = str(row_dict.get("release_date", "Unknown"))
         
         genres_data = row_dict.get("genres", "")
@@ -273,6 +276,7 @@ def get_filter_options():
         
         # Opciones de precio específicas
         price_options = [
+            {"label": "Todos", "min": 0, "max": -1},
             {"label": "Gratis", "min": 0, "max": 0},
             {"label": "0.01 - 5€", "min": 0.01, "max": 5},
             {"label": "5.01 - 10€", "min": 5.01, "max": 10},
@@ -280,8 +284,7 @@ def get_filter_options():
             {"label": "15.01 - 20€", "min": 15.01, "max": 20},
             {"label": "20.01 - 30€", "min": 20.01, "max": 30},
             {"label": "30.01 - 40€", "min": 30.01, "max": 40},
-            {"label": "> 40€", "min": 40.01, "max": -1},
-            {"label": "Todos", "min": 0, "max": -1}
+            {"label": "> 40€", "min": 40.01, "max": -1}
         ]
         
         return {

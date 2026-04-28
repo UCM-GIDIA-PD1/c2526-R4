@@ -509,8 +509,8 @@ async function navigateToGame(appid) {
                 <div class="meta-value">${game.price_overview === 0 || game.price_overview === '0' ? 'Gratis' : (game.price_overview || 'Unknown')}</div>
             </div>
             <div class="vision-glass meta-card">
-                <div class="meta-label">Reseñas Totales</div>
-                <div class="meta-value">${formatNumber(totalReviews) || '0'}</div>
+                <div class="meta-label">Reseñas en lanzamiento</div>
+                <div class="meta-value">${formatNumber(game.total_reviews_at_launch) || '0'}</div>
             </div>
         </div>
 
@@ -526,8 +526,8 @@ async function navigateToGame(appid) {
                 </div>
                 <div class="vision-glass pred-card">
                     <h3 class="pred-title">Estimación de Precio</h3>
-                    <div class="pred-value">${(Math.random() * 40 + 10).toFixed(2)}€</div>
-                    <div class="market-label">Sobrevalorado</div>
+                    <div class="pred-value" id="pred-price-value">Cargando...</div>
+                    <div class="market-label">Basado en IA</div>
                 </div>
             </div>
             
@@ -570,6 +570,26 @@ async function navigateToGame(appid) {
             </div>
         </div>
     `;
+
+    // Cargar predicción real de precio
+    loadRealPricePrediction(game.appid);
+}
+
+async function loadRealPricePrediction(appid) {
+    const priceValue = document.getElementById('pred-price-value');
+    if (!priceValue) return;
+    
+    try {
+        const res = await fetch(`/api/predict/precio`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appid: appid }),
+        });
+        const data = await res.json();
+        priceValue.textContent = data.price;
+    } catch (e) {
+        priceValue.textContent = 'Error';
+    }
 }
 
 async function requestPrediction(type, appid) {
