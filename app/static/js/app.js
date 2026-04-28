@@ -480,6 +480,62 @@ async function navigateToGame(appid) {
 
     const safeGenres = parsedGenres.map(g => `<span class="glow-chip">${g}</span>`).join('');
 
+    // --- Dynamic NLP Themes ---
+    let nlpThemes = [
+        { name: "GRÁFICOS:", keywords: "Impresionante, Visuales, Estética", score: 80 },
+        { name: "HISTORIA:", keywords: "Narrativa, Personajes, Final", score: 95 },
+        { name: "RENDIMIENTO:", keywords: "FPS, Optimización, Stuttering", score: 30 }
+    ];
+    
+    // Sort from best to worst
+    nlpThemes.sort((a, b) => b.score - a.score);
+
+    const nlpThemesHTML = nlpThemes.map(theme => {
+        let colorClass = '';
+        let labelText = '';
+        if (theme.score >= 80) {
+            colorClass = 'excellent';
+            labelText = 'apartado excelente';
+        } else if (theme.score >= 60) {
+            colorClass = 'positive';
+            labelText = 'apartado bueno';
+        } else if (theme.score >= 40) {
+            colorClass = 'mixed';
+            labelText = 'apartado malo';
+        } else {
+            colorClass = 'negative';
+            labelText = 'apartado pésimo';
+        }
+        
+        const offset = (125.6 * (1 - theme.score / 100)).toFixed(2);
+        
+        // Calcular color rgb entre rojo (0%), amarillo (60%) y verde (100%)
+        let r, g;
+        if (theme.score <= 60) {
+            r = 255;
+            g = Math.round(255 * (theme.score / 60));
+        } else {
+            g = 255;
+            r = Math.round(255 * (1 - (theme.score - 60) / 40));
+        }
+        
+        return `
+            <div class="nlp-theme-row" style="--tint-color: rgba(${r}, ${g}, 0, 0.05); --tint-hover: rgba(${r}, ${g}, 0, 0.12);">
+                <div class="nlp-theme-text">
+                    <span class="nlp-theme-name">${theme.name}</span>
+                    <span class="nlp-theme-keywords">${theme.keywords}</span>
+                </div>
+                <div class="nlp-gauge-wrapper">
+                    <span class="gauge-label ${colorClass}">${labelText}</span>
+                    <div class="nlp-mini-gauge ${colorClass}">
+                        <svg viewBox="0 0 100 50" class="gauge-svg"><path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" /><path class="gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" style="stroke-dashoffset: ${offset};" /></svg>
+                        <span class="gauge-score">${theme.score}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
     // 2. Inyección del nuevo HTML en el contenedor
     container.innerHTML = `
         <div class="game-hero-section vision-glass">
@@ -546,38 +602,7 @@ async function navigateToGame(appid) {
             <div class="vision-glass nlp-card">
                 <h3 class="pred-title">RESUMEN DE RESEÑAS</h3>
                 <div class="nlp-themes-list">
-                    <div class="nlp-theme-row">
-                        <div class="nlp-theme-text">
-                            <span class="nlp-theme-name">GRÁFICOS:</span>
-                            <span class="nlp-theme-keywords">Impresionante, Visuales, Estética</span>
-                        </div>
-                        <div class="nlp-mini-gauge excellent">
-                            <svg viewBox="0 0 100 50" class="gauge-svg"><path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" /><path class="gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" style="stroke-dashoffset: 25.12;" /></svg>
-                            <span class="gauge-score">80</span>
-                        </div>
-                    </div>
-                    
-                    <div class="nlp-theme-row">
-                        <div class="nlp-theme-text">
-                            <span class="nlp-theme-name">HISTORIA:</span>
-                            <span class="nlp-theme-keywords">Narrativa, Personajes, Final</span>
-                        </div>
-                        <div class="nlp-mini-gauge excellent">
-                            <svg viewBox="0 0 100 50" class="gauge-svg"><path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" /><path class="gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" style="stroke-dashoffset: 6.28;" /></svg>
-                            <span class="gauge-score">95</span>
-                        </div>
-                    </div>
-
-                    <div class="nlp-theme-row">
-                        <div class="nlp-theme-text">
-                            <span class="nlp-theme-name">RENDIMIENTO:</span>
-                            <span class="nlp-theme-keywords">FPS, Optimización, Stuttering</span>
-                        </div>
-                        <div class="nlp-mini-gauge negative">
-                            <svg viewBox="0 0 100 50" class="gauge-svg"><path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" /><path class="gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" style="stroke-dashoffset: 87.92;" /></svg>
-                            <span class="gauge-score">30</span>
-                        </div>
-                    </div>
+                    ${nlpThemesHTML}
                 </div>
             </div>
         </div>

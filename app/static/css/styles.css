@@ -1700,7 +1700,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--tint-color, rgba(255, 255, 255, 0.02));
     padding: 12px 20px;
     border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -1708,7 +1708,7 @@ body {
 }
 
 .nlp-theme-row:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--tint-hover, rgba(255, 255, 255, 0.05));
 }
 
 .nlp-theme-text {
@@ -1729,6 +1729,26 @@ body {
 }
 
 /* Mini Gauge SVG container */
+.nlp-gauge-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.gauge-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 150px;
+    text-align: right;
+}
+
+.gauge-label.excellent { color: var(--accent-cyan); }
+.gauge-label.positive { color: var(--accent-green); }
+.gauge-label.mixed { color: var(--accent-gold); }
+.gauge-label.negative { color: var(--accent-red); }
+
 .nlp-mini-gauge {
     position: relative;
     width: 65px;
@@ -1771,6 +1791,10 @@ body {
     stroke: var(--accent-cyan);
 }
 
+.nlp-mini-gauge.mixed .gauge-fill {
+    stroke: var(--accent-gold);
+}
+
 .nlp-mini-gauge.negative .gauge-fill {
     stroke: var(--accent-red);
 }
@@ -1787,6 +1811,10 @@ body {
 
 .nlp-mini-gauge.excellent .gauge-score {
     color: var(--accent-cyan);
+}
+
+.nlp-mini-gauge.mixed .gauge-score {
+    color: var(--accent-gold);
 }
 
 .nlp-mini-gauge.negative .gauge-score {
