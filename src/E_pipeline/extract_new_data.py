@@ -145,7 +145,22 @@ def extract_steam_images(apps_info, session):
     pass
 
 # Extraer las reseñas de Steam de los nuevos appids
-def extract_steam_reviews(new_appids, session):
+def extract_steam_reviews(apps_info, session):
+    with tqdm(apps_info, unit="juegos") as pbar:
+        for juego in pbar:
+            appid = juego.get("id")
+            try:
+                reviews = get_resenyas(appid, session, False)
+                resultado_juego = {
+                    "index" : 67, # es una variable residual que no se usa para nada
+                    "id": appid,
+                    "name" : juego.get("appdetails", {}).get("name"),
+                    "total_reviews": juego.get("appreviewhistogram", {}).get("rollups", {}).get("total_recommendations"),
+                    "reviews": reviews
+                }
+                write_to_file(resultado_juego, "new_reviews.jsonl.gz")
+            except Exception as e:
+                pbar.write(f"Error obteniendo reseñas para el juego {appid}: {e}")
     pass
 
 # Extraer la información de YouTube de los nuevos appids
