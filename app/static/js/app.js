@@ -636,10 +636,9 @@ async function navigateToGame(appid) {
             <div class="predictions-row-top">
                 <div class="vision-glass pred-card">
                     <h3 class="pred-title">Predicción de Popularidad</h3>
-                    <div class="pred-value">${formatNumber(Math.floor(Math.random() * 50000) + 10000)} Jugadores</div>
+                    <div class="pred-value" id="pred-popularity-value">Cargando...</div>
                     <div class="confidence-wrapper">
-                        <span class="conf-label">Confianza: 92%</span>
-                        <div class="conf-bar"><div class="conf-fill" style="width: 92%;"></div></div>
+                        <span class="conf-label">Estimación realizada con XGBoost</span>
                     </div>
                 </div>
                 <div class="vision-glass pred-card">
@@ -659,12 +658,21 @@ async function navigateToGame(appid) {
     `;
 
     // Cargar predicción real de precio
-    loadRealPricePrediction(game.appid);
+    loadRealPricePrediction(game.appid, parsedGenres);
+    // Cargar predicción real de popularidad
+    loadRealPopularityPrediction(game.appid);
 }
 
-async function loadRealPricePrediction(appid) {
+async function loadRealPricePrediction(appid, genres) {
     const priceValue = document.getElementById('pred-price-value');
     if (!priceValue) return;
+
+    // Si es Free to Play, ignoramos el modelo y ponemos Gratis directamente
+    const isFreeToPlay = genres.some(g => g.toLowerCase().includes('free to play'));
+    if (isFreeToPlay) {
+        priceValue.textContent = 'Gratis';
+        return;
+    }
     
     try {
         const res = await fetch(`/api/predict/precio`, {
@@ -679,12 +687,46 @@ async function loadRealPricePrediction(appid) {
     }
 }
 
+async function loadRealPopularityPrediction(appid) {
+    const popValue = document.getElementById('pred-popularity-value');
+    if (!popValue) return;
+    
+    try {
+        const res = await fetch(`/api/predict/popularidad`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appid: appid }),
+        });
+        const data = await res.json();
+        popValue.textContent = formatNumber(data.reviews) + ' Reseñas';
+    } catch (e) {
+        popValue.textContent = 'Error';
+    }
+}
+
 async function requestPrediction(type, appid) {
     const resultsArea = document.getElementById('prediction-results-area');
     resultsArea.style.display = 'block';
     resultsArea.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
     resultsArea.scrollIntoView({ behavior: 'smooth' });
+
+    // Regla para juegos Free to Play
+    if (type === 'precio' && currentGame) {
+        let genres = [];
+        if (typeof currentGame.genres === 'string') {
+            genres = currentGame.genres.split(',').map(g => g.trim().toLowerCase());
+        } else if (Array.isArray(currentGame.genres)) {
+            genres = currentGame.genres.map(g => g.trim().toLowerCase());
+        }
+        
+        if (genres.some(g => g.includes('free to play'))) {
+            const prediction = { value: 'Gratis', confidence: 1.0, details: {} };
+            currentPrediction = prediction;
+            showPredictionView(type, prediction);
+            return;
+        }
+    }
 
     const res = await fetch(`/api/predict/${type}`, {
         method: 'POST',
@@ -708,6 +750,21 @@ function showPredictionView(type, prediction) {
 async function loadPrediction(type, appid) {
     const card = document.getElementById(`card-${type}`);
 
+    // Si es predicción de precio y el juego es Free to Play
+    if (type === 'precio' && currentGame) {
+        let genres = [];
+        if (typeof currentGame.genres === 'string') {
+            genres = currentGame.genres.split(',').map(g => g.trim().toLowerCase());
+        } else if (Array.isArray(currentGame.genres)) {
+            genres = currentGame.genres.map(g => g.trim().toLowerCase());
+        }
+        
+        if (genres.some(g => g.includes('free to play'))) {
+            renderPredictionCard(card, type, { value: 'Gratis', confidence: 1.0 });
+            return;
+        }
+    }
+
     const res = await fetch(`/api/predict/${type}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -728,7 +785,7 @@ function renderPredictionCard(card, type, prediction) {
         },
         precio: {
             title: 'Precio',
-            formatValue: (v) => v.toFixed(2) + '\u20ac',
+            formatValue: (v) => typeof v === 'number' ? v.toFixed(2) + '\u20ac' : v,
             label: 'Precio predicho',
             color: '#fbbf24',
         },
@@ -785,7 +842,7 @@ function navigateToPredictionDetail(type, prediction) {
             unit: 'Jugadores estimados', colorClass: 'popularidad',
         },
         precio: {
-            title: 'Precio', formatValue: (v) => v.toFixed(2) + '€',
+            title: 'Precio', formatValue: (v) => typeof v === 'number' ? v.toFixed(2) + '€' : v,
             unit: 'Precio predicho', colorClass: 'precio',
         },
         reviews: {
