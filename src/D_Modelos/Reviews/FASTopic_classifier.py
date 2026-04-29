@@ -10,13 +10,13 @@ topic_tags = {
     5: "General Opinion",
 }
 """
-from src.utils.config import reviews_fastopic_file, reviews
+from src.utils.config import reviews_fastopic_file, reviews, reviews_en_core_web_sm
 from src.utils.files import read_file
 from fastopic import FASTopic
 import re
 import spacy
 
-nlp = spacy.load("en_core_web_sm", disable=["parser", "ner", "textcat"])
+nlp = spacy.load(reviews_en_core_web_sm)
 def spacy_tokenizer(text):
     doc = nlp(text)
     return [

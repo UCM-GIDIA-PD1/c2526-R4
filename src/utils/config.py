@@ -5,6 +5,7 @@ Se encarga de trabajar con los archivos de configuración y tiene variables con 
 from os import environ
 from pathlib import Path
 from dotenv import load_dotenv
+from sympy import python
 
 def get_appid_range(length):
     """Lee el inicio y fin de una sesión de scrapping desde un archivo de texto
@@ -247,6 +248,8 @@ reviews_logistic_regression_gridsearch_file = models_reviews_path() / "logistic_
 reviews_naive_bayes_cv_file = models_reviews_path() / "naive_bayes_cv.pkl"
 reviews_naive_bayes_tfidf_file = models_reviews_path() / "naive_bayes_tfidf.pkl"
 reviews_fastopic_file = models_reviews_path() / "fastopic.zip"
+reviews_en_core_web_sm = models_path() / "en_core_web_sm/en_core_web_sm-3.8.0" # deberíamos subir el modelo a MinIO
+                                                                               # ejecutar "python -m spacy download en_core_web_sm --target ./models" para descargarlo en models
 #endregion
 # region ------ PATHS A DATOS PARA APP  ------ #
 GAME_FETCH_DATA_PATH =  processed_data_path() / "games_info_fetch.parquet"
