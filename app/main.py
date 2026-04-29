@@ -22,10 +22,8 @@ from app.extraction.youtube import get_video_data
 from app.transformation.prices import transform_for_prices
 from app.transformation.popularity import transform_for_popularity
 from app.transformation.reviews import clean_text, to_dataframe
-from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir
+from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_xgboost_log_file
 from src.utils.files import read_file
-
-
 
 PRICE_ORDER = [
     'Entre 0.01€ y 4.99€', 
@@ -94,13 +92,14 @@ class GameInfo(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: cargar modelos en memoria
-    # app.state.model_popularidad = load(config.project_root() / 'models/popularidad/xgboost_model.pkl')
+    # Cargar modelos 
+    print("Cargando modelo de popularidad")
+    app.state.model_popularity = read_file(popularidad_xgboost_log_file)
     print("Cargando modelo de precios")
     app.state.model_price = read_file(precios_knncompleteclusters_file)
     # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
 
-    # Cargar los datos en 
+    # Cargar los datos históricos de developers y publishers
     print("Cargando datos históricos de juegos")
     app.state.historic_data = read_file(HISTORIC_GAMES_DATA_PATH)
 
@@ -334,9 +333,10 @@ def predict_popularidad(req: PredictionRequest):
     print(row)
     print(row.columns)
 
-    #TODO: Transformaciones del modelo y predecir
+    prediction = app.state.model_popularity.predict(row)
+    print('Prediction',prediction)
 
-    return PopularityResponse(reviews=67)
+    return PopularityResponse(reviews=prediction)
 
 
 @app.post("/api/predict/precio", response_model=PriceResponse)
