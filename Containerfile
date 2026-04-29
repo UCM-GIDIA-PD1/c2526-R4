@@ -14,7 +14,7 @@ COPY pyproject.toml README.md uv.lock ./
 COPY app/pyproject.toml app/
 RUN uv sync --no-cache --no-install-project --all-packages
 COPY . .
-RUN uv sync --no-cache --all-packages
+RUN uv sync --frozen --no-cache
 
 # Establecer puerto
 EXPOSE 8000
