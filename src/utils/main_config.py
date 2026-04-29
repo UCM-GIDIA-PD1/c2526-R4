@@ -8,6 +8,7 @@ from src.utils.config import steam_reviews_file, banners_file, steam_reviews_top
 from src.utils.config import steam_games_parquet_file, yt_stats_parquet_file
 from src.utils.config import steam_reviews_parquet_file, popularity, prices
 from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, popularidad_mlp_file
+from src.utils.config import popularidad_xgboost_nomulti_file, popularidad_xgboost_log_nomulti_file
 from src.utils.config import popularidad_linear_regression_file, popularidad_linear_regression_log_file, popularidad_knn_log_file
 from src.utils.config import precios_xgboostumap_file, precios_mlp_file, precios_knncompleteclusters_file
 from src.utils.config import precios_catboostClustered_file, precios_logistic_regression_file
@@ -118,15 +119,17 @@ main_transformacion_info = {
 }
 
 main_modelos_info = {
-    "A2": {"fichero": "Popularidad.xgboost_model", 
+    "A1": {"fichero": "Popularidad.xgboost_model", 
            "mensaje": "Popularidad XGBoost (4 modelos)",
-           "salida": [popularidad_xgboost_log_file.name, popularidad_xgboost_file.name], 
-           "path": [popularidad_xgboost_log_file, popularidad_xgboost_file], 
+           "salida": [popularidad_xgboost_log_file.name, popularidad_xgboost_file.name,
+                      popularidad_xgboost_nomulti_file.name, popularidad_xgboost_log_nomulti_file.name], 
+           "path": [popularidad_xgboost_log_file, popularidad_xgboost_file,
+                    popularidad_xgboost_nomulti_file, popularidad_xgboost_log_nomulti_file], 
            "ejecutable": "main", 
            "usar": False, 
            "dependences": [dep.popularity_dependence, dep.wandb_dependence]
     },
-    "A3": {"fichero": "Popularidad.mlp", 
+    "A2": {"fichero": "Popularidad.mlp", 
            "mensaje": "Popularidad MLP",
            "salida": popularidad_mlp_file.name, 
            "path": popularidad_mlp_file, 
@@ -134,23 +137,15 @@ main_modelos_info = {
            "usar": False, 
            "dependences": [dep.popularity_dependence, dep.wandb_dependence]
     },
-    "A4": {"fichero": "Popularidad.linear_regression", 
-           "mensaje": "Popularidad Linear regression",
-           "salida": popularidad_linear_regression_file.name, 
-           "path": popularidad_linear_regression_file, 
-           "ejecutable": "main1", 
+    "A3": {"fichero": "Popularidad.linear_regression", 
+           "mensaje": "Popularidad Linear regression (2 modelos)",
+           "salida": [popularidad_linear_regression_file.name, popularidad_linear_regression_log_file.name], 
+           "path": [popularidad_linear_regression_file, popularidad_linear_regression_log_file], 
+           "ejecutable": "main", 
            "usar": False, 
            "dependences": [dep.popularity_dependence, dep.wandb_dependence]
     },
-    "A5": {"fichero": "Popularidad.linear_regression", 
-           "mensaje": "Popularidad Linear regression (log)",
-           "salida": popularidad_linear_regression_log_file.name, 
-           "path": popularidad_linear_regression_log_file, 
-           "ejecutable": "main2", 
-           "usar": False, 
-           "dependences": [dep.popularity_dependence, dep.wandb_dependence]
-    },
-    "A6": {"fichero": "Popularidad.knn", 
+    "A4": {"fichero": "Popularidad.knn", 
            "mensaje": "Popularidad kNN",
            "salida": popularidad_knn_log_file.name, 
            "path": popularidad_knn_log_file, 

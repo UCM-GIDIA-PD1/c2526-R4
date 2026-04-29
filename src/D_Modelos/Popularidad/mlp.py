@@ -48,7 +48,7 @@ class MLPPopularity(PopularityModel):
     def safe_expm1(self, y):
         return np.expm1(np.clip(y, a_min=0, a_max=16))
 
-    def build_keras_heavyweight(hidden_layer_sizes=(256, 128, 64), activation='swish', learning_rate_init=0.001, alpha=0.0001, drop_rate=0.4, image_features=512, meta=None):
+    def build_keras_heavyweight(self, hidden_layer_sizes=(256, 128, 64), activation='swish', learning_rate_init=0.001, alpha=0.0001, drop_rate=0.4, image_features=512, meta=None):
         keras.utils.set_random_seed(seed)
         
         n_features = meta["n_features_in_"]
