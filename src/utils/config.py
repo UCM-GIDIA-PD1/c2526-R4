@@ -246,6 +246,7 @@ reviews_logistic_regression_optuna_file = models_reviews_path() / "logistic_regr
 reviews_logistic_regression_gridsearch_file = models_reviews_path() / "logistic_regression_gridsearch.pkl"
 reviews_naive_bayes_cv_file = models_reviews_path() / "naive_bayes_cv.pkl"
 reviews_naive_bayes_tfidf_file = models_reviews_path() / "naive_bayes_tfidf.pkl"
+reviews_fastopic_file = models_reviews_path() / "fastopic.zip"
 #endregion
 # region ------ PATHS A DATOS PARA APP  ------ #
 GAME_FETCH_DATA_PATH =  processed_data_path() / "games_info_fetch.parquet"

@@ -24,6 +24,7 @@ models
 *.pkl
 *.png
 *.jpg
+*.zip
 !app/static/img/*.jpg
 !app/static/img/*.png
 !app/static/img/frames/*.jpg
