@@ -22,6 +22,7 @@ from app.extraction.youtube import get_video_data
 from app.transformation.prices import transform_for_prices
 from app.transformation.popularity import transform_for_popularity
 from app.transformation.reviews import clean_text, to_dataframe
+from src.D_Modelos.Popularidad.xgboost_model import XGBoostPopularity
 from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_xgboost_log_file
 from src.utils.files import read_file
 
@@ -360,13 +361,21 @@ def predict_popularidad(req: PredictionRequest):
     print(yt_data)
 
     row = transform_for_popularity(data, appid, app.state.historic_data, v_clip, brillo,data['appreviewshistogram'], yt_data)
-    print(row)
-    print(row.columns)
-
-    prediction = app.state.model_popularity.predict(row)
+    
+    # Instanciamos el modelo para usar su lógica de preprocesamiento
+    dummy_model = XGBoostPopularity(run_name="", model_path="", minio={"minio_write": False, "minio_read": False})
+    config = {"avoid_multicol": False, "use_log": True}
+    df_prep = dummy_model._preprocess_data(row, config)
+    if "recomendaciones_totales" in df_prep.columns:
+        df_prep = df_prep.drop(columns=["recomendaciones_totales"])
+    
+    # Extraemos el modelo del diccionario
+    model = app.state.model_popularity.get('model') if isinstance(app.state.model_popularity, dict) else app.state.model_popularity
+    prediction = model.predict(df_prep)
     print('Prediction',prediction)
 
-    return PopularityResponse(reviews=prediction)
+    reviews_pred = int(round(float(prediction[0])))
+    return PopularityResponse(reviews=reviews_pred)
 
 
 @app.post("/api/predict/precio", response_model=PriceResponse)
