@@ -119,8 +119,34 @@ Para detener el proceso actual y deshabilitar el servicio permanentemente:
 sudo systemctl stop tor
 sudo systemctl disable tor
 ```
----
 
+---
+## Desplegar la web mediante el contenedor de Podman
+Para poder desplegar la web es necesario tener instalado [podman](https://podman.io/) y tener el fichero .env con tus credenciales. Además de estar conectado a la VPN de la UCM.
+1. **Iniciar Podman**:
+``` shell
+podman machine init
+podman machine start
+```
+2. **Crear la imagen**:
+``` shell
+podman build -t steam-predictor .
+```
+
+2. **Iniciar contenedor**:
+```shell
+podman run -d -p 8000:8000 --name container --env-file .env steam-predictor
+```
+
+Accede a la web desde `http://localhost:8000`. 
+
+Si estás en Windows puede que tu máquina Podman intente usar una IP interna aislada, para encontrarla:
+```shell
+wsl -d podman-machine-default ip -4 a
+```
+Busca el bloque de red llamado eth0 y fíjate en la dirección que aparece al lado de inet. Podrás acceder a la web desde `http://<TU_IP>:8000`
+
+---
 ## Autores 
 
 | [<img src="https://github.com/nicgil23.png" width="100px;"/>](https://github.com/nicgil23) | [<img src="https://github.com/JanMercado51.png" width="100px;"/>](https://github.com/JanMercado51) | [<img src="https://github.com/jorgbert.png" width="100px;"/>](https://github.com/jorgbert) | [<img src="https://github.com/lucasosp.png" width="100px;"/>](https://github.com/lucasosp) | [<img src="https://github.com/anton-VK.png" width="100px;"/>](https://github.com/anton-VK) | [<img src="https://github.com/zhixianzucm.png" width="100px;"/>](https://github.com/zhixianzucm) |

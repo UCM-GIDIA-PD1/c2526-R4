@@ -1,6 +1,67 @@
-.git
-.venv
-app/.venv
+# Ignorar todo el proyecto por defecto
+*
+
+# ============= RAIZ =============
+!app/
+!pyproject.toml
+!README.md
+!uv.lock
+!.python-version
+
+# ============= SRC =============
+!src/
+src/*
+
+!src/__init__.py
+
+!src/utils/
+src/utils/*
+!src/utils/__init__.py
+!src/utils/date.py
+!src/utils/config.py
+!src/utils/files.py
+!src/utils/minio_server.py
+!src/utils/exceptions.py
+
+!src/A_Extraccion/
+src/A_Extraccion/*
+!src/A_Extraccion/__init__.py
+
+!src/A_Extraccion/utils_extraccion/
+src/A_Extraccion/utils_extraccion/*
+!src/A_Extraccion/utils_extraccion/__init__.py
+!src/A_Extraccion/utils_extraccion/steam_requests.py
+
+!src/B_Transformacion/
+src/B_Transformacion/*
+!src/B_Transformacion/__init__.py
+!src/B_Transformacion/B_games_info_transformacion.py
+!src/B_Transformacion/D2_limpieza_reviews.py
+
+# ============= DATA =============
+!data/
+data/*
+
+!data/processed/
+data/processed/*
+!data/processed/historic_games_data.parquet
+
+# ============= MODELS =============
+!models/
+models/*
+
+!models/popularidad/
+models/popularidad/*
+!models/popularidad/xgboost_model_log.pkl
+
+!models/precios/
+models/precios/*
+!models/precios/knncompleteclusters.pkl
+
+!models/reviews/
+
+# ============= GENERAL =============
+# Excluir archivos innecesarios de las carpetas incluidas
 **/__pycache__
 **/*.pyc
 *.env

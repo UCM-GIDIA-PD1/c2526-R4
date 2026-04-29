@@ -12,9 +12,8 @@ WORKDIR /steam_predictor
 # Copiar todo el código y ficheros de dependencias
 COPY pyproject.toml README.md uv.lock ./
 COPY app/pyproject.toml app/
-RUN uv sync --no-cache --no-install-project --all-packages
 COPY . .
-RUN uv sync --no-cache --all-packages
+RUN UV_INDEX_PYTORCH_CU118="https://download.pytorch.org/whl/cpu" uv sync --frozen --no-cache --no-group not_in_container
 
 # Establecer puerto
 EXPOSE 8000
