@@ -174,7 +174,7 @@ def index(request: Request):
 # --------------------------------------------------------------------------
 
 @app.get("/api/search")
-def search_games(q: str = "", page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", min_price: float = 0.0, max_price: float = -1.0):
+def search_games(q: str = "", page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", prices: str = ""):
     """Buscar juegos por nombre, género y rango de precio."""
     try:
         offset = (page - 1) * limit
@@ -189,21 +189,52 @@ def search_games(q: str = "", page: int = 1, limit: int = 40, sort: str = "desc"
             
         # Filtrado por género
         if genre and genre != "all":
-            # Asumimos que 'genres' es una lista or string que contiene el género
-            # En el dataframe suele venir como string representativo de lista o lista real
+            selected_genres = [g.strip().lower() for g in genre.split(",")]
             def has_genre(row_genres):
                 if isinstance(row_genres, list):
-                    return genre in row_genres
+                    rg_lower = [g.lower() for g in row_genres]
+                    return any(g in rg_lower for g in selected_genres)
                 if isinstance(row_genres, str):
-                    return genre.lower() in row_genres.lower()
+                    rg_lower = row_genres.lower()
+                    return any(g in rg_lower for g in selected_genres)
                 return False
             df = df[df["genres"].apply(has_genre)]
+        else:
+            # Excluir contenido sexual y desnudez por defecto
+            excluded_genres = ["sexual content", "nudity"]
+            def has_excluded(row_genres):
+                if isinstance(row_genres, list):
+                    rg_lower = [g.lower() for g in row_genres]
+                    return any(g in rg_lower for g in excluded_genres)
+                if isinstance(row_genres, str):
+                    rg_lower = row_genres.lower()
+                    return any(g in rg_lower for g in excluded_genres)
+                return False
+            df = df[~df["genres"].apply(has_excluded)]
             
         # Filtrado por precio
-        if max_price >= 0:
-            df = df[(df["price_overview"] >= min_price) & (df["price_overview"] <= max_price)]
-        elif min_price > 0:
-            df = df[df["price_overview"] >= min_price]
+        if prices and prices != "all":
+            import operator
+            from functools import reduce
+            price_ranges = []
+            for p_range in prices.split(","):
+                try:
+                    p_min, p_max = map(float, p_range.split("_"))
+                    price_ranges.append((p_min, p_max))
+                except ValueError:
+                    continue
+            
+            if price_ranges:
+                price_masks = []
+                for p_min, p_max in price_ranges:
+                    if p_max >= 0:
+                        mask = (df["price_overview"] >= p_min) & (df["price_overview"] <= p_max)
+                    else:
+                        mask = df["price_overview"] >= p_min
+                    price_masks.append(mask)
+                
+                final_mask = reduce(operator.or_, price_masks)
+                df = df[final_mask]
         
         # Ordenación
         if sort == "asc":
@@ -213,7 +244,6 @@ def search_games(q: str = "", page: int = 1, limit: int = 40, sort: str = "desc"
     except Exception as e:
         print(f"Error en /api/search: {e}")
         return {"games": [], "has_more": False}
-
 
 @app.get("/api/game/{appid}")
 def get_game(appid: int):
@@ -264,9 +294,9 @@ def get_game(appid: int):
 
 
 @app.get("/api/trending")
-def get_trending(page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", min_price: float = 0.0, max_price: float = -1.0):
+def get_trending(page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", prices: str = ""):
     """Todos los juegos del catálogo con filtros."""
-    return search_games(q="", page=page, limit=limit, sort=sort, genre=genre, min_price=min_price, max_price=max_price)
+    return search_games(q="", page=page, limit=limit, sort=sort, genre=genre, prices=prices)
 
 @app.get("/api/filter-options")
 def get_filter_options():

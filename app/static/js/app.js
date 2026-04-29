@@ -33,8 +33,7 @@ let isLoading = false;
 let hasMore = true;
 let currentSort = 'desc';
 let currentGenre = 'all';
-let currentMinPrice = 0;
-let currentMaxPrice = -1;
+let currentPrices = 'all';
 let lastFeaturedAppId = null;
 
 // ============================================================
@@ -260,17 +259,68 @@ async function initFilters(wrapper, input) {
                 if (!opt) return;
 
                 if (dropdown === genreDropdown) {
-                    currentGenre = opt.dataset.val;
-                    sideGenre.title = currentGenre === 'all' ? 'Filtrar por género' : `Géneros: ${currentGenre}`;
-                } else {
-                    currentMinPrice = parseFloat(opt.dataset.min);
-                    currentMaxPrice = parseFloat(opt.dataset.max);
-                    const label = opt.textContent;
-                    sidePrice.title = (currentMinPrice === 0 && currentMaxPrice === -1) ? 'Filtrar por precio' : `Precio: ${label}`;
-                }
+                    const val = opt.dataset.val;
+                    let genresList = (currentGenre === 'all' || currentGenre === '') ? [] : currentGenre.split(',');
 
-                dropdown.querySelectorAll('.filter-option').forEach(o => o.classList.remove('active'));
-                opt.classList.add('active');
+                    if (val === 'all') {
+                        genresList = [];
+                        dropdown.querySelectorAll('.filter-option').forEach(o => o.classList.remove('active'));
+                        opt.classList.add('active');
+                    } else {
+                        // Toggle selection
+                        if (genresList.includes(val)) {
+                            genresList = genresList.filter(g => g !== val);
+                            opt.classList.remove('active');
+                        } else {
+                            genresList.push(val);
+                            opt.classList.add('active');
+                        }
+                        
+                        dropdown.querySelector('.filter-option[data-val="all"]').classList.remove('active');
+                        
+                        if (genresList.length === 0) {
+                            dropdown.querySelector('.filter-option[data-val="all"]').classList.add('active');
+                        }
+                    }
+
+                    currentGenre = genresList.length === 0 ? 'all' : genresList.join(',');
+                    sideGenre.title = currentGenre === 'all' ? 'Filtrar por género' : `Géneros: ${genresList.join(', ')}`;
+                } else {
+                    const min = opt.dataset.min;
+                    const max = opt.dataset.max;
+                    const val = `${min}_${max}`;
+
+                    let pricesList = (currentPrices === 'all' || currentPrices === '') ? [] : currentPrices.split(',');
+
+                    if (min == 0 && max == -1) {
+                        pricesList = [];
+                        dropdown.querySelectorAll('.filter-option').forEach(o => o.classList.remove('active'));
+                        opt.classList.add('active');
+                    } else {
+                        if (pricesList.includes(val)) {
+                            pricesList = pricesList.filter(p => p !== val);
+                            opt.classList.remove('active');
+                        } else {
+                            pricesList.push(val);
+                            opt.classList.add('active');
+                        }
+
+                        dropdown.querySelector('.filter-option[data-min="0"][data-max="-1"]').classList.remove('active');
+
+                        if (pricesList.length === 0) {
+                            dropdown.querySelector('.filter-option[data-min="0"][data-max="-1"]').classList.add('active');
+                        }
+                    }
+
+                    currentPrices = pricesList.length === 0 ? 'all' : pricesList.join(',');
+                    
+                    if (pricesList.length === 0) {
+                        sidePrice.title = 'Filtrar por precio';
+                    } else {
+                        const activeLabels = Array.from(dropdown.querySelectorAll('.filter-option.active')).map(o => o.textContent);
+                        sidePrice.title = `Precio: ${activeLabels.join(', ')}`;
+                    }
+                }
 
                 triggerSearchGlow();
                 currentPage = 1;
@@ -359,7 +409,7 @@ async function fetchGames(reset = false) {
         sentinel.style.display = 'flex';
     }
 
-    const url = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=40&sort=${currentSort}&genre=${currentGenre}&min_price=${currentMinPrice}&max_price=${currentMaxPrice}`;
+    const url = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=40&sort=${currentSort}&genre=${encodeURIComponent(currentGenre)}&prices=${encodeURIComponent(currentPrices)}`;
 
     try {
         const res = await fetch(url);
