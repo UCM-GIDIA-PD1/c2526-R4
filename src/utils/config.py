@@ -204,8 +204,8 @@ steam_games_parquet_file_prices = processed_data_path() / "games_info_prices.par
 yt_stats_parquet_file = processed_data_path() / "yt_stats.parquet"
 
 # Script D1
-steam_reviews_top100_file = raw_data_path() / "rest_games_total_reviews.json.gz"
-steam_reviews_rest_file = raw_data_path() / "top_100_games_total_reviews.json.gz"
+steam_reviews_top100_file = raw_data_path() / "top_100_games_total_reviews.json.gz"
+steam_reviews_rest_file = raw_data_path() / "rest_games_total_reviews.json.gz"
 
 # Script D2
 steam_reviews_parquet_file = processed_data_path() / "steam_reviews_processed.parquet"
