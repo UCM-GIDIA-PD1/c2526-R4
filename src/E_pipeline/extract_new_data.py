@@ -37,10 +37,9 @@ Ya en general, quitar complejidad innecesaria y un codigo más legible y sencill
 
 from src.A_Extraccion.utils_extraccion.steam_requests import get_appids
 from src.A_Extraccion.B_informacion_juegos import _download_game_data
-from src.utils.config import appidlist_file
 from utils.files import read_file, write_to_file
 from tqdm import tqdm
-from time import sleep
+from time import sleep, time
 from numpy.random import uniform
 from requests import Session
 from torch import nn
@@ -49,6 +48,12 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 from src.A_Extraccion.E_metadatos_imagenes import _analiza_imagen
 from src.A_Extraccion.utils_extraccion.steam_requests import get_resenyas
+from src.A_Extraccion.C1_informacion_youtube_busquedas import _IP_interval_rotation
+from src.A_Extraccion.utils_extraccion.webscraping import start_tor, renew_tor_ip, new_configured_chromium_page, search_youtube
+from src.A_Extraccion.C2_informacion_youtube_videos import _get_apikey, _request_youtube
+from googleapiclient.discovery import build
+
+from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, steam_reviews_file, banners_file
 # Extraer los nuevos de appids
 
 def extract_new_appids():
@@ -63,12 +68,22 @@ def extract_new_appids():
     write_to_file(new_appids, "new_appid_list.json.gz")
     return new_appids
 
+def extract_new_appids_v2():
+    """
+    Requisitos ((*)sujeto a cambios):
+    - variable de entorno STEAM_API_KEY
+    - * fichero appids_list.json.gz para saber el último appid extraído
+    """
+    get_appids
+    gamesinfo = read_file(gamelist_file)
+    old_appids = set(game.get("id") for game in gamesinfo)
+    new_appids = get_appids(last_appid=0)
+    new_appids = [appid for appid in new_appids if appid not in old_appids]
+    write_to_file(new_appids, "new_appid_list.json.gz")
+    return new_appids
+
 # Extraer la información de Steam de los nuevos appids
 def extract_steam_info(new_appids, session):
-    # TODO: esta función es temporal, probablemente haya que modificarla para que se integre mejor con el pipeline
-    # Manejo de sesiones
-    # Filtrado de datos
-    # Manejo de errores
     
     with tqdm(new_appids, unit = "appids") as pbar:
         for appid in pbar:
@@ -84,7 +99,7 @@ def extract_steam_info(new_appids, session):
                 sleep(wait)
     return "new_gamelist.jsonl.gz"
 
-def load_image_models():
+def _load_image_models():
     # Resnet, entrenado para reconocer formas
     model_resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
     model_resnet = nn.Sequential(*(list(model_resnet.children())[:-1]))
@@ -110,7 +125,7 @@ def load_image_models():
 
 # Extraer la información de las imágenes de Steam de los nuevos appids
 def extract_steam_images(apps_info, session):
-    model_resnet, model_convnext, model_clip, trans = load_image_models()
+    model_resnet, model_convnext, model_clip, trans = _load_image_models()
     ruta_imagenes = "new_images/"
     with tqdm(apps_info, unit="juegos") as pbar:
         for juego in pbar:
@@ -164,11 +179,69 @@ def extract_steam_reviews(apps_info, session):
     pass
 
 # Extraer la información de YouTube de los nuevos appids
-def extract_youtube_info(new_appids):
-    pass
+def extract_youtube_info_1(apps_info, session):
+    start_tor()
+    session = new_configured_chromium_page()
+    last_timestamp = time()
+    interval = _IP_interval_rotation()
+    with tqdm(apps_info, unit="juegos") as pbar:
+            for game in pbar:
+                # Cargamos los datos
+                appid = game.get('id')
+                name = game.get('appdetails').get("name")
+                date = game.get('appdetails').get("release_date")
+                pbar.set_description(f"Procesando appid {appid}")
+
+                # Si se han cargado los datos correctamente, hacemos búsqueda en YouTube
+                if name and date:
+                    id_list = search_youtube(name, date, session)
+                    if id_list == []:
+                        tqdm.write(f'Juego sin vídeos o error al buscarlo: {name}')
+                    jsonl = {'id':appid,'name':name,'video_statistics':id_list}
+                    write_to_file(jsonl, "new_info_steam_youtube.jsonl.gz")
+                    session.wait(4, scope=0.4) # Espera aleatoria de entre 2.4 y 5.6 segundos
+                else:
+                    tqdm.write(f'Juego con entrada incompleta: {name}')
+                current_time = time()
+                if current_time - last_timestamp >= interval:
+                    last_timestamp = current_time
+                    interval = _IP_interval_rotation()
+                    session = renew_tor_ip(session)
+                    if not session:
+                        break
+    return "new_info_steam_youtube.jsonl.gz"
+
+def extract_youtube_info_2(apps_info):
+    API_KEY = _get_apikey()
+    youtube = build('youtube', 'v3', developerKey=API_KEY)
+
+    with tqdm(apps_info, unit="juegos") as pbar:
+        for app in pbar:
+            jsonl = None
+            try:
+                appid = app.get('id')
+                name = app.get('appdetails').get("name")
+                pbar.set_description(f"Procesando appid {appid}")
+                video_id_list = app.get('video_id_list', [])
+                if video_id_list == []:
+                    tqdm.write(f'Juego sin vídeos o error al buscarlo: {name}')
+                jsonl = {
+                    'id' : appid,
+                    'name' : name,
+                    'video_statistics' : []
+                }
+                # Obtenemos información del juego solo si la lista no está vacía
+                if video_id_list:
+                    jsonl['video_statistics'] = _request_youtube(youtube, video_id_list)
+
+                write_to_file(jsonl, "new_youtube_statistics.jsonl.gz")
+            except Exception as e:
+                pbar.write(f"Error obteniendo información de YouTube para el juego {appid}: {e}")
+    return "new_youtube_statistics.jsonl.gz"
 
 # Integrar los nuevos datos con los anteriores
 def integrate_new_data():
+
     pass
 
 if __name__ == "__main__":
@@ -178,3 +251,8 @@ if __name__ == "__main__":
 
     apps_info = read_file(new_gameinfo_file)
     extract_steam_images(apps_info, session)
+    extract_steam_reviews(apps_info, session)
+
+    new_youtube_info_file = extract_youtube_info_1(apps_info, session)
+    youtube_info_1 = read_file(new_youtube_info_file)
+    youtube_info_2 = extract_youtube_info_2(youtube_info_1, session)
