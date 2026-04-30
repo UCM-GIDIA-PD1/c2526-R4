@@ -28,8 +28,6 @@ from src.D_Modelos.Popularidad.popularity_model import PopularityModel
 
 warnings.filterwarnings('ignore')
 
-
-
 class MLPPopularity(PopularityModel):
     def __init__(self, minio: dict):
         super().__init__(
@@ -38,17 +36,21 @@ class MLPPopularity(PopularityModel):
             minio=minio
         )
 
-    def get_image_matrix(self, X):
+    @staticmethod
+    def get_image_matrix(X):
         """Extrae los embeddings puros de 512 dimensiones sin comprimir"""
         return np.vstack(X.iloc[:, 0].values).astype(np.float32)
 
-    def cast_to_float32(self, X):
+    @staticmethod
+    def cast_to_float32(X):
         return X.astype(np.float32)
 
-    def safe_expm1(self, y):
+    @staticmethod
+    def safe_expm1(y):
         return np.expm1(np.clip(y, a_min=0, a_max=16))
 
-    def build_keras_heavyweight(self, hidden_layer_sizes=(256, 128, 64), activation='swish', learning_rate_init=0.001, alpha=0.0001, drop_rate=0.4, image_features=512, meta=None):
+    @staticmethod
+    def build_keras_heavyweight(hidden_layer_sizes=(256, 128, 64), activation='swish', learning_rate_init=0.001, alpha=0.0001, drop_rate=0.4, image_features=512, meta=None):
         keras.utils.set_random_seed(seed)
         
         n_features = meta["n_features_in_"]
@@ -107,7 +109,7 @@ class MLPPopularity(PopularityModel):
 
         if has_image:
             clip_pipe = Pipeline([
-                ('extractor', FunctionTransformer(self.get_image_matrix, validate=False)),
+                ('extractor', FunctionTransformer(MLPPopularity.get_image_matrix, validate=False)),
                 ('scale', MinMaxScaler()) 
             ])
             transformers.append(('clip_raw', clip_pipe, ['v_clip']))
@@ -123,7 +125,7 @@ class MLPPopularity(PopularityModel):
         reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=15, min_lr=1e-6, verbose=0)
 
         keras_mlp = KerasRegressor(
-            model=self.build_keras_heavyweight,
+            model=MLPPopularity.build_keras_heavyweight,
             model__image_features=image_dim,
             model__hidden_layer_sizes=mlp_params.get('hidden_layer_sizes', (256, 128, 64)),
             model__activation=mlp_params.get('activation', 'swish'),
@@ -140,11 +142,11 @@ class MLPPopularity(PopularityModel):
 
         pipeline = Pipeline([
             ('prep', preprocessor),
-            ('cast', FunctionTransformer(self.cast_to_float32)),
+            ('cast', FunctionTransformer(MLPPopularity.cast_to_float32)),
             ('mlp', keras_mlp)
         ])
 
-        return TransformedTargetRegressor(regressor=pipeline, func=np.log1p, inverse_func=self.safe_expm1)
+        return TransformedTargetRegressor(regressor=pipeline, func=np.log1p, inverse_func=MLPPopularity.safe_expm1)
 
     def _optimize_hyperparameters(self, data_splits, config):
         X_train = data_splits["X_train"]
