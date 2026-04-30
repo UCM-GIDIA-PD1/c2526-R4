@@ -23,8 +23,9 @@ from app.transformation.prices import transform_for_prices
 from app.transformation.popularity import transform_for_popularity
 from app.transformation.reviews import clean_text, to_dataframe
 from src.D_Modelos.Popularidad.xgboost_model import XGBoostPopularity
-from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_xgboost_log_file
+from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_xgboost_log_file, reviews_logistic_regression_optuna_file
 from src.utils.files import read_file
+from src.D_Modelos.Reviews.logistic_regression import predict_logistic_regression
 
 PRICE_ORDER = [
     'Entre 0.01€ y 4.99€', 
@@ -99,7 +100,8 @@ async def lifespan(app: FastAPI):
     app.state.model_popularity = read_file(popularidad_xgboost_log_file, minio)
     print("Cargando modelo de precios")
     app.state.model_price = read_file(precios_knncompleteclusters_file, minio)
-    # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
+    print("Cargando modelo de reviews(Simple)")
+    app.state.model_reviews = read_file(reviews_logistic_regression_optuna_file, minio)
 
     # Cargar los datos históricos de developers y publishers
     print("Cargando datos históricos de juegos")
@@ -422,10 +424,14 @@ def predict_reviews(req: PredictionRequest):
 @app.post("/api/predict/reviews", response_model=ReviewsValueResponse)
 def predict_review_value(req : PredictionReviewsRequest):
     text = clean_text(req.review)
-    
-    #TODO llamar al modelo y predecir
-    
-    return ReviewsValueResponse( 'LUCAS' == 'Gorufo')
+    row = pd.DataFrame(
+        {
+            'is_positive' : 'dummy',
+            'text' : text
+        })
+
+    prediction = predict_logistic_regression(app.state.model_reviews, row, None )
+    return ReviewsValueResponse( value=int(prediction[0]))
 
 # endregionlamar al modelo y predecir
     
