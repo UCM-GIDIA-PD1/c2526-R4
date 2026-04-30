@@ -5,6 +5,7 @@ Se encarga de trabajar con los archivos de configuración y tiene variables con 
 from os import environ
 from pathlib import Path
 from dotenv import load_dotenv
+from sympy import python
 
 def get_appid_range(length):
     """Lee el inicio y fin de una sesión de scrapping desde un archivo de texto
@@ -203,8 +204,8 @@ steam_games_parquet_file_prices = processed_data_path() / "games_info_prices.par
 yt_stats_parquet_file = processed_data_path() / "yt_stats.parquet"
 
 # Script D1
-steam_reviews_top100_file = raw_data_path() / "rest_games_total_reviews.json.gz"
-steam_reviews_rest_file = raw_data_path() / "top_100_games_total_reviews.json.gz"
+steam_reviews_top100_file = raw_data_path() / "top_100_games_total_reviews.json.gz"
+steam_reviews_rest_file = raw_data_path() / "rest_games_total_reviews.json.gz"
 
 # Script D2
 steam_reviews_parquet_file = processed_data_path() / "steam_reviews_processed.parquet"
@@ -246,6 +247,9 @@ reviews_logistic_regression_optuna_file = models_reviews_path() / "logistic_regr
 reviews_logistic_regression_gridsearch_file = models_reviews_path() / "logistic_regression_gridsearch.pkl"
 reviews_naive_bayes_cv_file = models_reviews_path() / "naive_bayes_cv.pkl"
 reviews_naive_bayes_tfidf_file = models_reviews_path() / "naive_bayes_tfidf.pkl"
+reviews_fastopic_file = models_reviews_path() / "fastopic.zip"
+reviews_en_core_web_sm = models_path() / "en_core_web_sm/en_core_web_sm-3.8.0" # deberíamos subir el modelo a MinIO
+                                                                               # ejecutar "python -m spacy download en_core_web_sm --target ./models" para descargarlo en models
 #endregion
 # region ------ PATHS A DATOS PARA APP  ------ #
 GAME_FETCH_DATA_PATH =  processed_data_path() / "games_info_fetch.parquet"

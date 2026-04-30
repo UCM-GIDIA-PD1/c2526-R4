@@ -16,14 +16,21 @@ from pydantic import BaseModel
 from joblib import load
 import random
 import pandas as pd
+import nltk
 
 from app.extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
 from app.extraction.youtube import get_video_data
 from app.transformation.prices import transform_for_prices
 from app.transformation.popularity import transform_for_popularity
 from app.transformation.reviews import clean_text, to_dataframe
-from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_xgboost_log_file
+from src.D_Modelos.Popularidad.xgboost_model import XGBoostPopularity
+from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_xgboost_log_file, reviews_logistic_regression_optuna_file
 from src.utils.files import read_file
+from src.D_Modelos.Reviews.logistic_regression import predict_logistic_regression
+
+# Dependencias para limpiar texto
+nltk.download('stopwords')
+nltk.download('wordnet')
 
 PRICE_ORDER = [
     'Entre 0.01€ y 4.99€', 
@@ -92,20 +99,22 @@ class GameInfo(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    minio = {"minio_write": False, "minio_read": True}
     # Cargar modelos 
     print("Cargando modelo de popularidad")
-    app.state.model_popularity = read_file(popularidad_xgboost_log_file)
+    app.state.model_popularity = read_file(popularidad_xgboost_log_file, minio)
     print("Cargando modelo de precios")
-    app.state.model_price = read_file(precios_knncompleteclusters_file)
-    # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
+    app.state.model_price = read_file(precios_knncompleteclusters_file, minio)
+    print("Cargando modelo de reviews(Simple)")
+    app.state.model_reviews = read_file(reviews_logistic_regression_optuna_file, minio)
 
     # Cargar los datos históricos de developers y publishers
     print("Cargando datos históricos de juegos")
-    app.state.historic_data = read_file(HISTORIC_GAMES_DATA_PATH)
+    app.state.historic_data = read_file(HISTORIC_GAMES_DATA_PATH, minio)
 
     # Cargar catálogo de juegos desde MinIO
     print("Cargando lista de juegos")
-    app.state.games_df = read_file(GAME_FETCH_DATA_PATH)
+    app.state.games_df = read_file(GAME_FETCH_DATA_PATH, minio)
 
     print("SteamPredictor API iniciada")
     yield
@@ -173,7 +182,7 @@ def index(request: Request):
 # --------------------------------------------------------------------------
 
 @app.get("/api/search")
-def search_games(q: str = "", page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", min_price: float = 0.0, max_price: float = -1.0):
+def search_games(q: str = "", page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", prices: str = ""):
     """Buscar juegos por nombre, género y rango de precio."""
     try:
         offset = (page - 1) * limit
@@ -188,21 +197,52 @@ def search_games(q: str = "", page: int = 1, limit: int = 40, sort: str = "desc"
             
         # Filtrado por género
         if genre and genre != "all":
-            # Asumimos que 'genres' es una lista or string que contiene el género
-            # En el dataframe suele venir como string representativo de lista o lista real
+            selected_genres = [g.strip().lower() for g in genre.split(",")]
             def has_genre(row_genres):
                 if isinstance(row_genres, list):
-                    return genre in row_genres
+                    rg_lower = [g.lower() for g in row_genres]
+                    return any(g in rg_lower for g in selected_genres)
                 if isinstance(row_genres, str):
-                    return genre.lower() in row_genres.lower()
+                    rg_lower = row_genres.lower()
+                    return any(g in rg_lower for g in selected_genres)
                 return False
             df = df[df["genres"].apply(has_genre)]
+        else:
+            # Excluir contenido sexual y desnudez por defecto
+            excluded_genres = ["sexual content", "nudity"]
+            def has_excluded(row_genres):
+                if isinstance(row_genres, list):
+                    rg_lower = [g.lower() for g in row_genres]
+                    return any(g in rg_lower for g in excluded_genres)
+                if isinstance(row_genres, str):
+                    rg_lower = row_genres.lower()
+                    return any(g in rg_lower for g in excluded_genres)
+                return False
+            df = df[~df["genres"].apply(has_excluded)]
             
         # Filtrado por precio
-        if max_price >= 0:
-            df = df[(df["price_overview"] >= min_price) & (df["price_overview"] <= max_price)]
-        elif min_price > 0:
-            df = df[df["price_overview"] >= min_price]
+        if prices and prices != "all":
+            import operator
+            from functools import reduce
+            price_ranges = []
+            for p_range in prices.split(","):
+                try:
+                    p_min, p_max = map(float, p_range.split("_"))
+                    price_ranges.append((p_min, p_max))
+                except ValueError:
+                    continue
+            
+            if price_ranges:
+                price_masks = []
+                for p_min, p_max in price_ranges:
+                    if p_max >= 0:
+                        mask = (df["price_overview"] >= p_min) & (df["price_overview"] <= p_max)
+                    else:
+                        mask = df["price_overview"] >= p_min
+                    price_masks.append(mask)
+                
+                final_mask = reduce(operator.or_, price_masks)
+                df = df[final_mask]
         
         # Ordenación
         if sort == "asc":
@@ -212,7 +252,6 @@ def search_games(q: str = "", page: int = 1, limit: int = 40, sort: str = "desc"
     except Exception as e:
         print(f"Error en /api/search: {e}")
         return {"games": [], "has_more": False}
-
 
 @app.get("/api/game/{appid}")
 def get_game(appid: int):
@@ -263,9 +302,9 @@ def get_game(appid: int):
 
 
 @app.get("/api/trending")
-def get_trending(page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", min_price: float = 0.0, max_price: float = -1.0):
+def get_trending(page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", prices: str = ""):
     """Todos los juegos del catálogo con filtros."""
-    return search_games(q="", page=page, limit=limit, sort=sort, genre=genre, min_price=min_price, max_price=max_price)
+    return search_games(q="", page=page, limit=limit, sort=sort, genre=genre, prices=prices)
 
 @app.get("/api/filter-options")
 def get_filter_options():
@@ -330,13 +369,21 @@ def predict_popularidad(req: PredictionRequest):
     print(yt_data)
 
     row = transform_for_popularity(data, appid, app.state.historic_data, v_clip, brillo,data['appreviewshistogram'], yt_data)
-    print(row)
-    print(row.columns)
-
-    prediction = app.state.model_popularity.predict(row)
+    
+    # Instanciamos el modelo para usar su lógica de preprocesamiento
+    dummy_model = XGBoostPopularity(run_name="", model_path="", minio={"minio_write": False, "minio_read": False})
+    config = {"avoid_multicol": False, "use_log": True}
+    df_prep = dummy_model._preprocess_data(row, config)
+    if "recomendaciones_totales" in df_prep.columns:
+        df_prep = df_prep.drop(columns=["recomendaciones_totales"])
+    
+    # Extraemos el modelo del diccionario
+    model = app.state.model_popularity.get('model') if isinstance(app.state.model_popularity, dict) else app.state.model_popularity
+    prediction = model.predict(df_prep)
     print('Prediction',prediction)
 
-    return PopularityResponse(reviews=prediction)
+    reviews_pred = int(round(float(prediction[0])))
+    return PopularityResponse(reviews=reviews_pred)
 
 
 @app.post("/api/predict/precio", response_model=PriceResponse)
@@ -382,9 +429,13 @@ def predict_reviews(req: PredictionRequest):
 @app.post("/api/predict/reviews", response_model=ReviewsValueResponse)
 def predict_review_value(req : PredictionReviewsRequest):
     text = clean_text(req.review)
-    
-    #TODO llamar al modelo y predecir
-    
-    return ReviewsValueResponse( 'LUCAS' == 'Gorufo')
+    row = pd.DataFrame(
+        {
+            'is_positive' : 'dummy',
+            'text' : text
+        })
+
+    prediction = predict_logistic_regression(app.state.model_reviews, row, None )
+    return ReviewsValueResponse( value=int(prediction[0]))
 
 # endregion

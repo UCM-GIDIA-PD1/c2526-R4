@@ -33,8 +33,7 @@ let isLoading = false;
 let hasMore = true;
 let currentSort = 'desc';
 let currentGenre = 'all';
-let currentMinPrice = 0;
-let currentMaxPrice = -1;
+let currentPrices = 'all';
 let lastFeaturedAppId = null;
 
 // ============================================================
@@ -260,17 +259,68 @@ async function initFilters(wrapper, input) {
                 if (!opt) return;
 
                 if (dropdown === genreDropdown) {
-                    currentGenre = opt.dataset.val;
-                    sideGenre.title = currentGenre === 'all' ? 'Filtrar por género' : `Géneros: ${currentGenre}`;
-                } else {
-                    currentMinPrice = parseFloat(opt.dataset.min);
-                    currentMaxPrice = parseFloat(opt.dataset.max);
-                    const label = opt.textContent;
-                    sidePrice.title = (currentMinPrice === 0 && currentMaxPrice === -1) ? 'Filtrar por precio' : `Precio: ${label}`;
-                }
+                    const val = opt.dataset.val;
+                    let genresList = (currentGenre === 'all' || currentGenre === '') ? [] : currentGenre.split(',');
 
-                dropdown.querySelectorAll('.filter-option').forEach(o => o.classList.remove('active'));
-                opt.classList.add('active');
+                    if (val === 'all') {
+                        genresList = [];
+                        dropdown.querySelectorAll('.filter-option').forEach(o => o.classList.remove('active'));
+                        opt.classList.add('active');
+                    } else {
+                        // Toggle selection
+                        if (genresList.includes(val)) {
+                            genresList = genresList.filter(g => g !== val);
+                            opt.classList.remove('active');
+                        } else {
+                            genresList.push(val);
+                            opt.classList.add('active');
+                        }
+                        
+                        dropdown.querySelector('.filter-option[data-val="all"]').classList.remove('active');
+                        
+                        if (genresList.length === 0) {
+                            dropdown.querySelector('.filter-option[data-val="all"]').classList.add('active');
+                        }
+                    }
+
+                    currentGenre = genresList.length === 0 ? 'all' : genresList.join(',');
+                    sideGenre.title = currentGenre === 'all' ? 'Filtrar por género' : `Géneros: ${genresList.join(', ')}`;
+                } else {
+                    const min = opt.dataset.min;
+                    const max = opt.dataset.max;
+                    const val = `${min}_${max}`;
+
+                    let pricesList = (currentPrices === 'all' || currentPrices === '') ? [] : currentPrices.split(',');
+
+                    if (min == 0 && max == -1) {
+                        pricesList = [];
+                        dropdown.querySelectorAll('.filter-option').forEach(o => o.classList.remove('active'));
+                        opt.classList.add('active');
+                    } else {
+                        if (pricesList.includes(val)) {
+                            pricesList = pricesList.filter(p => p !== val);
+                            opt.classList.remove('active');
+                        } else {
+                            pricesList.push(val);
+                            opt.classList.add('active');
+                        }
+
+                        dropdown.querySelector('.filter-option[data-min="0"][data-max="-1"]').classList.remove('active');
+
+                        if (pricesList.length === 0) {
+                            dropdown.querySelector('.filter-option[data-min="0"][data-max="-1"]').classList.add('active');
+                        }
+                    }
+
+                    currentPrices = pricesList.length === 0 ? 'all' : pricesList.join(',');
+                    
+                    if (pricesList.length === 0) {
+                        sidePrice.title = 'Filtrar por precio';
+                    } else {
+                        const activeLabels = Array.from(dropdown.querySelectorAll('.filter-option.active')).map(o => o.textContent);
+                        sidePrice.title = `Precio: ${activeLabels.join(', ')}`;
+                    }
+                }
 
                 triggerSearchGlow();
                 currentPage = 1;
@@ -359,7 +409,7 @@ async function fetchGames(reset = false) {
         sentinel.style.display = 'flex';
     }
 
-    const url = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=40&sort=${currentSort}&genre=${currentGenre}&min_price=${currentMinPrice}&max_price=${currentMaxPrice}`;
+    const url = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=40&sort=${currentSort}&genre=${encodeURIComponent(currentGenre)}&prices=${encodeURIComponent(currentPrices)}`;
 
     try {
         const res = await fetch(url);
@@ -586,16 +636,12 @@ async function navigateToGame(appid) {
             <div class="predictions-row-top">
                 <div class="vision-glass pred-card">
                     <h3 class="pred-title">Predicción de Popularidad</h3>
-                    <div class="pred-value">${formatNumber(Math.floor(Math.random() * 50000) + 10000)} Jugadores</div>
-                    <div class="confidence-wrapper">
-                        <span class="conf-label">Confianza: 92%</span>
-                        <div class="conf-bar"><div class="conf-fill" style="width: 92%;"></div></div>
-                    </div>
+                    <div class="pred-value" id="pred-popularity-value">Cargando...</div>
                 </div>
                 <div class="vision-glass pred-card">
                     <h3 class="pred-title">Estimación de Precio</h3>
                     <div class="pred-value" id="pred-price-value">Cargando...</div>
-                    <div class="market-label">Estimación realizada con KNN y clustering</div>
+                    <div class="market-label" id="pred-price-conclusion">Calculando...</div>
                 </div>
             </div>
             
@@ -609,12 +655,23 @@ async function navigateToGame(appid) {
     `;
 
     // Cargar predicción real de precio
-    loadRealPricePrediction(game.appid);
+    loadRealPricePrediction(game.appid, parsedGenres, game.price_overview);
+    // Cargar predicción real de popularidad
+    loadRealPopularityPrediction(game.appid);
 }
 
-async function loadRealPricePrediction(appid) {
+async function loadRealPricePrediction(appid, genres, currentPrice) {
     const priceValue = document.getElementById('pred-price-value');
+    const conclusion = document.getElementById('pred-price-conclusion');
     if (!priceValue) return;
+
+    // Si es Free to Play, ignoramos el modelo y ponemos Gratis directamente
+    const isFreeToPlay = genres.some(g => g.toLowerCase().includes('free to play'));
+    if (isFreeToPlay) {
+        priceValue.textContent = 'Gratis';
+        if (conclusion) conclusion.textContent = 'Precio justo';
+        return;
+    }
     
     try {
         const res = await fetch(`/api/predict/precio`, {
@@ -624,8 +681,67 @@ async function loadRealPricePrediction(appid) {
         });
         const data = await res.json();
         priceValue.textContent = data.price;
+
+        if (conclusion) {
+            const PRICE_ORDER = [
+                'Entre 0.01€ y 4.99€', 
+                'Entre 5.00€ y 9.99€', 
+                'Entre 10.00€ y 14.99€', 
+                'Entre 15.00€ y 19.99€', 
+                'Entre 20.00€ y 29.99€', 
+                'Entre 30.00€ y 39.99€', 
+                'Más de 40€'
+            ];
+            const predictedIndex = PRICE_ORDER.indexOf(data.price);
+            
+            let realIndex = -1;
+            const price = parseFloat(currentPrice);
+            if (!isNaN(price)) {
+                if (price <= 4.99) realIndex = 0;
+                else if (price <= 9.99) realIndex = 1;
+                else if (price <= 14.99) realIndex = 2;
+                else if (price <= 19.99) realIndex = 3;
+                else if (price <= 29.99) realIndex = 4;
+                else if (price <= 39.99) realIndex = 5;
+                else realIndex = 6;
+            }
+            
+            if (predictedIndex !== -1 && realIndex !== -1) {
+                const diff = realIndex - predictedIndex;
+                let text = '';
+                if (diff === 0) text = 'Precio justo';
+                else if (diff === 1) text = 'Precio elevado';
+                else if (diff === 2) text = 'Precio desorbitado';
+                else if (diff >= 3) text = 'No tiene sentido comprar este juego a este precio';
+                else if (diff === -1) text = 'Precio asequible';
+                else if (diff === -2) text = 'Precio bajo';
+                else if (diff <= -3) text = 'Este juego es una ganga';
+                
+                conclusion.textContent = text;
+            } else {
+                conclusion.style.display = 'none';
+            }
+        }
     } catch (e) {
         priceValue.textContent = 'Error';
+        if (conclusion) conclusion.style.display = 'none';
+    }
+}
+
+async function loadRealPopularityPrediction(appid) {
+    const popValue = document.getElementById('pred-popularity-value');
+    if (!popValue) return;
+    
+    try {
+        const res = await fetch(`/api/predict/popularidad`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appid: appid }),
+        });
+        const data = await res.json();
+        popValue.textContent = formatNumber(data.reviews) + ' Reseñas';
+    } catch (e) {
+        popValue.textContent = 'Error';
     }
 }
 
@@ -635,6 +751,23 @@ async function requestPrediction(type, appid) {
     resultsArea.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
     resultsArea.scrollIntoView({ behavior: 'smooth' });
+
+    // Regla para juegos Free to Play
+    if (type === 'precio' && currentGame) {
+        let genres = [];
+        if (typeof currentGame.genres === 'string') {
+            genres = currentGame.genres.split(',').map(g => g.trim().toLowerCase());
+        } else if (Array.isArray(currentGame.genres)) {
+            genres = currentGame.genres.map(g => g.trim().toLowerCase());
+        }
+        
+        if (genres.some(g => g.includes('free to play'))) {
+            const prediction = { value: 'Gratis', confidence: 1.0, details: {} };
+            currentPrediction = prediction;
+            showPredictionView(type, prediction);
+            return;
+        }
+    }
 
     const res = await fetch(`/api/predict/${type}`, {
         method: 'POST',
@@ -658,6 +791,21 @@ function showPredictionView(type, prediction) {
 async function loadPrediction(type, appid) {
     const card = document.getElementById(`card-${type}`);
 
+    // Si es predicción de precio y el juego es Free to Play
+    if (type === 'precio' && currentGame) {
+        let genres = [];
+        if (typeof currentGame.genres === 'string') {
+            genres = currentGame.genres.split(',').map(g => g.trim().toLowerCase());
+        } else if (Array.isArray(currentGame.genres)) {
+            genres = currentGame.genres.map(g => g.trim().toLowerCase());
+        }
+        
+        if (genres.some(g => g.includes('free to play'))) {
+            renderPredictionCard(card, type, { value: 'Gratis', confidence: 1.0 });
+            return;
+        }
+    }
+
     const res = await fetch(`/api/predict/${type}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -678,7 +826,7 @@ function renderPredictionCard(card, type, prediction) {
         },
         precio: {
             title: 'Precio',
-            formatValue: (v) => v.toFixed(2) + '\u20ac',
+            formatValue: (v) => typeof v === 'number' ? v.toFixed(2) + '\u20ac' : v,
             label: 'Precio predicho',
             color: '#fbbf24',
         },
@@ -735,7 +883,7 @@ function navigateToPredictionDetail(type, prediction) {
             unit: 'Jugadores estimados', colorClass: 'popularidad',
         },
         precio: {
-            title: 'Precio', formatValue: (v) => v.toFixed(2) + '€',
+            title: 'Precio', formatValue: (v) => typeof v === 'number' ? v.toFixed(2) + '€' : v,
             unit: 'Precio predicho', colorClass: 'precio',
         },
         reviews: {
@@ -1159,6 +1307,41 @@ const updateCanvas = () => {
 
 window.addEventListener('scroll', updateCanvas);
 
+let topIdleTimer = null;
+let scrollIndicatorVisible = false;
+let showScrollY = 0;
+
+const refreshScrollIndicator = () => {
+    if (topIdleTimer) clearTimeout(topIdleTimer);
+    
+    const indicator = document.getElementById('scroll-indicator');
+    if (!indicator) return;
+
+    // If we are at the top, start the 1s idle timer
+    if (window.scrollY < 10) {
+        if (!isAutoScrolling && !scrollIndicatorVisible) {
+            topIdleTimer = setTimeout(() => {
+                if (window.scrollY < 10 && !isAutoScrolling) {
+                    indicator.classList.add('visible');
+                    scrollIndicatorVisible = true;
+                }
+            }, 1000);
+        }
+    } else {
+        // If we are far from the top, hide it if we move away from the point it was shown
+        if (scrollIndicatorVisible && Math.abs(window.scrollY - showScrollY) > 20) {
+            indicator.classList.remove('visible');
+            scrollIndicatorVisible = false;
+        }
+    }
+};
+
+window.addEventListener('scroll', refreshScrollIndicator);
+window.addEventListener('wheel', refreshScrollIndicator);
+window.addEventListener('touchstart', refreshScrollIndicator);
+window.addEventListener('mousedown', refreshScrollIndicator);
+window.addEventListener('keydown', refreshScrollIndicator);
+
 let isAutoScrolling = true;
 const pixelsPerFrame = 20;
 const cinematicAutoPlay = () => {
@@ -1177,17 +1360,28 @@ const cinematicAutoPlay = () => {
 
     if (window.scrollY >= maxScroll) {
         isAutoScrolling = false;
+        showScrollIndicator();
         return;
     }
 
     requestAnimationFrame(cinematicAutoPlay);
 };
 
+function showScrollIndicator() {
+    const indicator = document.getElementById('scroll-indicator');
+    if (indicator) {
+        indicator.classList.add('visible');
+        scrollIndicatorVisible = true;
+        showScrollY = window.scrollY;
+    }
+}
+
 window.addEventListener('load', () => {
     // Reset scroll position on reload to avoid stuck state
     window.scrollTo(0, 0);
     // Wait a tick for layout to settle, then start
     setTimeout(() => {
+        refreshScrollIndicator();
         if (images[0] && images[0].complete) {
             requestAnimationFrame(cinematicAutoPlay);
         } else {
@@ -1199,7 +1393,15 @@ window.addEventListener('load', () => {
 });
 
 const stopAutoScroll = () => {
-    isAutoScrolling = false;
+    if (isAutoScrolling) {
+        isAutoScrolling = false;
+        // Check if we show it immediately or wait for idle
+        if (window.scrollY < 10) {
+            refreshScrollIndicator(); 
+        } else {
+            showScrollIndicator();
+        }
+    }
 };
 
 window.addEventListener('wheel', stopAutoScroll);

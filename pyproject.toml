@@ -84,12 +84,12 @@ members = ["app"]
 
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cpu", marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
-  { index = "pytorch-cu118", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+  { index = "pytorch-cpu", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu118", marker = "sys_platform == 'win32'" },
 ]
 torchvision = [
-  { index = "pytorch-cpu", marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
-  { index = "pytorch-cu118", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+  { index = "pytorch-cpu", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu118", marker = "sys_platform == 'win32'" },
 ]
 
 [tool.uv]

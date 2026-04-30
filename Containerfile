@@ -10,10 +10,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /steam_predictor
 
 # Copiar todo el código y ficheros de dependencias
-COPY pyproject.toml README.md uv.lock ./
+COPY pyproject.toml README.md uv.lock .python-version ./
 COPY app/pyproject.toml app/
+RUN uv sync --frozen --no-cache --no-install-project --no-group not_in_container
 COPY . .
-RUN UV_INDEX_PYTORCH_CU118="https://download.pytorch.org/whl/cpu" uv sync --frozen --no-cache --no-group not_in_container
+RUN uv sync --frozen --no-cache --no-group not_in_container
 
 # Establecer puerto
 EXPOSE 8000
