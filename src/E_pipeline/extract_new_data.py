@@ -37,7 +37,6 @@ Ya en general, quitar complejidad innecesaria y un codigo más legible y sencill
 
 from src.A_Extraccion.utils_extraccion.steam_requests import get_appids
 from src.A_Extraccion.B_informacion_juegos import _download_game_data
-from src.utils.config import appidlist_file
 from utils.files import read_file, write_to_file
 from tqdm import tqdm
 from time import sleep, time
@@ -53,6 +52,8 @@ from src.A_Extraccion.C1_informacion_youtube_busquedas import _IP_interval_rotat
 from src.A_Extraccion.utils_extraccion.webscraping import start_tor, renew_tor_ip, new_configured_chromium_page, search_youtube
 from src.A_Extraccion.C2_informacion_youtube_videos import _get_apikey, _request_youtube
 from googleapiclient.discovery import build
+
+from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, steam_reviews_file, banners_file
 # Extraer los nuevos de appids
 
 def extract_new_appids():
@@ -67,12 +68,22 @@ def extract_new_appids():
     write_to_file(new_appids, "new_appid_list.json.gz")
     return new_appids
 
+def extract_new_appids_v2():
+    """
+    Requisitos ((*)sujeto a cambios):
+    - variable de entorno STEAM_API_KEY
+    - * fichero appids_list.json.gz para saber el último appid extraído
+    """
+    get_appids
+    gamesinfo = read_file(gamelist_file)
+    old_appids = set(game.get("id") for game in gamesinfo)
+    new_appids = get_appids(last_appid=0)
+    new_appids = [appid for appid in new_appids if appid not in old_appids]
+    write_to_file(new_appids, "new_appid_list.json.gz")
+    return new_appids
+
 # Extraer la información de Steam de los nuevos appids
 def extract_steam_info(new_appids, session):
-    # TODO: esta función es temporal, probablemente haya que modificarla para que se integre mejor con el pipeline
-    # Manejo de sesiones
-    # Filtrado de datos
-    # Manejo de errores
     
     with tqdm(new_appids, unit = "appids") as pbar:
         for appid in pbar:
@@ -230,6 +241,7 @@ def extract_youtube_info_2(apps_info):
 
 # Integrar los nuevos datos con los anteriores
 def integrate_new_data():
+
     pass
 
 if __name__ == "__main__":
