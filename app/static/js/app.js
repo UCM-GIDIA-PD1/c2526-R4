@@ -637,14 +637,11 @@ async function navigateToGame(appid) {
                 <div class="vision-glass pred-card">
                     <h3 class="pred-title">Predicción de Popularidad</h3>
                     <div class="pred-value" id="pred-popularity-value">Cargando...</div>
-                    <div class="confidence-wrapper">
-                        <span class="conf-label">Estimación realizada con XGBoost</span>
-                    </div>
                 </div>
                 <div class="vision-glass pred-card">
                     <h3 class="pred-title">Estimación de Precio</h3>
                     <div class="pred-value" id="pred-price-value">Cargando...</div>
-                    <div class="market-label">Estimación realizada con KNN y clustering</div>
+                    <div class="market-label" id="pred-price-conclusion">Calculando...</div>
                 </div>
             </div>
             
@@ -658,19 +655,21 @@ async function navigateToGame(appid) {
     `;
 
     // Cargar predicción real de precio
-    loadRealPricePrediction(game.appid, parsedGenres);
+    loadRealPricePrediction(game.appid, parsedGenres, game.price_overview);
     // Cargar predicción real de popularidad
     loadRealPopularityPrediction(game.appid);
 }
 
-async function loadRealPricePrediction(appid, genres) {
+async function loadRealPricePrediction(appid, genres, currentPrice) {
     const priceValue = document.getElementById('pred-price-value');
+    const conclusion = document.getElementById('pred-price-conclusion');
     if (!priceValue) return;
 
     // Si es Free to Play, ignoramos el modelo y ponemos Gratis directamente
     const isFreeToPlay = genres.some(g => g.toLowerCase().includes('free to play'));
     if (isFreeToPlay) {
         priceValue.textContent = 'Gratis';
+        if (conclusion) conclusion.textContent = 'Precio justo';
         return;
     }
     
@@ -682,8 +681,50 @@ async function loadRealPricePrediction(appid, genres) {
         });
         const data = await res.json();
         priceValue.textContent = data.price;
+
+        if (conclusion) {
+            const PRICE_ORDER = [
+                'Entre 0.01€ y 4.99€', 
+                'Entre 5.00€ y 9.99€', 
+                'Entre 10.00€ y 14.99€', 
+                'Entre 15.00€ y 19.99€', 
+                'Entre 20.00€ y 29.99€', 
+                'Entre 30.00€ y 39.99€', 
+                'Más de 40€'
+            ];
+            const predictedIndex = PRICE_ORDER.indexOf(data.price);
+            
+            let realIndex = -1;
+            const price = parseFloat(currentPrice);
+            if (!isNaN(price)) {
+                if (price <= 4.99) realIndex = 0;
+                else if (price <= 9.99) realIndex = 1;
+                else if (price <= 14.99) realIndex = 2;
+                else if (price <= 19.99) realIndex = 3;
+                else if (price <= 29.99) realIndex = 4;
+                else if (price <= 39.99) realIndex = 5;
+                else realIndex = 6;
+            }
+            
+            if (predictedIndex !== -1 && realIndex !== -1) {
+                const diff = realIndex - predictedIndex;
+                let text = '';
+                if (diff === 0) text = 'Precio justo';
+                else if (diff === 1) text = 'Precio elevado';
+                else if (diff === 2) text = 'Precio desorbitado';
+                else if (diff >= 3) text = 'No tiene sentido comprar este juego a este precio';
+                else if (diff === -1) text = 'Precio asequible';
+                else if (diff === -2) text = 'Precio bajo';
+                else if (diff <= -3) text = 'Este juego es una ganga';
+                
+                conclusion.textContent = text;
+            } else {
+                conclusion.style.display = 'none';
+            }
+        }
     } catch (e) {
         priceValue.textContent = 'Error';
+        if (conclusion) conclusion.style.display = 'none';
     }
 }
 
