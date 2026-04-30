@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from joblib import load
 import random
 import pandas as pd
+import nltk
 
 from app.extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
 from app.extraction.youtube import get_video_data
@@ -26,6 +27,10 @@ from src.D_Modelos.Popularidad.xgboost_model import XGBoostPopularity
 from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_xgboost_log_file, reviews_logistic_regression_optuna_file
 from src.utils.files import read_file
 from src.D_Modelos.Reviews.logistic_regression import predict_logistic_regression
+
+# Dependencias para limpiar texto
+nltk.download('stopwords')
+nltk.download('wordnet')
 
 PRICE_ORDER = [
     'Entre 0.01€ y 4.99€', 
