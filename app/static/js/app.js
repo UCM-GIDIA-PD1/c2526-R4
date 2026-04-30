@@ -1307,6 +1307,41 @@ const updateCanvas = () => {
 
 window.addEventListener('scroll', updateCanvas);
 
+let topIdleTimer = null;
+let scrollIndicatorVisible = false;
+let showScrollY = 0;
+
+const refreshScrollIndicator = () => {
+    if (topIdleTimer) clearTimeout(topIdleTimer);
+    
+    const indicator = document.getElementById('scroll-indicator');
+    if (!indicator) return;
+
+    // If we are at the top, start the 1s idle timer
+    if (window.scrollY < 10) {
+        if (!isAutoScrolling && !scrollIndicatorVisible) {
+            topIdleTimer = setTimeout(() => {
+                if (window.scrollY < 10 && !isAutoScrolling) {
+                    indicator.classList.add('visible');
+                    scrollIndicatorVisible = true;
+                }
+            }, 1000);
+        }
+    } else {
+        // If we are far from the top, hide it if we move away from the point it was shown
+        if (scrollIndicatorVisible && Math.abs(window.scrollY - showScrollY) > 20) {
+            indicator.classList.remove('visible');
+            scrollIndicatorVisible = false;
+        }
+    }
+};
+
+window.addEventListener('scroll', refreshScrollIndicator);
+window.addEventListener('wheel', refreshScrollIndicator);
+window.addEventListener('touchstart', refreshScrollIndicator);
+window.addEventListener('mousedown', refreshScrollIndicator);
+window.addEventListener('keydown', refreshScrollIndicator);
+
 let isAutoScrolling = true;
 const pixelsPerFrame = 20;
 const cinematicAutoPlay = () => {
@@ -1325,17 +1360,28 @@ const cinematicAutoPlay = () => {
 
     if (window.scrollY >= maxScroll) {
         isAutoScrolling = false;
+        showScrollIndicator();
         return;
     }
 
     requestAnimationFrame(cinematicAutoPlay);
 };
 
+function showScrollIndicator() {
+    const indicator = document.getElementById('scroll-indicator');
+    if (indicator) {
+        indicator.classList.add('visible');
+        scrollIndicatorVisible = true;
+        showScrollY = window.scrollY;
+    }
+}
+
 window.addEventListener('load', () => {
     // Reset scroll position on reload to avoid stuck state
     window.scrollTo(0, 0);
     // Wait a tick for layout to settle, then start
     setTimeout(() => {
+        refreshScrollIndicator();
         if (images[0] && images[0].complete) {
             requestAnimationFrame(cinematicAutoPlay);
         } else {
@@ -1347,7 +1393,15 @@ window.addEventListener('load', () => {
 });
 
 const stopAutoScroll = () => {
-    isAutoScrolling = false;
+    if (isAutoScrolling) {
+        isAutoScrolling = false;
+        // Check if we show it immediately or wait for idle
+        if (window.scrollY < 10) {
+            refreshScrollIndicator(); 
+        } else {
+            showScrollIndicator();
+        }
+    }
 };
 
 window.addEventListener('wheel', stopAutoScroll);

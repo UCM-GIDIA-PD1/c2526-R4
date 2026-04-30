@@ -427,4 +427,8 @@ def predict_review_value(req : PredictionReviewsRequest):
     
     return ReviewsValueResponse( 'LUCAS' == 'Gorufo')
 
+# endregionlamar al modelo y predecir
+    
+    return ReviewsValueResponse( 'LUCAS' == 'Gorufo')
+
 # endregion
