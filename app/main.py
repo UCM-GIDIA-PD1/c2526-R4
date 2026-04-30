@@ -93,20 +93,21 @@ class GameInfo(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    minio = {"minio_write": False, "minio_read": True}
     # Cargar modelos 
     print("Cargando modelo de popularidad")
-    app.state.model_popularity = read_file(popularidad_xgboost_log_file)
+    app.state.model_popularity = read_file(popularidad_xgboost_log_file, minio)
     print("Cargando modelo de precios")
-    app.state.model_price = read_file(precios_knncompleteclusters_file)
+    app.state.model_price = read_file(precios_knncompleteclusters_file, minio)
     # app.state.model_reviews = load(config.project_root() / 'models/reviews/logistic_regression_optuna.pkl')
 
     # Cargar los datos históricos de developers y publishers
     print("Cargando datos históricos de juegos")
-    app.state.historic_data = read_file(HISTORIC_GAMES_DATA_PATH)
+    app.state.historic_data = read_file(HISTORIC_GAMES_DATA_PATH, minio)
 
     # Cargar catálogo de juegos desde MinIO
     print("Cargando lista de juegos")
-    app.state.games_df = read_file(GAME_FETCH_DATA_PATH)
+    app.state.games_df = read_file(GAME_FETCH_DATA_PATH, minio)
 
     print("SteamPredictor API iniciada")
     yield
