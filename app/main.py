@@ -62,6 +62,14 @@ class PredictionResponse(BaseModel):
     model_used: str
     details: dict
 
+class CustomGameRequest(BaseModel):
+    """Datos de entrada para la predicción de un juego personalizado."""
+    name: str
+    developer: str
+    release_date: str
+    genres: list[str]
+    image: str | None = None
+
 class PopularityResponse(BaseModel):
     """Resultado de la predicción del problema de popularidad
     """
@@ -439,3 +447,33 @@ def predict_review_value(req : PredictionReviewsRequest):
     return ReviewsValueResponse( value=int(prediction[0]))
 
 # endregion
+
+@app.post("/api/predict/custom")
+async def predict_custom_game(req: CustomGameRequest):
+    """
+    Predicción de precio y popularidad para un juego personalizado.
+    Actualmente devuelve datos mock simulando las llamadas a APIs (YouTube, etc.).
+    """
+    import asyncio
+    import random
+    
+    # Simular llamadas a la API de YouTube y procesamiento del modelo
+    print(f"Simulando pipeline de extracción para juego custom: {req.name}")
+    await asyncio.sleep(2)
+    
+    # Generar precio mock (o usar un precio fijo basado en los géneros/desarrollador)
+    is_free_to_play = any("free to play" in g.lower() for g in req.genres)
+    
+    if is_free_to_play:
+        mock_price = "Gratis"
+    else:
+        # Mocking prices between different ranges
+        mock_price = random.choice(PRICE_ORDER)
+        
+    # Generar popularidad mock
+    mock_popularity = random.randint(100, 50000)
+    
+    return {
+        "price": mock_price,
+        "popularity": mock_popularity
+    }

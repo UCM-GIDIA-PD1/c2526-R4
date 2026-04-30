@@ -22,6 +22,10 @@ function setupNavigation() {
     document.getElementById('btn-back-game').addEventListener('click', () => {
         showView('view-game');
     });
+    document.getElementById('btn-back-home-custom').addEventListener('click', () => {
+        showView('view-home');
+        checkAndRestoreBg();
+    });
 }
 
 // ============================================================
@@ -107,7 +111,11 @@ function setupSearch() {
     grid.addEventListener('click', (e) => {
         const card = e.target.closest('.game-card');
         if (card) {
-            navigateToGame(parseInt(card.dataset.appid));
+            if (card.classList.contains('custom-game-card')) {
+                navigateToCustomGame();
+            } else {
+                navigateToGame(parseInt(card.dataset.appid));
+            }
         }
     });
 
@@ -441,6 +449,19 @@ function renderGameGrid(games, reset) {
 
     if (!games.length && !reset) return;
 
+    let customCardHtml = '';
+    // Mostrar la tarjeta especial solo si es un reset y no hay filtros activos
+    if (reset && !currentQuery && currentGenre === 'all' && currentPrices === 'all' && currentSort === 'desc') {
+        customCardHtml = `
+            <div class="game-card custom-game-card">
+                <div class="custom-card-banner">
+                    <span class="custom-card-icon">?</span>
+                </div>
+                <div class="game-card-name">Añadir tu propio juego</div>
+            </div>
+        `;
+    }
+
     const html = games.map(g => `
         <div class="game-card" data-appid="${g.appid}" data-name="${g.name}">
             <img class="game-card-banner" src="${g.banner_url}" alt="${g.name}" loading="lazy">
@@ -448,7 +469,7 @@ function renderGameGrid(games, reset) {
         </div>
     `).join('');
 
-    grid.insertAdjacentHTML('beforeend', html);
+    grid.insertAdjacentHTML('beforeend', customCardHtml + html);
 
     // If exactly one result after a search reset, show its background and enlarge
     if (reset && games.length === 1 && !hasMore && games[0].banner_url) {
@@ -658,6 +679,187 @@ async function navigateToGame(appid) {
     loadRealPricePrediction(game.appid, parsedGenres, game.price_overview);
     // Cargar predicción real de popularidad
     loadRealPopularityPrediction(game.appid);
+}
+
+function navigateToCustomGame() {
+    showView('view-custom-game');
+
+    const container = document.getElementById('custom-game-detail-content');
+    
+    // Obtener géneros actuales del dropdown para usarlos en el select
+    const genreDropdown = document.getElementById('genre-dropdown');
+    let genreOptions = '';
+    if (genreDropdown) {
+        const options = Array.from(genreDropdown.querySelectorAll('.filter-option'));
+        genreOptions = options.filter(o => o.dataset.val !== 'all')
+                              .map(o => `<option value="${o.dataset.val}">${o.textContent}</option>`)
+                              .join('');
+    }
+
+    container.innerHTML = `
+        <form id="custom-game-form">
+            <div class="game-hero-section vision-glass">
+                <div class="hero-left" id="cg-hero-upload" style="cursor: pointer;" title="Haz clic para subir un banner">
+                    <div class="hero-banner console-transition custom-hero-placeholder" id="cg-image-preview-container">
+                        <span class="custom-hero-icon">?</span>
+                    </div>
+                    <input type="file" id="cg-image" accept="image/*" style="display:none;">
+                </div>
+                <div class="hero-right">
+                    <input type="text" id="cg-name" class="hero-name-input" required placeholder="Nombre del Juego" autocomplete="off">
+                    <input type="text" id="cg-dev" class="hero-desc-input" required placeholder="Nombre del Desarrollador" autocomplete="off">
+                </div>
+            </div>
+
+            <div class="custom-form-panel vision-glass">
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label>Fecha de Lanzamiento</label>
+                        <input type="date" id="cg-date" required class="custom-select-style">
+                    </div>
+                    <div class="form-group">
+                        <label>Géneros (Ctrl para varios)</label>
+                        <select id="cg-genres" multiple required size="4" class="custom-select-style">
+                            ${genreOptions}
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn-predict-custom">Predecir Popularidad y Precio</button>
+            </div>
+        </form>
+
+        <div id="cg-predictions-result" class="predictions-grid" style="display: none; margin-top: 2rem;">
+            <div class="predictions-row-top">
+                <div class="vision-glass pred-card">
+                    <h3 class="pred-title">Predicción de Popularidad</h3>
+                    <div class="pred-value" id="cg-pred-popularity-value">...</div>
+                </div>
+                <div class="vision-glass pred-card">
+                    <h3 class="pred-title">Estimación de Precio</h3>
+                    <div class="pred-value" id="cg-pred-price-value">...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="custom-game-review-container vision-glass" style="margin-top: 2rem;">
+            <h3 class="pred-title">Analizador de Reseñas</h3>
+            <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; margin-bottom: 1rem;">Escribe una reseña y el modelo predecirá si es positiva o negativa.</p>
+            <textarea id="cg-review-text" rows="4" placeholder="Escribe tu reseña aquí..." style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 1rem; border-radius: 8px; resize: vertical;"></textarea>
+            <button id="btn-predict-review" class="btn-predict-custom" style="margin-top: 1rem; margin-bottom: 1rem;">Analizar Sentimiento</button>
+            <div id="cg-review-result" style="display: none; font-size: 1.2rem; font-weight: 500; text-align: center; padding: 1rem; border-radius: 8px;"></div>
+        </div>
+    `;
+
+    // Manejar subida de imagen al hacer clic en el hero
+    const heroUpload = document.getElementById('cg-hero-upload');
+    const imageInput = document.getElementById('cg-image');
+    const previewContainer = document.getElementById('cg-image-preview-container');
+    let base64Image = null;
+
+    heroUpload.addEventListener('click', () => {
+        imageInput.click();
+    });
+
+    imageInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                base64Image = e.target.result;
+                previewContainer.innerHTML = `<img src="${base64Image}" style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit;">`;
+                previewContainer.classList.remove('custom-hero-placeholder');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Manejar submit del formulario principal
+    const form = document.getElementById('custom-game-form');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const btn = form.querySelector('.btn-predict-custom');
+        btn.textContent = 'Calculando...';
+        btn.disabled = true;
+
+        const selectedGenres = Array.from(document.getElementById('cg-genres').selectedOptions).map(opt => opt.value);
+
+        const payload = {
+            name: document.getElementById('cg-name').value,
+            developer: document.getElementById('cg-dev').value,
+            release_date: document.getElementById('cg-date').value,
+            genres: selectedGenres,
+            image: base64Image
+        };
+
+        const resultDiv = document.getElementById('cg-predictions-result');
+        resultDiv.style.display = 'block';
+        document.getElementById('cg-pred-popularity-value').innerHTML = '<div class="spinner" style="width:20px;height:20px;margin:auto;"></div>';
+        document.getElementById('cg-pred-price-value').innerHTML = '<div class="spinner" style="width:20px;height:20px;margin:auto;"></div>';
+
+        try {
+            const res = await fetch('/api/predict/custom', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            document.getElementById('cg-pred-popularity-value').textContent = formatNumber(data.popularity) + ' Reseñas';
+            document.getElementById('cg-pred-price-value').textContent = data.price;
+        } catch (err) {
+            console.error(err);
+            document.getElementById('cg-pred-popularity-value').textContent = 'Error';
+            document.getElementById('cg-pred-price-value').textContent = 'Error';
+        } finally {
+            btn.textContent = 'Predecir Popularidad y Precio';
+            btn.disabled = false;
+        }
+    });
+
+    // Manejar predicción de reseña
+    const btnReview = document.getElementById('btn-predict-review');
+    btnReview.addEventListener('click', async () => {
+        const text = document.getElementById('cg-review-text').value.trim();
+        if (!text) return;
+
+        btnReview.textContent = 'Analizando...';
+        btnReview.disabled = true;
+
+        const resultDiv = document.getElementById('cg-review-result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div class="spinner" style="width:20px;height:20px;margin:auto;"></div>';
+        resultDiv.className = '';
+
+        try {
+            const res = await fetch('/api/predict/reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ review: text })
+            });
+            const data = await res.json();
+            
+            // data.value = 1 (positiva) o 0 (negativa)
+            if (data.value === 1) {
+                resultDiv.innerHTML = '✨ Reseña Positiva';
+                resultDiv.style.backgroundColor = 'rgba(46, 204, 113, 0.1)';
+                resultDiv.style.color = '#2ecc71';
+                resultDiv.style.border = '1px solid rgba(46, 204, 113, 0.3)';
+            } else {
+                resultDiv.innerHTML = '🔻 Reseña Negativa';
+                resultDiv.style.backgroundColor = 'rgba(231, 76, 60, 0.1)';
+                resultDiv.style.color = '#e74c3c';
+                resultDiv.style.border = '1px solid rgba(231, 76, 60, 0.3)';
+            }
+        } catch (err) {
+            console.error(err);
+            resultDiv.innerHTML = 'Error al analizar la reseña';
+            resultDiv.style.color = 'white';
+        } finally {
+            btnReview.textContent = 'Analizar Sentimiento';
+            btnReview.disabled = false;
+        }
+    });
 }
 
 async function loadRealPricePrediction(appid, genres, currentPrice) {

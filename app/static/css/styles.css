@@ -1894,3 +1894,197 @@ body {
         flex-direction: column;
     }
 }
+
+/* ============================================================
+   CUSTOM GAME ADDITION
+   ============================================================ */
+
+.custom-game-card {
+    /* Mantiene las mismas dimensiones e interacciones que game-card pero no la textura por defecto */
+}
+
+.custom-card-banner {
+    width: 100%;
+    aspect-ratio: 460 / 215;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-md);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.4s ease;
+}
+
+.custom-game-card:hover .custom-card-banner {
+    border-color: var(--accent-cyan);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.custom-card-icon {
+    font-size: 4rem;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.3);
+    transition: color 0.4s ease;
+}
+
+.custom-game-card:hover .custom-card-icon {
+    color: var(--accent-cyan);
+}
+
+/* Internal View Styles */
+.custom-hero-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    width: 380px;
+    height: 100%;
+    aspect-ratio: 460 / 215;
+    border-radius: var(--radius-md);
+    transition: all 0.3s ease;
+}
+
+.custom-hero-placeholder:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent-cyan);
+}
+
+.custom-hero-icon {
+    font-size: 5rem;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.custom-hero-placeholder:hover .custom-hero-icon {
+    color: var(--accent-cyan);
+}
+
+.hero-name-input {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+    outline: none;
+    width: 100%;
+    transition: border-color 0.3s ease;
+}
+
+.hero-name-input:focus {
+    border-bottom-color: var(--accent-cyan);
+}
+
+.hero-name-input::placeholder {
+    color: rgba(255,255,255,0.2);
+}
+
+.hero-desc-input {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    outline: none;
+    width: 100%;
+    transition: border-color 0.3s ease;
+}
+
+.hero-desc-input:focus {
+    border-bottom-color: var(--accent-cyan);
+}
+
+.hero-desc-input::placeholder {
+    color: rgba(255,255,255,0.3);
+}
+
+.custom-form-panel {
+    padding: 30px;
+    margin-bottom: 30px;
+}
+
+.custom-select-style {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    width: 100%;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.custom-select-style:focus {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 2px rgba(56, 152, 236, 0.2);
+}
+
+.custom-game-review-container {
+    padding: 30px;
+}
+
+.form-group-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group-row > .form-group {
+    flex: 1;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.btn-predict-custom {
+    background: var(--gradient-accent);
+    color: white;
+    border: none;
+    padding: 16px 24px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 10px;
+}
+
+.btn-predict-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(56, 152, 236, 0.4);
+}
+
+.btn-predict-custom:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .form-group-row {
+        flex-direction: column;
+    }
+}
