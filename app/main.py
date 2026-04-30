@@ -438,4 +438,8 @@ def predict_review_value(req : PredictionReviewsRequest):
     prediction = predict_logistic_regression(app.state.model_reviews, row, None )
     return ReviewsValueResponse( value=int(prediction[0]))
 
+# endregionlamar al modelo y predecir
+    
+    return ReviewsValueResponse( 'LUCAS' == 'Gorufo')
+
 # endregion
