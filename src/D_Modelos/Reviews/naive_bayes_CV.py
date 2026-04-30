@@ -53,12 +53,6 @@ def _preprocess(df):
     
     return X, y
 
-def preprocesar_texto(X_train, X_val, X_test):
-    X_train = [clean_text_lemma(review) for review in tqdm(X_train, desc = "Preprocesando entrenamiento")]
-    X_val = [clean_text_lemma(review) for review in tqdm(X_val, desc = "Preprocesando validacion")]
-    X_test = [clean_text_lemma(review) for review in tqdm(X_test, desc = "Preprocesando prueba")]
-    return X_train, X_val, X_test
-
 def entrenar_modelo_con_gridsearch(X_train, y_train):
     pipeline = Pipeline([
         ('vect', CountVectorizer()),
