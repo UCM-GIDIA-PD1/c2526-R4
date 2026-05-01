@@ -28,9 +28,9 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=Fal
     """
     acc = accuracy_score(y_test, y_pred)
     bal_acc = balanced_accuracy_score(y_test, y_pred)
-    prec = precision_score(y_test, y_pred, average='weighted')
-    rec = recall_score(y_test, y_pred, average='weighted')
-    f1 = f1_score(y_test, y_pred, average='weighted')
+    prec = precision_score(y_test, y_pred)
+    rec = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
 
     print(f'Accuracy:  {acc}')
     print(f'Balanced accuracy: {bal_acc}')
