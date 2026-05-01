@@ -15,14 +15,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split, cross_val_score
-from src.utils.config import reviews_logistic_regression_gridsearch_file, reviews_logistic_regression_optuna_file, models_reviews_path
+from src.utils.config import reviews_logistic_regression_gridsearch_file, reviews_logistic_regression_optuna_file, reviews_logistic_regression_optuna_retrained_file,  models_reviews_path
 
 from tqdm import tqdm
 
 from src.D_Modelos.Reviews.utils.preprocesamiento import clean_text_stem
 from src.utils.config import seed
-
-class_names = ["Negativo", "Positivo"]
 
 def transform_logistic_regression(df):
     return df
@@ -67,44 +65,22 @@ def build_objective(X_train, y_train, cv=5):
     '''
     
     def objective(trial):
-        tfidf = TfidfVectorizer(
-            analyzer="word",
-            ngram_range=(1, 2),
-            min_df=trial.suggest_int("min_df", 1, 5),
-            max_df=trial.suggest_float("max_df", 0.7, 1.0),
-            max_features=trial.suggest_categorical("max_features", [20000, 40000, 60000, None]),
-            sublinear_tf=trial.suggest_categorical("sublinear_tf", [True, False]),
-            strip_accents="unicode",
-            lowercase=True,
-        )
-
-        clf = LogisticRegression(
-            solver="saga",
-            C=trial.suggest_float("C", 1e-2, 20.0, log=True),
-            class_weight=trial.suggest_categorical("class_weight", [None, "balanced"]),
-            max_iter=3000,
-            random_state=seed
-        )
-
-        pipe = Pipeline([
-            ("tfidf", tfidf),
-            ("clf", clf),
-        ])
-
-        scores = cross_val_score(
-            pipe,
-            X_train,
-            y_train,
-            cv=cv,
-            scoring="balanced_accuracy",
-            n_jobs=-1
-        )
-
+        params = {
+            "min_df": trial.suggest_int("min_df", 1, 5),
+            "max_df": trial.suggest_float("max_df", 0.7, 1.0),
+            "max_features": trial.suggest_categorical("max_features", [20000, 40000, 60000, None]),
+            "sublinear_tf": trial.suggest_categorical("sublinear_tf", [True, False]),
+            "C": trial.suggest_float("C", 1e-2, 20.0, log=True),
+            "class_weight": trial.suggest_categorical("class_weight", [None, "balanced"]),
+        }
+        pipe = _build_pipeline(params)
+        scores = cross_val_score(pipe, X_train, y_train, cv=cv,
+                                scoring="balanced_accuracy", n_jobs=-1)
         return scores.mean()
 
     return objective
 
-def best_model_optuna(best_params):
+def _build_pipeline(best_params):
     '''
     Función que se encarga de la creación del modelo a partir de los mejores
     parámetros obtenidos con Optuna.
@@ -139,7 +115,7 @@ def best_model_optuna(best_params):
     
     return Pipeline([("tfidf", tfidf),("clf", clf)])
 
-def train_optuna(minio):
+def train_optuna(X_train, X_test, y_train, y_test, minio):
     '''
     Función para el entrenamiento del modelo usando Optuna para la
     búsqueda de los mejores hiperparámetros.
@@ -159,11 +135,12 @@ def train_optuna(minio):
 
     study.optimize(build_objective(X_train, y_train), n_trials=20, show_progress_bar= True)
     
-    best_logistic_model = best_model_optuna(study.best_params)
-
-    best_logistic_model.fit(X_train, y_train)
+    best_params = study.best_params
+    model = _build_pipeline(best_params)
     
-    y_pred_test = best_logistic_model.predict(X_test)
+    model.fit(X_train, y_train)
+    
+    y_pred_test = model.predict(X_test)
 
     accuracy = accuracy_score(y_test, y_pred_test)
     f1 = f1_score(y_test, y_pred_test)
@@ -182,7 +159,7 @@ def train_optuna(minio):
     run.finish()
 
     os.makedirs(models_reviews_path(), exist_ok=True)
-    write_to_file(best_logistic_model, reviews_logistic_regression_optuna_file, minio)
+    write_to_file(model, reviews_logistic_regression_optuna_file, minio)
     print(f"Modelo guardado en {reviews_logistic_regression_optuna_file}")
     
     print(f"Valor de accuracy: {accuracy}")
@@ -191,7 +168,9 @@ def train_optuna(minio):
     print(f"Valor de recall: {recall}")
     print(f"Valor de precision: {precision}")
     
-def train_gridsearch(minio):
+    return study.best_params
+    
+def train_gridsearch(X_train, X_test, y_train, y_test, minio):
     '''
     Función para el entrenamiento del modelo usando GridSearchCV para la
     búsqueda de los mejores hiperparámetros.
@@ -266,6 +245,28 @@ def train_gridsearch(minio):
     print(f"Valor de recall: {recall}")
     print(f"Valor de precision: {precision}")
     
+    return best_params
+    
+
+def retrain_final_model(X, y, best_params, minio):
+    """
+    Reentrena el modelo con todos los datos disponibles (train + test)
+    usando los mejores hiperparámetros ya encontrados.
+
+    Args:
+        X:           Todos los textos preprocesados.
+        y:           Todas las etiquetas.
+        best_params: Mejores parámetros devueltos por .
+        minio:       Configuración de MinIO para guardar el modelo.
+    """
+    print("Reentrenando modelo final con todos los datos...")
+    model = _build_pipeline(best_params)
+    model.fit(X, y)
+
+    os.makedirs(models_reviews_path(), exist_ok=True)
+    write_to_file(model, reviews_logistic_regression_optuna_retrained_file, minio)
+    print(f"Modelo final guardado en {reviews_logistic_regression_optuna_retrained_file}")
+
 
 def main(minio = {"minio_write": False, "minio_read": False}):
     tqdm.pandas(desc="Limpiando texto")
@@ -275,16 +276,14 @@ def main(minio = {"minio_write": False, "minio_read": False}):
     print("Preprocesado de los datos")
     X, y = _preprocess(df)
 
-    global X_train, X_test, y_train, y_test
-
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed, stratify=y)
 
     use_optuna = True
-    print(1)
     if use_optuna:
-        train_optuna(minio)
+       best_params =  train_optuna(X_train, X_test, y_train, y_test, minio)
+       retrain_final_model(X, y, best_params, minio)
     else:
-        train_gridsearch(minio)
+        mejores_parametros = train_gridsearch(X_train, X_test, y_train, y_test, minio)
 
 if __name__ == "__main__":
     main()
