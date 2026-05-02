@@ -922,10 +922,11 @@ function navigateToCustomGame() {
 
     btnSearchYt.addEventListener('click', async () => {
         const gameName = document.getElementById('cg-name').value.trim();
+        const devName = document.getElementById('cg-dev').value.trim();
         const releaseDate = document.getElementById('cg-date').value;
 
-        if (!gameName || !releaseDate) {
-            showNotification('Por favor, introduce el nombre del juego y la fecha de lanzamiento para buscar en YouTube.', 'error');
+        if (!gameName || !devName || !releaseDate) {
+            showNotification('Por favor, introduce el nombre, desarrollador y fecha para buscar en YouTube.', 'error');
             return;
         }
 
@@ -1055,6 +1056,11 @@ function navigateToCustomGame() {
         }
         if (selectedCategories.length === 0) {
             showNotification('Por favor, selecciona al menos una categoría.', 'error');
+            return;
+        }
+
+        if (!base64Image) {
+            showNotification('Por favor, sube una imagen de portada para el juego.', 'error');
             return;
         }
 

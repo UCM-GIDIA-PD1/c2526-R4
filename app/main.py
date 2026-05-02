@@ -24,8 +24,8 @@ import nltk
 
 from app.extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
 from app.extraction.youtube import get_video_data
-from app.transformation.prices import transform_for_prices
-from app.transformation.popularity import transform_for_popularity
+from app.transformation.prices import transform_for_prices, HISTORY_COLS as PRICE_HISTORY_COLS
+from app.transformation.popularity import transform_for_popularity, HISTORY_COLS as POP_HISTORY_COLS
 from app.transformation.reviews import clean_text, to_dataframe
 from src.D_Modelos.Popularidad.mlp import MLPPopularity
 from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_mlp_file, reviews_logistic_regression_optuna_file
@@ -379,7 +379,10 @@ def predict_popularidad(req: PredictionRequest):
     yt_data = get_video_data(name, release_date)
     print(yt_data)
 
-    row = transform_for_popularity(data, appid, app.state.historic_data, v_clip, brillo,data['appreviewshistogram'], yt_data)
+    # El transformador espera un dict con la clave "video_statistics"
+    yt_stats = {"video_statistics": yt_data}
+    
+    row = transform_for_popularity(data, appid, app.state.historic_data, v_clip, brillo, data['appreviewshistogram'], yt_stats)
     
     # Instanciamos el modelo para usar su lógica de preprocesamiento
     dummy_model = MLPPopularity(minio={"minio_write": False, "minio_read": False})
@@ -478,26 +481,43 @@ async def predict_custom_game(req: CustomGameRequest):
             "publishers": [req.developer],
             "genres": mapped_genres,
             "categories": mapped_categories,
-            "release_date": {"date": req.release_date},
-            "supported_languages": ",".join(["English"] * req.languages_count),
+            "release_date": req.release_date, # String directo para pd.to_datetime
+            "supported_languages": ["English"] * req.languages_count, # Lista para len()
             "header_url": "",
-            "short_description": "Custom game description"
+            "short_description": ' '*100,
+            "img": req.image
         }
 
         # 3. Datos Multimedia
-        # Brillo y v_clip por defecto si no hay imagen (o procesarla si existiera lógica)
-        brillo, v_clip = 0.5, [0.0] * 512
-        
+        brillo, v_clip = get_image_metadata(custom_data['img'])
         # Usar los vídeos de YouTube seleccionados por el usuario
         yt_data = req.youtube_videos
         
         app_reviews = {"rollups": {"recommendations_up": 0, "recommendations_down": 0}}
         
         # 4. Transformación para Popularidad
+        # Envolvemos yt_data para el transformador
+        yt_stats = {"video_statistics": yt_data}
+        
         row_pop = transform_for_popularity(
             custom_data, "0", app.state.historic_data, 
-            v_clip, brillo, app_reviews, yt_data
+            v_clip, brillo, app_reviews, yt_stats
         )
+
+        # Inyectar historial real si el desarrollador existe en la base de datos
+        try:
+            dev_name = req.developer.lower().strip()
+            h_df = app.state.historic_data
+            dev_col = 'developers' if 'developers' in h_df.columns else 'developer' if 'developer' in h_df.columns else None
+            if dev_col:
+                match_dev = h_df[h_df[dev_col].astype(str).str.lower().str.contains(dev_name, na=False)]
+                if not match_dev.empty:
+                    latest_stats = match_dev.iloc[-1]
+                    for col in POP_HISTORY_COLS:
+                        if col in latest_stats:
+                            row_pop.loc[0, col] = latest_stats[col]
+        except Exception as e:
+            print(f"Error in history injection (Pop): {e}")
         
         # Preprocesamiento específico del modelo MLP
         dummy_model = MLPPopularity(minio={"minio_write": False, "minio_read": False})
@@ -513,6 +533,19 @@ async def predict_custom_game(req: CustomGameRequest):
         row_price = transform_for_prices(
             custom_data, "0", app.state.historic_data, v_clip, brillo
         )
+
+        # Inyectar historial real para precio
+        try:
+            if dev_col:
+                match_dev = h_df[h_df[dev_col].astype(str).str.lower().str.contains(dev_name, na=False)]
+                if not match_dev.empty:
+                    latest_stats = match_dev.iloc[-1]
+                    for col in PRICE_HISTORY_COLS:
+                        if col in latest_stats:
+                            row_price.loc[0, col] = latest_stats[col]
+        except Exception as e:
+            print(f"Error in history injection (Price): {e}")
+
         price_pred = app.state.model_price.predict(row_price)
         
         idx = int(round(float(price_pred[0])))
