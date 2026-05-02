@@ -132,13 +132,17 @@ def _transform_yt_data(row: pd.DataFrame, yt_data: dict) -> pd.DataFrame:
 
         stats = video.get("video_statistics", {}) or {}
 
-        for stat in ["viewCount", "likeCount", "commentCount", "favoriteCount"]:
-            val = pd.to_numeric(stats.get(stat, 0), errors="coerce")
-            row[f"video_{i}_video_statistics.{stat}"] = int(np.nan_to_num(val))
+        # Extraer métricas como escalares para evitar errores de Pandas (Series)
+        v = int(np.nan_to_num(pd.to_numeric(stats.get("viewCount", 0), errors="coerce")))
+        l = int(np.nan_to_num(pd.to_numeric(stats.get("likeCount", 0), errors="coerce")))
+        c = int(np.nan_to_num(pd.to_numeric(stats.get("commentCount", 0), errors="coerce")))
+        f = int(np.nan_to_num(pd.to_numeric(stats.get("favoriteCount", 0), errors="coerce")))
 
-        v = row[f"video_{i}_video_statistics.viewCount"]
-        l = row[f"video_{i}_video_statistics.likeCount"]
-        c = row[f"video_{i}_video_statistics.commentCount"]
+        # Guardar en el DataFrame
+        row[f"video_{i}_video_statistics.viewCount"] = v
+        row[f"video_{i}_video_statistics.likeCount"] = l
+        row[f"video_{i}_video_statistics.commentCount"] = c
+        row[f"video_{i}_video_statistics.favoriteCount"] = f
 
         if v > 0 or l > 0 or c > 0:
             encontrado_alguna_metrica = True
@@ -148,15 +152,11 @@ def _transform_yt_data(row: pd.DataFrame, yt_data: dict) -> pd.DataFrame:
                 0.2 * np.log10(c + 1)
             )
 
-    row["yt_score"] = score_total if encontrado_alguna_metrica else 0
+    row["yt_score"] = float(score_total) if encontrado_alguna_metrica else 0.0
     return row
 
-def transform_for_popularity(game: dict,
-                            appid: str, 
-                            historic_data: pd.DataFrame, 
-                            v_clip: list, 
-                            brillo: float, 
-                            appreviewshistogram : dict,
+def transform_for_popularity(game: dict, appid: str, historic_data: pd.DataFrame,
+                            v_clip: list, brillo: float, appreviewshistogram: dict,
                             yt_data : dict) -> pd.DataFrame:
     """Realiza las transformaciones necesarias para tener una fila apta para el modelo de predicción de popularidad
     
@@ -191,7 +191,7 @@ def transform_for_popularity(game: dict,
        'video_3_video_statistics.commentCount',
        'video_3_video_statistics.favoriteCount', 'yt_score',
        'total_games_by_publisher', 'total_games_by_developer'],
-      dtype='str')
+    dtype='str')
     """
     
     row = _transform_game_dict(game, appid, historic_data)

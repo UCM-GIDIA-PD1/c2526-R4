@@ -50,6 +50,7 @@ def get_video_data(game_name: str, release_date: str) -> list[dict]:
                 "video_statistics": item["statistics"],
                 "video_title":      item["snippet"]["title"],
                 "channel":          item["snippet"]["channelTitle"],
+                "thumbnail":        item["snippet"]["thumbnails"]["medium"]["url"],
             })
 
         return stats_list

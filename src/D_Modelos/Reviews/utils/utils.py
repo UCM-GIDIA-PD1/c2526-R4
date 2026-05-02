@@ -55,6 +55,8 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=Fal
 
         wandb_matrix = wandb.Image(fig)
 
+        wandb.log({"confusion_matrix": wandb_matrix})
+
         if img_path and download_images:
             os.makedirs(os.path.dirname(img_path), exist_ok=True)
             write_to_file(data=disp.figure_, filepath=img_path)

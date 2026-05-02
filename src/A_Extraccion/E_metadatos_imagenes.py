@@ -24,7 +24,7 @@ from src.A_Extraccion.utils_extraccion.webscraping import user_agents
 from src.A_Extraccion.utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games
 from src.A_Extraccion.utils_extraccion.sesion import overwrite_confirmation, handle_input
 
-def _analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet, model_clip, model_convnext, sesion):
+def analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet, model_clip, model_convnext, sesion=None):
     """
     Analiza las características de una imagen
 
@@ -173,11 +173,9 @@ def E_metadatos_imagenes(minio):
                         continue
                 else:
                     url = None
-
                 try:
-                    caracteristicas = _analiza_imagen(ruta_imagenes, url, trans, appid, download_images, 
+                    caracteristicas = analiza_imagen(ruta_imagenes, url, trans, appid, download_images, 
                                                      model_resnet, model_clip, model_convnext, sesion)
-
                     resultado_juego = {
                         "id": appid,
                         "brillo": caracteristicas["brillo_medio"],

@@ -24,8 +24,8 @@ import nltk
 
 from app.extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
 from app.extraction.youtube import get_video_data
-from app.transformation.prices import transform_for_prices
-from app.transformation.popularity import transform_for_popularity
+from app.transformation.prices import transform_for_prices, HISTORY_COLS as PRICE_HISTORY_COLS
+from app.transformation.popularity import transform_for_popularity, HISTORY_COLS as POP_HISTORY_COLS
 from app.transformation.reviews import clean_text, to_dataframe
 from src.D_Modelos.Popularidad.mlp import MLPPopularity
 from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_mlp_file, reviews_logistic_regression_optuna_file
@@ -67,14 +67,18 @@ class PredictionResponse(BaseModel):
     details: dict
 
 class CustomGameRequest(BaseModel):
-    """Datos de entrada para la predicción de un juego personalizado."""
     name: str
     developer: str
     release_date: str
     genres: list[str]
-    required_age: int = 0
+    categories: list[str]
     languages_count: int = 1
     image: str | None = None
+    youtube_videos: list[dict] = []
+
+class YouTubeSearchRequest(BaseModel):
+    name: str
+    release_date: str
 
 class PopularityResponse(BaseModel):
     """Resultado de la predicción del problema de popularidad
@@ -333,13 +337,27 @@ def get_filter_options():
             {"label": "> 40€", "min": 40.01, "max": -1}
         ]
         
+        # Extraer edades
+        all_ages = set()
+        if "required_age" in df.columns:
+            all_ages.update(df["required_age"].unique())
+        elif "required_age" in df.iloc[0].index if not df.empty else False: # fallback
+            all_ages.update(df["required_age"].unique())
+        else:
+            # Fallback a valores comunes si no está la columna
+            all_ages = {0, 3, 7, 12, 16, 18}
+        
+        sorted_ages = sorted([int(a) for a in all_ages if pd.notna(a)])
+        
         return {
             "genres": sorted_genres,
-            "prices": price_options
+            "prices": price_options,
+            "ages": sorted_ages,
+            "max_languages": 74
         }
     except Exception as e:
         print(f"Error en /api/filter-options: {e}")
-        return {"genres": [], "prices": []}
+        return {"genres": [], "prices": [], "ages": [0, 3, 7, 12, 16, 18], "max_languages": 74}
 
 # endregion
 
@@ -364,7 +382,10 @@ def predict_popularidad(req: PredictionRequest):
     yt_data = get_video_data(name, release_date)
     print(yt_data)
 
-    row = transform_for_popularity(data, appid, app.state.historic_data, v_clip, brillo,data['appreviewshistogram'], yt_data)
+    # El transformador espera un dict con la clave "video_statistics"
+    yt_stats = {"video_statistics": yt_data}
+    
+    row = transform_for_popularity(data, appid, app.state.historic_data, v_clip, brillo, data['appreviewshistogram'], yt_stats)
     
     # Instanciamos el modelo para usar su lógica de preprocesamiento
     dummy_model = MLPPopularity(minio={"minio_write": False, "minio_read": False})
@@ -409,7 +430,7 @@ def predict_precio(req: PredictionRequest):
     print('Predicción', range_label, prediction)
     return PriceResponse(price=range_label)
 
-@app.post("/api/predict/reviews", response_model=ReviewsTopicsResponse)
+@app.post("/api/predict/reviews/topics", response_model=ReviewsTopicsResponse)
 def predict_reviews(req: PredictionRequest):
     """Predicción de sentimiento de reseñas (stub)."""
 
@@ -441,38 +462,43 @@ def predict_reviews(req: PredictionRequest):
 
 @app.post("/api/predict/reviews", response_model=ReviewsValueResponse)
 def predict_review_value(req : PredictionReviewsRequest):
+    """Predice si una reseña es positiva (True) o negativa (False)"""
     text = clean_text(req.review)
     row = pd.DataFrame(
         {
             'is_positive' : 'dummy',
-            'text' : text
+            'text' : [text] # Aseguramos que sea una lista para evitar errores de longitud
         })
 
     prediction = predict_logistic_regression(app.state.model_reviews, row, None )
-    return ReviewsValueResponse( value=int(prediction[0]))
+    return ReviewsValueResponse( value=bool(prediction[0]))
 
+<<<<<<< HEAD
+=======
+# endregion
+
+@app.post("/api/youtube/search")
+def youtube_search(req: YouTubeSearchRequest):
+    """Busca vídeos en YouTube antes de la fecha de publicación."""
+    try:
+        results = get_video_data(req.name, req.release_date)
+        return results
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+>>>>>>> e528b561cd041996e5c186b3319572c4205a5f0b
 @app.post("/api/predict/custom")
 async def predict_custom_game(req: CustomGameRequest):
     """
-    Predicción de precio y popularidad para un juego personalizado.
-    Actualmente devuelve datos mock simulando las llamadas a APIs (YouTube, etc.).
+    Predicción real de precio y popularidad para un juego personalizado.
+    Utiliza los vídeos seleccionados por el usuario para las estadísticas de YouTube.
     """
-    import asyncio
-    import random
-    
-    # Simular llamadas a la API de YouTube y procesamiento del modelo
-    print(f"Simulando pipeline de extracción para juego custom: {req.name}")
-    await asyncio.sleep(2)
-    
-    # Generar precio mock (o usar un precio fijo basado en los géneros/desarrollador)
-    is_free_to_play = any("free to play" in g.lower() for g in req.genres)
-    
-    if is_free_to_play:
-        mock_price = "Gratis"
-    else:
-        # Mocking prices between different ranges
-        mock_price = random.choice(PRICE_ORDER)
+    try:
+        # 1. Preparar géneros y categorías
+        mapped_genres = [{"description": g} for g in req.genres]
+        mapped_categories = [{"description": c} for c in req.categories]
         
+<<<<<<< HEAD
     # Generar popularidad mock
     mock_popularity = random.randint(100, 50000)
     
@@ -482,3 +508,92 @@ async def predict_custom_game(req: CustomGameRequest):
     }
 # endregion
 
+=======
+        # 2. Crear objeto 'data' similar al de Steam API
+        custom_data = {
+            "name": req.name,
+            "developers": [req.developer],
+            "publishers": [req.developer],
+            "genres": mapped_genres,
+            "categories": mapped_categories,
+            "release_date": req.release_date, # String directo para pd.to_datetime
+            "supported_languages": ["English"] * req.languages_count, # Lista para len()
+            "header_url": "",
+            "short_description": ' '*100,
+            "img": req.image
+        }
+
+        # 3. Datos Multimedia
+        brillo, v_clip = get_image_metadata(custom_data['img'])
+        # Usar los vídeos de YouTube seleccionados por el usuario
+        yt_data = req.youtube_videos
+        
+        app_reviews = {"rollups": {"recommendations_up": 0, "recommendations_down": 0}}
+        
+        # 4. Transformación para Popularidad
+        # Envolvemos yt_data para el transformador
+        yt_stats = {"video_statistics": yt_data}
+        
+        row_pop = transform_for_popularity(
+            custom_data, "0", app.state.historic_data, 
+            v_clip, brillo, app_reviews, yt_stats
+        )
+
+        # Inyectar historial real si el desarrollador existe en la base de datos
+        try:
+            dev_name = req.developer.lower().strip()
+            h_df = app.state.historic_data
+            dev_col = 'developers' if 'developers' in h_df.columns else 'developer' if 'developer' in h_df.columns else None
+            if dev_col:
+                match_dev = h_df[h_df[dev_col].astype(str).str.lower().str.contains(dev_name, na=False)]
+                if not match_dev.empty:
+                    latest_stats = match_dev.iloc[-1]
+                    for col in POP_HISTORY_COLS:
+                        if col in latest_stats:
+                            row_pop.loc[0, col] = latest_stats[col]
+        except Exception as e:
+            print(f"Error in history injection (Pop): {e}")
+        
+        # Preprocesamiento específico del modelo MLP
+        dummy_model = MLPPopularity(minio={"minio_write": False, "minio_read": False})
+        df_prep = dummy_model._preprocess_data(row_pop, {"avoid_multicol": False})
+        if "recomendaciones_totales" in df_prep.columns:
+            df_prep = df_prep.drop(columns=["recomendaciones_totales"])
+            
+        model_pop = app.state.model_popularity.get('model') if isinstance(app.state.model_popularity, dict) else app.state.model_popularity
+        pop_pred = model_pop.predict(df_prep)
+        popularity = int(round(float(pop_pred[0])))
+
+        # 5. Transformación para Precio
+        row_price = transform_for_prices(
+            custom_data, "0", app.state.historic_data, v_clip, brillo
+        )
+
+        # Inyectar historial real para precio
+        try:
+            if dev_col:
+                match_dev = h_df[h_df[dev_col].astype(str).str.lower().str.contains(dev_name, na=False)]
+                if not match_dev.empty:
+                    latest_stats = match_dev.iloc[-1]
+                    for col in PRICE_HISTORY_COLS:
+                        if col in latest_stats:
+                            row_price.loc[0, col] = latest_stats[col]
+        except Exception as e:
+            print(f"Error in history injection (Price): {e}")
+
+        price_pred = app.state.model_price.predict(row_price)
+        
+        idx = int(round(float(price_pred[0])))
+        idx = max(0, min(idx, len(PRICE_ORDER) - 1))
+        price_label = PRICE_ORDER[idx]
+        
+        return {
+            "price": price_label,
+            "popularity": popularity
+        }
+    except Exception as e:
+        print(f"Error en predicción custom: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": f"Error en la predicción: {str(e)}"})
+>>>>>>> e528b561cd041996e5c186b3319572c4205a5f0b

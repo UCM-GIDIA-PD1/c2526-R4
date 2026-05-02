@@ -3,7 +3,7 @@ Módulo de preprocesamiento de dataframe de reviews para el análisis de los com
 '''
 
 from src.utils.files import read_file
-from src.utils.config import reviews
+from src.utils.config import reviews, new_data_reviews
 import re
 from nltk.stem import PorterStemmer
 from nltk.stem import WordNetLemmatizer
@@ -11,7 +11,7 @@ from nltk.corpus import stopwords
 from src.utils.config import seed
 
 def read_reviews(minio={"minio_write": False, "minio_read": False}):
-    """Lee y limpia el dataset de reviews desde un archivo Parquet.
+    """Lee el dataset de reviews desde un archivo Parquet.
 
     Args:
         minio (dict): Configuración de acceso a MinIO. 
@@ -25,6 +25,14 @@ def read_reviews(minio={"minio_write": False, "minio_read": False}):
         AssertionError: Si el archivo no se encuentra o la carga falla.
     """
     df = read_file(filepath=reviews, minio=minio)
+    assert df is not None, 'Error archivo reviews.parquet no encontrado'
+
+    return df
+
+def read_new_data(minio={"minio_write": False, "minio_read": False}):
+    
+    
+    df = read_file(filepath=new_data_reviews, minio=minio)
     assert df is not None, 'Error archivo reviews.parquet no encontrado'
 
     return df
