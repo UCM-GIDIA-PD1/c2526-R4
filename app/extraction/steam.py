@@ -172,10 +172,10 @@ def get_appreviewshistogram(appid: str, release_date : str) -> dict:
     }
 
     return appreviewhistogram
-
-def get_reviews_text(appid : str) -> list[dict]:
-    """Dado un APPID obtiene 100 reseñas de ese juego.
+def get_reviews_text(appid: str) -> list[dict]:
+    """Dado un APPID obtiene 2  00 reseñas de ese juego mediante paginación.
     """
+    NUM_REVIEWS = 200
     url = APPREVIEWS_URL + appid
     params = {
         "json": 1,
@@ -186,26 +186,34 @@ def get_reviews_text(appid : str) -> list[dict]:
         "cursor": "*"
     }
 
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        data_json = response.json()
-    except Exception:
-        return []
-
     reviews_list = []
-    for rev in data_json.get("reviews", []):
-        review = {
-            "id_resenya":   rev["recommendationid"],
-            "id_usuario":   rev["author"].get("steamid"),
-            "texto":        rev["review"].strip(),
-            "valoracion":   rev["voted_up"],
-            "peso":         rev["weighted_vote_score"],
-            "early_access": rev["written_during_early_access"],
-        }
-        reviews_list.append(review)
-
+    while len(reviews_list) < NUM_REVIEWS:
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            data_json = response.json()
+        except Exception:
+            break
+        new_reviews = data_json.get("reviews", [])
+        if not new_reviews:
+            break
+        for rev in new_reviews:
+            if len(reviews_list) >= NUM_REVIEWS:
+                break
+            reviews_list.append({
+                "id_resenya":   rev["recommendationid"],
+                "id_usuario":   rev["author"].get("steamid"),
+                "texto":        rev["review"].strip(),
+                "valoracion":   rev["voted_up"],
+                "peso":         rev["weighted_vote_score"],
+                "early_access": rev["written_during_early_access"],
+            })
+        next_cursor = data_json.get("cursor")
+        if not next_cursor or next_cursor == params["cursor"]:
+            break
+        params["cursor"] = next_cursor
     return reviews_list
+
 
 def _request_url(url : str ,params : dict) -> dict:
     """Hace un request.get de la url con los parámetros dados.

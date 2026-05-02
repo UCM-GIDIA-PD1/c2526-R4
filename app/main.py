@@ -402,7 +402,6 @@ def predict_popularidad(req: PredictionRequest):
     reviews_pred = int(round(float(prediction[0])))
     return PopularityResponse(reviews=reviews_pred)
 
-
 @app.post("/api/predict/precio", response_model=PriceResponse)
 def predict_precio(req: PredictionRequest):
     """Predicción de precio (stub)."""
@@ -433,6 +432,7 @@ def predict_precio(req: PredictionRequest):
 @app.post("/api/predict/reviews/topics", response_model=ReviewsTopicsResponse)
 def predict_reviews(req: PredictionRequest):
     """Predicción de sentimiento de reseñas (stub)."""
+    print("Predicting reviews topics")
 
     TOPIC_TAGS = {
         0: "Updates & Bugs",
@@ -444,19 +444,17 @@ def predict_reviews(req: PredictionRequest):
     }
 
     appid = str(req.appid)
-    reviews_list = get_reviews_text(appid)
-    print(reviews_list)
-    print(len(reviews_list))
+    reviews = get_reviews_text(appid)
+    print(reviews)
+    print(len(reviews))
 
-    reviews_df = to_dataframe(reviews_list)
-
-
+    reviews_df = to_dataframe([{"id": appid, "reviews": {"lista_resenyas": reviews}}])
     stats = pipeline(reviews_df, app.state.model_topics)
+    print(stats)
 
-
-    prediction : ReviewsTopicsResponse
-    for key,topic in TOPIC_TAGS:
-        prediction[topic] = stats[topic, 'positive_ratio']
+    prediction = dict()
+    for key,topic in TOPIC_TAGS.items():
+        prediction[topic] = stats.loc[topic, 'positive_ratio']
 
     return ReviewsTopicsResponse(topics = prediction)
 
@@ -473,8 +471,6 @@ def predict_review_value(req : PredictionReviewsRequest):
     prediction = predict_logistic_regression(app.state.model_reviews, row, None )
     return ReviewsValueResponse( value=bool(prediction[0]))
 
-<<<<<<< HEAD
-=======
 # endregion
 
 @app.post("/api/youtube/search")
@@ -486,7 +482,6 @@ def youtube_search(req: YouTubeSearchRequest):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
->>>>>>> e528b561cd041996e5c186b3319572c4205a5f0b
 @app.post("/api/predict/custom")
 async def predict_custom_game(req: CustomGameRequest):
     """
@@ -498,17 +493,6 @@ async def predict_custom_game(req: CustomGameRequest):
         mapped_genres = [{"description": g} for g in req.genres]
         mapped_categories = [{"description": c} for c in req.categories]
         
-<<<<<<< HEAD
-    # Generar popularidad mock
-    mock_popularity = random.randint(100, 50000)
-    
-    return {
-        "price": mock_price,
-        "popularity": mock_popularity
-    }
-# endregion
-
-=======
         # 2. Crear objeto 'data' similar al de Steam API
         custom_data = {
             "name": req.name,
@@ -596,4 +580,3 @@ async def predict_custom_game(req: CustomGameRequest):
         import traceback
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"error": f"Error en la predicción: {str(e)}"})
->>>>>>> e528b561cd041996e5c186b3319572c4205a5f0b
