@@ -23,7 +23,7 @@ from keras.regularizers import l2
 from scikeras.wrappers import KerasRegressor
 
 from src.utils.files import read_file
-from src.utils.config import popularity, popularidad_mlp_file, seed
+from src.utils.config import popularity, popularidad_mlp_file, popularidad_mlp_full_file, seed
 from src.D_Modelos.Popularidad.popularity_model import PopularityModel
 
 warnings.filterwarnings('ignore')
@@ -33,7 +33,8 @@ class MLPPopularity(PopularityModel):
         super().__init__(
             run_name="mlp-keras-latefusion",
             model_path=popularidad_mlp_file,
-            minio=minio
+            minio=minio,
+            full_model_path=popularidad_mlp_full_file
         )
 
     @staticmethod
@@ -188,7 +189,11 @@ class MLPPopularity(PopularityModel):
 def main(minio={"minio_write": False, "minio_read": False}):
     df_raw = read_file(popularity, minio)
     modelo_mlp = MLPPopularity(minio=minio)
-    modelo_mlp.run_experiment(df_raw, config={"avoid_multicol": False, "use_log": False})
+
+    conf = input("¿Reentrenar con todos los datos? (y/n): ").lower()
+    full_train = True if conf == 'y' or conf == '' else False
+
+    modelo_mlp.run_experiment(df_raw, config={"avoid_multicol": False, "use_log": False}, full_train=full_train)
 
 if __name__ == "__main__":
     main()
