@@ -27,6 +27,7 @@ from src.D_Modelos.Popularidad.xgboost_model import XGBoostPopularity
 from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_xgboost_log_file, reviews_logistic_regression_optuna_file
 from src.utils.files import read_file
 from src.D_Modelos.Reviews.logistic_regression import predict_logistic_regression
+# from src.D_Modelos.Reviews.FASTopic_classifier import load_topic_model,pipeline
 
 # Dependencias para limpiar texto
 nltk.download('stopwords')
@@ -84,7 +85,7 @@ class PriceResponse(BaseModel):
 
 class ReviewsTopicsResponse(BaseModel):
     """Resultado de la predicción del problema de puntos positivos y negativos"""
-    topics : list
+    topics : dict
 
 class ReviewsValueResponse(BaseModel):
     value : bool
@@ -117,6 +118,8 @@ async def lifespan(app: FastAPI):
     app.state.model_price = read_file(precios_knncompleteclusters_file, minio)
     print("Cargando modelo de reviews(Simple)")
     app.state.model_reviews = read_file(reviews_logistic_regression_optuna_file, minio)
+    print("Cargando modelo de reviews (Complejo)")
+    # app.state.model_topics = load_topic_model() 
 
     # Cargar los datos históricos de developers y publishers
     print("Cargando datos históricos de juegos")
@@ -426,6 +429,16 @@ def predict_precio(req: PredictionRequest):
 @app.post("/api/predict/reviews", response_model=ReviewsTopicsResponse)
 def predict_reviews(req: PredictionRequest):
     """Predicción de sentimiento de reseñas (stub)."""
+
+    TOPIC_TAGS = {
+        0: "Updates & Bugs",
+        1: "Action & Combat",
+        2: "Music & Atmosphere",
+        3: "Story & Design",
+        4: "Casual & Humor",
+        5: "General Opinion",
+    }
+
     appid = str(req.appid)
     reviews_list = get_reviews_text(appid)
     print(reviews_list)
@@ -433,8 +446,15 @@ def predict_reviews(req: PredictionRequest):
 
     reviews_df = to_dataframe(reviews_list)
 
-    #TODO: llamar al modelo y predecir
-    return ReviewsTopicsResponse(['Nebullet Party', 'GymFlex'])
+
+    stats = pipeline(reviews_df, app.state.model_topics)
+
+
+    prediction : ReviewsTopicsResponse
+    for key,topic in TOPIC_TAGS:
+        prediction[topic] = stats[topic, 'positive_ratio']
+
+    return ReviewsTopicsResponse(topics = prediction)
 
 @app.post("/api/predict/reviews", response_model=ReviewsValueResponse)
 def predict_review_value(req : PredictionReviewsRequest):
@@ -447,8 +467,6 @@ def predict_review_value(req : PredictionReviewsRequest):
 
     prediction = predict_logistic_regression(app.state.model_reviews, row, None )
     return ReviewsValueResponse( value=int(prediction[0]))
-
-# endregion
 
 @app.post("/api/predict/custom")
 async def predict_custom_game(req: CustomGameRequest):
@@ -479,3 +497,5 @@ async def predict_custom_game(req: CustomGameRequest):
         "price": mock_price,
         "popularity": mock_popularity
     }
+# endregion
+
