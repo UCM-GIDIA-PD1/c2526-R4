@@ -6,6 +6,12 @@ Para levantar la página:
 
 Puerto: http://127.0.0.1:8000
 """
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'false'
+os.environ['KERAS_BACKEND'] = 'tensorflow'
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -13,8 +19,6 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi import Request
 from pydantic import BaseModel
-from joblib import load
-import random
 import pandas as pd
 import nltk
 
@@ -23,8 +27,8 @@ from app.extraction.youtube import get_video_data
 from app.transformation.prices import transform_for_prices
 from app.transformation.popularity import transform_for_popularity
 from app.transformation.reviews import clean_text, to_dataframe
-from src.D_Modelos.Popularidad.xgboost_model import XGBoostPopularity
-from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_xgboost_log_file, reviews_logistic_regression_optuna_file
+from src.D_Modelos.Popularidad.mlp import MLPPopularity
+from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_mlp_file, reviews_logistic_regression_optuna_file
 from src.utils.files import read_file
 from src.D_Modelos.Reviews.logistic_regression import predict_logistic_regression
 
@@ -41,7 +45,6 @@ PRICE_ORDER = [
     'Entre 30.00€ y 39.99€', 
     'Más de 40€'
 ]
-
 
 # region classes
 
@@ -108,9 +111,10 @@ class GameInfo(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     minio = {"minio_write": False, "minio_read": True}
+
     # Cargar modelos 
     print("Cargando modelo de popularidad")
-    app.state.model_popularity = read_file(popularidad_xgboost_log_file, minio)
+    app.state.model_popularity = read_file(popularidad_mlp_file, minio)
     print("Cargando modelo de precios")
     app.state.model_price = read_file(precios_knncompleteclusters_file, minio)
     print("Cargando modelo de reviews(Simple)")
@@ -147,19 +151,6 @@ templates = Jinja2Templates(directory= app_dir() / "templates")
 
 # region search
 
-def _generate_mock_history(base_value: float, months: int = 12) -> list[dict]:
-    """Genera datos históricos mock para gráficas."""
-    history = []
-    current = base_value
-    month_names = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",
-                   "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
-    for i in range(months):
-        variation = random.uniform(-0.15, 0.15) * current
-        current = max(0.01, current + variation)
-        history.append({"month": month_names[i % 12], "value": round(current, 2)})
-    return history
-
-
 def _df_rows_to_list(df, offset: int = 0, limit: int = 20) -> dict:
     """Convierte las filas especificadas del DataFrame a una particion paginada con id, name, img."""
     total = len(df)
@@ -176,19 +167,12 @@ def _df_rows_to_list(df, offset: int = 0, limit: int = 20) -> dict:
         "has_more": offset + limit < total
     }
 
-
-# --------------------------------------------------------------------------
 # Página principal
-# --------------------------------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     return templates.TemplateResponse(request, name="index.html")
 
-
-# --------------------------------------------------------------------------
-# API REST — Endpoints JSON (el frontend los llama con fetch())
-# --------------------------------------------------------------------------
-
+# API REST
 @app.get("/api/search")
 def search_games(q: str = "", page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", prices: str = ""):
     """Buscar juegos por nombre, género y rango de precio."""
@@ -308,7 +292,6 @@ def get_game(appid: int):
         print(f"Error en /api/game/{appid}: {e}")
         return JSONResponse(status_code=500, content={"error": "Error interno del servidor"})
 
-
 @app.get("/api/trending")
 def get_trending(page: int = 1, limit: int = 40, sort: str = "desc", genre: str = "", prices: str = ""):
     """Todos los juegos del catálogo con filtros."""
@@ -379,8 +362,8 @@ def predict_popularidad(req: PredictionRequest):
     row = transform_for_popularity(data, appid, app.state.historic_data, v_clip, brillo,data['appreviewshistogram'], yt_data)
     
     # Instanciamos el modelo para usar su lógica de preprocesamiento
-    dummy_model = XGBoostPopularity(run_name="", model_path="", minio={"minio_write": False, "minio_read": False})
-    config = {"avoid_multicol": False, "use_log": True}
+    dummy_model = MLPPopularity(minio={"minio_write": False, "minio_read": False})
+    config = {"avoid_multicol": False}
     df_prep = dummy_model._preprocess_data(row, config)
     if "recomendaciones_totales" in df_prep.columns:
         df_prep = df_prep.drop(columns=["recomendaciones_totales"])
