@@ -153,7 +153,7 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
     X_train_clustered = clustering_step.fit_transform(X_train)
     X_train_transformed = preprocessor.fit_transform(X_train_clustered)
 
-    # Obtenemos los mejores hi
+    # Obtenemos los mejores hiperparámetros
     best_params = grid_search_knn_full(X_train_transformed, y_train)
 
     # Pipeline completo del modelo
