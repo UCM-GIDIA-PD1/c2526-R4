@@ -1,3 +1,7 @@
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![Status](https://img.shields.io/badge/status-en%20desarrollo-F39C12)
+![UCM](https://img.shields.io/badge/UCM-Proyecto%20de%20Datos%20I-8E44AD)
+
 # Steam Predictor
 
 ![](https://github.com/user-attachments/assets/d2471800-7fc6-4eb1-93bd-16a296e77c85)

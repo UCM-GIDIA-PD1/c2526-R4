@@ -27,13 +27,6 @@ VARIABLES_GANADORAS = [
     'clip_umap_0', 'Remote Play Together', 'Online PvP', 'clip_umap_2', 'Playable without Timed Input', 
     'Shared/Split Screen']
 
-['Family Sharing', 'commentCountTotal', 'Free To Play', 'ema_reviews_publishers', 
- 'Steam Trading Cards', 'Steam Cloud', 'num_languages', 'price_overview', 
- 'Steam Achievements', 'Simulation', 'Online Co-op', 'RPG', 'release_year', 
- 'Custom Volume Controls', 'Online PvP', 'Single-player', 'Playable without Timed Input', 
- 'Shared/Split Screen', 'clip_umap_0', 'PvP']
-
-
 
 class KNNPopularity(PopularityModel):
     def __init__(self, minio: dict):
