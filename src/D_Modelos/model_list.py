@@ -1,7 +1,7 @@
 from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, popularidad_mlp_file
 from src.utils.config import popularidad_linear_regression_file, popularidad_linear_regression_log_file, popularidad_knn_log_file
 from src.utils.config import precios_xgboostumap_file, precios_knncompleteclusters_file, precios_mlp_file, precios_logistic_regression_file
-from src.utils.config import reviews_logistic_regression_optuna_file, reviews_naive_bayes_cv_file, reviews_naive_bayes_tfidf_file
+from src.utils.config import reviews_logistic_regression_optuna_file, reviews_naive_bayes_cv_file, reviews_naive_bayes_tfidf_file, reviews_logistic_regression_optuna_retrained_file
 
 from src.D_Modelos.Popularidad.baseline import predict_baseline_median, predict_baseline_mean
 from src.D_Modelos.Popularidad.linear_regression import LinearRegressionPopularity
@@ -118,6 +118,10 @@ models_reviews = {
             "transform_function": transform_naive_bayes_tfidf,
             "model_path":  reviews_naive_bayes_tfidf_file,
             "prediction_function": predict_naive_bayes_tfidf,
+        },
+        "Logistic Regression Retrained": {
+            "transform_function": transform_logistic_regression_reviews,
+            "model_path": reviews_logistic_regression_optuna_retrained_file ,
+            "prediction_function": predict_logistic_regression_reviews,
         }
-        
 }

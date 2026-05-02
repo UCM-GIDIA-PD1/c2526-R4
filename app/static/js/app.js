@@ -1,6 +1,12 @@
 let currentGame = null;
 let currentPrediction = null;
 let charts = {};
+let filterOptions = { 
+    genres: ["Acción", "Aventura", "RPG", "Estrategia", "Simulación", "Indie", "Multijugador", "Deportes", "Carreras"], 
+    prices: [], 
+    ages: [0, 3, 7, 12, 16, 18],
+    max_languages: 74
+};
 
 // ============================================================
 // NAVIGATION
@@ -245,10 +251,14 @@ async function initFilters(wrapper, input) {
     try {
         const res = await fetch('/api/filter-options');
         const options = await res.json();
+        if (options.genres && options.genres.length > 0) filterOptions.genres = options.genres;
+        if (options.ages && options.ages.length > 0) filterOptions.ages = options.ages;
+        if (options.prices && options.prices.length > 0) filterOptions.prices = options.prices;
+        if (options.max_languages) filterOptions.max_languages = options.max_languages;
 
         // Genres
         genreDropdown.innerHTML = `<div class="filter-option active" data-val="all">Todos los géneros</div>`;
-        options.genres.forEach(g => {
+        filterOptions.genres.forEach(g => {
             genreDropdown.innerHTML += `<div class="filter-option" data-val="${g}">${g}</div>`;
         });
 
@@ -686,19 +696,29 @@ function navigateToCustomGame() {
 
     const container = document.getElementById('custom-game-detail-content');
     
-    // Obtener géneros actuales del dropdown para usarlos en el selector personalizado
-    const genreDropdown = document.getElementById('genre-dropdown');
-    let genreOptionsHtml = '';
-    if (genreDropdown) {
-        const options = Array.from(genreDropdown.querySelectorAll('.filter-option'));
-        genreOptionsHtml = options.filter(o => o.dataset.val !== 'all')
-                               .map(o => `<div class="genre-option-item" data-val="${o.dataset.val}">${o.textContent}</div>`)
-                               .join('');
+    // Generar géneros desde filterOptions (global) con fallback al sidebar
+    let genresToUse = filterOptions.genres;
+    if (!genresToUse || genresToUse.length === 0) {
+        const sidebarOptions = Array.from(document.querySelectorAll('#genre-dropdown .filter-option'));
+        genresToUse = sidebarOptions.filter(o => o.dataset.val !== 'all').map(o => o.dataset.val);
     }
+    
+    const genreOptionsHtml = genresToUse
+                           .map(g => `<div class="custom-selector-option" data-val="${g}">${g}</div>`)
+                           .join('');
+
+    // Generar edades desde filterOptions (global)
+    let agesToUse = filterOptions.ages || [0, 3, 7, 12, 16, 18];
+    const ageOptionsHtml = agesToUse
+                           .map(age => {
+                               const label = age === 0 ? 'Para todos los públicos' : age + '+';
+                               return `<div class="custom-selector-option age-option" data-val="${age}">${label}</div>`;
+                           })
+                           .join('');
 
     container.innerHTML = `
-        <form id="custom-game-form">
-            <div class="game-hero-section vision-glass">
+        <form id="custom-game-form" class="vision-glass" style="padding: 10px;">
+            <div class="game-hero-section" style="background: transparent; border: none; box-shadow: none; backdrop-filter: none; margin-bottom: 20px;">
                 <div class="hero-left" id="cg-hero-upload" style="cursor: pointer;" title="Haz clic para subir un banner">
                     <div class="hero-banner console-transition custom-hero-placeholder" id="cg-image-preview-container">
                         <span class="custom-hero-icon">?</span>
@@ -711,22 +731,22 @@ function navigateToCustomGame() {
                 </div>
             </div>
 
-            <div class="custom-form-panel vision-glass">
+            <div class="custom-form-panel" style="background: transparent; border: none; box-shadow: none; backdrop-filter: none; padding-top: 0; padding-bottom: 20px;">
                 <div class="form-group-row">
                     <div class="form-group">
                         <label>Fecha de Lanzamiento</label>
-                        <input type="date" id="cg-date" required class="custom-select-style">
+                        <input type="date" id="cg-date" required class="custom-select-style" placeholder="MM/DD/YYYY">
                     </div>
                     <div class="form-group">
                         <label>Géneros</label>
-                        <div class="custom-genre-selector">
-                            <div class="genre-select-trigger" id="cg-genres-trigger">
-                                <div class="selected-genres-tags" id="cg-selected-tags">
+                        <div class="custom-selector-wrapper">
+                            <div class="custom-selector-trigger" id="cg-genres-trigger">
+                                <div class="selected-tags-container" id="cg-selected-tags">
                                     <span style="color: rgba(255,255,255,0.4); font-weight: 300;">Seleccionar géneros...</span>
                                 </div>
                                 <span class="sidebar-icon-arrow" style="font-size: 0.8rem; transform: rotate(90deg);">↓</span>
                             </div>
-                            <div class="genre-options-dropdown" id="cg-genres-dropdown">
+                            <div class="custom-selector-dropdown" id="cg-genres-dropdown">
                                 ${genreOptionsHtml}
                             </div>
                         </div>
@@ -734,12 +754,21 @@ function navigateToCustomGame() {
                 </div>
                 <div class="form-group-row" style="margin-top: 10px;">
                     <div class="form-group">
-                        <label>Edad mínima requerida</label>
-                        <input type="number" id="cg-age" min="0" max="100" value="0" class="custom-select-style">
+                        <label>Nº de idiomas soportados</label>
+                        <input type="number" id="cg-languages" min="1" max="${filterOptions.max_languages}" value="1" class="custom-select-style default-val">
                     </div>
                     <div class="form-group">
-                        <label>Nº de idiomas soportados</label>
-                        <input type="number" id="cg-languages" min="1" max="100" value="1" class="custom-select-style">
+                        <label>Edad mínima requerida</label>
+                        <div class="custom-selector-wrapper">
+                            <div class="custom-selector-trigger" id="cg-age-trigger">
+                                <span id="cg-age-selected-label" style="color: rgba(255,255,255,0.4); font-weight: 300;">Para todos los públicos</span>
+                                <span class="sidebar-icon-arrow" style="font-size: 0.8rem; transform: rotate(90deg);">↓</span>
+                            </div>
+                            <div class="custom-selector-dropdown" id="cg-age-dropdown">
+                                ${ageOptionsHtml}
+                            </div>
+                            <input type="hidden" id="cg-age" value="0">
+                        </div>
                     </div>
                 </div>
                 <button type="submit" class="btn-predict-custom" style="margin-top: 30px;">Predecir Popularidad y Precio</button>
@@ -761,34 +790,40 @@ function navigateToCustomGame() {
 
         <div class="custom-game-review-container vision-glass" style="margin-top: 2rem;">
             <h3 class="pred-title">Analizador de Reseñas</h3>
-            <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; margin-bottom: 1rem;">Escribe una reseña y el modelo predecirá si es positiva o negativa.</p>
-            <textarea id="cg-review-text" rows="4" placeholder="Escribe tu reseña aquí..." style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 1rem; border-radius: 8px; resize: vertical;"></textarea>
+            <p style="color: rgba(255, 255, 255, 0.4); font-size: 1rem; font-weight: 300; margin-bottom: 1.5rem;">Escribe una reseña y el modelo predecirá si es positiva o negativa.</p>
+            <textarea id="cg-review-text" rows="4" placeholder="Escribe tu reseña aquí..." class="custom-select-style" style="resize: vertical; font-size: 1rem; font-weight: 300;"></textarea>
             <button id="btn-predict-review" class="btn-predict-custom" style="margin-top: 1rem; margin-bottom: 1rem;">Analizar Sentimiento</button>
             <div id="cg-review-result" style="display: none; font-size: 1.2rem; font-weight: 500; text-align: center; padding: 1rem; border-radius: 8px;"></div>
         </div>
     `;
 
-    // --- Lógica del selector de géneros personalizado ---
-    const trigger = document.getElementById('cg-genres-trigger');
-    const dropdown = document.getElementById('cg-genres-dropdown');
-    const tagsContainer = document.getElementById('cg-selected-tags');
+    // --- Lógica de selectores (Cierre al hacer click fuera) ---
+    const closeAllCustomDropdowns = () => {
+        document.querySelectorAll('.custom-selector-dropdown').forEach(d => d.classList.remove('show'));
+        document.querySelectorAll('.custom-selector-trigger').forEach(t => t.classList.remove('active'));
+    };
+
+    document.addEventListener('click', closeAllCustomDropdowns);
+
+    // --- Lógica del selector de GÉNEROS (Multi-select) ---
+    const gTrigger = document.getElementById('cg-genres-trigger');
+    const gDropdown = document.getElementById('cg-genres-dropdown');
+    const gTagsContainer = document.getElementById('cg-selected-tags');
     let selectedGenres = [];
 
-    trigger.addEventListener('click', (e) => {
+    gTrigger.addEventListener('click', (e) => {
         e.stopPropagation();
-        dropdown.classList.toggle('show');
-        trigger.classList.toggle('active');
+        const wasActive = gTrigger.classList.contains('active');
+        closeAllCustomDropdowns();
+        if (!wasActive) {
+            gDropdown.classList.add('show');
+            gTrigger.classList.add('active');
+        }
     });
 
-    document.addEventListener('click', () => {
-        dropdown.classList.remove('show');
-        trigger.classList.remove('active');
-    });
-
-    dropdown.addEventListener('click', (e) => e.stopPropagation());
-
-    dropdown.querySelectorAll('.genre-option-item').forEach(item => {
-        item.addEventListener('click', () => {
+    gDropdown.querySelectorAll('.custom-selector-option').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
             const val = item.dataset.val;
             if (selectedGenres.includes(val)) {
                 selectedGenres = selectedGenres.filter(g => g !== val);
@@ -803,11 +838,50 @@ function navigateToCustomGame() {
 
     function updateGenreTags() {
         if (selectedGenres.length === 0) {
-            tagsContainer.innerHTML = '<span style="color: rgba(255,255,255,0.4); font-weight: 300;">Seleccionar géneros...</span>';
+            gTagsContainer.innerHTML = '<span style="color: rgba(255,255,255,0.4); font-weight: 300;">Seleccionar géneros...</span>';
         } else {
-            tagsContainer.innerHTML = selectedGenres.map(g => `<span class="genre-tag-pill">${g}</span>`).join('');
+            gTagsContainer.innerHTML = selectedGenres.map(g => `<span class="custom-tag-pill">${g}</span>`).join('');
         }
     }
+
+    // --- Lógica del selector de EDAD (Single-select) ---
+    const aTrigger = document.getElementById('cg-age-trigger');
+    const aDropdown = document.getElementById('cg-age-dropdown');
+    const aLabel = document.getElementById('cg-age-selected-label');
+    const aInput = document.getElementById('cg-age');
+
+    aTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wasActive = aTrigger.classList.contains('active');
+        closeAllCustomDropdowns();
+        if (!wasActive) {
+            aDropdown.classList.add('show');
+            aTrigger.classList.add('active');
+        }
+    });
+
+    aDropdown.querySelectorAll('.custom-selector-option').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const val = item.dataset.val;
+            const label = item.textContent;
+            
+            // UI Update
+            aDropdown.querySelectorAll('.custom-selector-option').forEach(o => o.classList.remove('selected'));
+            item.classList.add('selected');
+            aLabel.textContent = label;
+            aLabel.style.color = '#fff';
+            aLabel.style.fontWeight = '500';
+            aInput.value = val;
+
+            // Close
+            closeAllCustomDropdowns();
+        });
+    });
+
+    // Marcar el por defecto (0)
+    const defaultAgeOpt = aDropdown.querySelector('.custom-selector-option[data-val="0"]');
+    if (defaultAgeOpt) defaultAgeOpt.classList.add('selected');
 
     // --- Lógica de subida de imagen ---
     const heroUpload = document.getElementById('cg-hero-upload');
@@ -830,6 +904,33 @@ function navigateToCustomGame() {
             }
             reader.readAsDataURL(file);
         }
+    });
+
+    // --- Lógica de fecha (Flatpickr) ---
+    const dateInput = document.getElementById('cg-date');
+    if (typeof flatpickr !== 'undefined') {
+        flatpickr(dateInput, {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "F j, Y",
+            placeholder: "MM/DD/YYYY",
+            disableMobile: "true",
+            onChange: (selectedDates, dateStr, instance) => {
+                dateInput.classList.remove('default-val');
+                // Al usar altInput, Flatpickr crea un input hermano que es el que se ve
+                const altInput = instance.altInput;
+                if (altInput) altInput.style.color = '#fff';
+            }
+        });
+    }
+
+    // --- Lógica de idiomas (Clamping) ---
+    const langInput = document.getElementById('cg-languages');
+    langInput.addEventListener('input', () => {
+        langInput.classList.remove('default-val');
+        const max = parseInt(langInput.max) || 74;
+        if (langInput.value > max) langInput.value = max;
+        if (langInput.value < 1 && langInput.value !== '') langInput.value = 1;
     });
 
     // --- Submit del formulario ---

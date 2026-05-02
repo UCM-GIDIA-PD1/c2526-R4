@@ -151,12 +151,8 @@ def _transform_yt_data(row: pd.DataFrame, yt_data: dict) -> pd.DataFrame:
     row["yt_score"] = score_total if encontrado_alguna_metrica else 0
     return row
 
-def transform_for_popularity(game: dict,
-                            appid: str, 
-                            historic_data: pd.DataFrame, 
-                            v_clip: list, 
-                            brillo: float, 
-                            appreviewshistogram : dict,
+def transform_for_popularity(game: dict, appid: str, historic_data: pd.DataFrame,
+                            v_clip: list, brillo: float, appreviewshistogram: dict,
                             yt_data : dict) -> pd.DataFrame:
     """Realiza las transformaciones necesarias para tener una fila apta para el modelo de predicción de popularidad
     
@@ -191,7 +187,7 @@ def transform_for_popularity(game: dict,
        'video_3_video_statistics.commentCount',
        'video_3_video_statistics.favoriteCount', 'yt_score',
        'total_games_by_publisher', 'total_games_by_developer'],
-      dtype='str')
+    dtype='str')
     """
     
     row = _transform_game_dict(game, appid, historic_data)
