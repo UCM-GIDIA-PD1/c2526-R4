@@ -32,13 +32,15 @@ def get_minio_path(filename):
         str: La ruta relativa que se usará como 'object_name' en el bucket.
     """
     if hasattr(filename, 'name') and len(filename.parts) > 1:
-        name_in_minio = f"{filename.parent.name}/{filename.name}"
+        if "models" in filename.parts:
+            idx = filename.parts.index("models")
+            name_in_minio = "/".join(filename.parts[idx:])
+        else:
+            name_in_minio = f"{filename.parent.name}/{filename.name}"
     else:
         name_in_minio = filename.name if hasattr(filename, 'name') else filename
 
-    minio_path = f"grupo4/{name_in_minio}"
-
-    return minio_path
+    return f"grupo4/{name_in_minio}"
 
 def upload_to_minio(filepath):
     """

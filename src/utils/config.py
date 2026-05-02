@@ -192,6 +192,7 @@ steam_reviews_file = raw_data_path() / "steam_reviews.jsonl.gz"
 banners_file = raw_data_path() / "info_imagenes.jsonl.gz"
 banners_file_popularity = raw_data_path() / "info_imagenes_popularidad.jsonl.gz"
 banners_file_prices = raw_data_path() / "info_imagenes_precios.jsonl.gz"
+
 #endregion
 # region ------ SCRIPTS DE TRANSFORMACIÓN ------ #
 
@@ -220,8 +221,10 @@ reviews =  processed_data_path() / "resenyas.parquet"
 
 # Reducción en modelo de precios
 reduced_prices = processed_data_path() / "precios_reducido.parquet"
+
 #endregion
 # region ------ PATHS A MODELOS ------ #
+
 # Popularidad
 popularidad_xgboost_file = models_popularidad_path() / "xgboost_model.pkl"
 popularidad_xgboost_log_file = models_popularidad_path() / "xgboost_model_log.pkl"
@@ -248,15 +251,15 @@ reviews_logistic_regression_gridsearch_file = models_reviews_path() / "logistic_
 reviews_naive_bayes_cv_file = models_reviews_path() / "naive_bayes_cv.pkl"
 reviews_naive_bayes_tfidf_file = models_reviews_path() / "naive_bayes_tfidf.pkl"
 reviews_fastopic_file = models_reviews_path() / "fastopic.zip"
-reviews_en_core_web_sm = models_path() / "en_core_web_sm/en_core_web_sm-3.8.0" # deberíamos subir el modelo a MinIO
-                                                                               # ejecutar "python -m spacy download en_core_web_sm --target ./models" para descargarlo en models
-                                                                               
+reviews_en_core_web_sm = models_path() / "en_core_web_sm/en_core_web_sm-3.8.0"
+
 # Modelos reentrenados
 reviews_logistic_regression_optuna_retrained_file = models_reviews_path() / "logistic_regression_optuna_retrained.pkl"
-                                                                               
+
 #endregion
 # region ------ PATHS A DATOS PARA APP  ------ #
+
 GAME_FETCH_DATA_PATH =  processed_data_path() / "games_info_fetch.parquet"
 HISTORIC_GAMES_DATA_PATH = processed_data_path() / "historic_games_data.parquet"
-#endregion
 
+#endregion
