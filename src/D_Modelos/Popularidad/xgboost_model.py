@@ -1,6 +1,5 @@
 import numpy as np
 import xgboost as xgb
-import optuna
 from umap import UMAP
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
@@ -52,6 +51,7 @@ class XGBoostPopularity(PopularityModel):
         return reg_base
 
     def _optimize_hyperparameters(self, data_splits, config):
+        import optuna
         X_train = data_splits["X_train"]
         y_train = data_splits["y_train"]
         use_log = config.get("use_log", True)

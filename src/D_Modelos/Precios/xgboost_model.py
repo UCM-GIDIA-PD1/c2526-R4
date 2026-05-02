@@ -18,9 +18,6 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 
 import xgboost as xgb
-from umap import UMAP
-import optuna
-import wandb
 import os
 import pandas as pd
 import numpy as np
@@ -62,6 +59,7 @@ def _optimize_params_xgboost(X_train, y_train):
     Returns: 
         best_params (dict): Diccionario con los mejores parámetros del study de optuna
     """
+    import optuna
     def objective(trial):
         params = {
             'verbosity': 0,
@@ -98,6 +96,8 @@ def model_umap(df, modelName='XGBoost Umap'):
         df (pd.DataFrame): Dataframe de entrada con los datos del modelo
         modelName (str, optional): Nombre del modelo para subir a WnB. Defaults to None..
     """
+    from umap import UMAP
+    import wandb
     print(f'Creando modelo {modelName}...')
     
     le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])

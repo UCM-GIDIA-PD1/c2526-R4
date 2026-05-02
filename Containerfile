@@ -12,9 +12,10 @@ WORKDIR /steam_predictor
 # Copiar todo el código y ficheros de dependencias
 COPY pyproject.toml README.md uv.lock .python-version ./
 COPY app/pyproject.toml app/
-RUN uv sync --frozen --no-cache --no-install-project --no-group not_in_container
+RUN uv sync --frozen --no-cache --no-install-project --no-default-groups
 COPY . .
-RUN uv sync --frozen --no-cache --no-group not_in_container
+RUN uv sync --frozen --no-cache --no-default-groups
+RUN .venv/bin/python -m nltk.downloader stopwords wordnet punkt_tab
 
 # Establecer puerto
 EXPOSE 8000

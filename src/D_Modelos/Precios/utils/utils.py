@@ -12,14 +12,11 @@ from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix 
 from sklearn.metrics import ConfusionMatrixDisplay, classification_report
 
-from umap import UMAP
 import os
 import joblib
 
 from numpy import vstack
 from pandas import concat
-import matplotlib.pyplot as plt
-import wandb
 from src.utils.config import seed
 
 def read_prices(minio = {"minio_write": False, "minio_read": False}):
@@ -82,6 +79,7 @@ def train_val_test_split(X, y):
     return X_train, X_val, X_test, y_train, y_val, y_test
 
 def umap_embeddings(X_train, X_val, X_test, emb_col, n_components=16):
+    from umap import UMAP
     """
     Aplica UMAP a la columna de embeddings para train, validation y test.
     
@@ -211,6 +209,8 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=Fal
 
     wandb_matrix = None
     if classes is not None:
+        import matplotlib.pyplot as plt
+        import wandb
         fig, ax = plt.subplots(figsize=(10,6))
         disp = ConfusionMatrixDisplay.from_predictions(
             y_test, y_pred,
@@ -238,6 +238,7 @@ def save_model(output_file, final_model):
     print(f"Modelo guardado en models/precios/{output_file}")
 
 def save_confusion_matrix(y_test, y_pred, classes, img_path='models/media/confusionmatrix.png', encoder=None):
+    import matplotlib.pyplot as plt
     if encoder:
         y_test= encoder.inverse_transform(y_test)
         y_preds= encoder.inverse_transform(y_pred)

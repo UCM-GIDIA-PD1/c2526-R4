@@ -1,5 +1,4 @@
 import os
-import wandb
 import pandas as pd
 import numpy as np
 from abc import ABC, abstractmethod
@@ -70,6 +69,7 @@ class PopularityModel(ABC):
 
     def run_experiment(self, df_raw, config, hyperparameters=None):
         """Flujo de ejecución de un modelo"""
+        import wandb
         
         run = wandb.init(
             entity=self.entity, 

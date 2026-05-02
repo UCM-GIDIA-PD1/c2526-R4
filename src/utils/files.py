@@ -11,9 +11,6 @@ import joblib
 from .config import steam_log_file
 from .minio_server import upload_to_minio, download_from_minio, erase_from_minio, file_exists_minio
 
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-
 from pathlib import Path
 
 # ------- GUARDAR DATOS A FICHEROS -------
@@ -54,6 +51,8 @@ def _save_pkl(data, filepath):
 
 def _save_figure(fig, filepath):
     """Guarda un objeto Figure de Matplotlib y lo cierra."""
+    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
     fig.savefig(filepath, bbox_inches='tight')
     plt.close(fig)
 
@@ -115,6 +114,8 @@ def write_to_file(data, filepath, minio = {"minio_write": False, "minio_read": F
     Returns:
         boolean: True si se ha escrito en el archivo correctamente, false en caso contrario.
     """
+    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
 
     filepath = Path(filepath)
 
