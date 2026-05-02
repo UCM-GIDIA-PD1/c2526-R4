@@ -21,6 +21,8 @@ from src.D_Modelos.Reviews.utils.preprocesamiento import clean_text_stem
 from src.D_Modelos.Reviews.utils.utils import get_metrics
 from src.utils.config import seed
 
+class_names = ["Negativo", "Positivo"]
+
 def transform_logistic_regression(df):
     return df
 
@@ -143,7 +145,7 @@ def train_optuna(X_train, X_test, y_train, y_test, minio):
     
     y_pred_test = model.predict(X_test)
 
-    metricas = get_metrics(y_test, y_pred_test)
+    metricas = get_metrics(y_test, y_pred_test, class_names)
     
     run.config.update(study.best_params)
     run.log({
@@ -211,7 +213,7 @@ def train_gridsearch(X_train, X_test, y_train, y_test, minio):
     
     y_pred_test = grid.predict(X_test)
 
-    metricas = get_metrics(y_test, y_pred_test)
+    metricas = get_metrics(y_test, y_pred_test, class_names)
     
     run.config.update(best_params)
     run.log({
@@ -219,7 +221,8 @@ def train_gridsearch(X_train, X_test, y_train, y_test, minio):
         "Balanced accuracy": metricas["balanced_accuracy"],
         "Precision": metricas["precision"],
         "Recall": metricas["recall"],
-        "F1-score": metricas["f1-score"]
+        "F1-score": metricas["f1-score"],
+        "Confusion maxtrix": metricas["confusion_matrix"]
     })
     run.finish()
 
@@ -266,7 +269,7 @@ def main(minio = {"minio_write": False, "minio_read": False}):
        best_params =  train_optuna(X_train, X_test, y_train, y_test, minio)
        retrain_final_model(X, y, best_params, minio)
     else:
-        mejores_parametros = train_gridsearch(X_train, X_test, y_train, y_test, minio)
+        best_params = train_gridsearch(X_train, X_test, y_train, y_test, minio)
 
 if __name__ == "__main__":
     main()

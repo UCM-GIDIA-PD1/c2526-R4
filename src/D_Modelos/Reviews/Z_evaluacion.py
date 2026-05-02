@@ -20,6 +20,8 @@ from sklearn.model_selection import train_test_split
 from src.D_Modelos.model_list import models_reviews, best_reviews_model_retrained
 from src.D_Modelos.Reviews.utils.utils import get_metrics
 
+class_names = ["Negativo", "Positivo"]
+
 def evaluate_models(minio):
     run = wandb.init(
         entity="pd1-c2526-team4",
@@ -46,7 +48,7 @@ def evaluate_models(minio):
         y_real = test_df[y_variable]
         y_pred = config["prediction_function"](model_data, test_df, train_df)
 
-        metrics_dict = get_metrics(y_real, y_pred)
+        metrics_dict = get_metrics(y_real, y_pred, class_names)
 
         table.add_data(
             model_name,
@@ -55,6 +57,7 @@ def evaluate_models(minio):
             metrics_dict['balanced_accuracy'],
             metrics_dict['recall'],
             metrics_dict['precision']
+            metrics_dict['confusion_matrix']
         )
 
     df_raw_new = read_new_data(minio)

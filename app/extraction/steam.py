@@ -4,6 +4,7 @@ import requests
 from sentence_transformers import SentenceTransformer
 from PIL import Image, ImageStat
 from io import BytesIO
+import base64
 
 from src.utils.date import format_date_string, unix_to_date_string
 from src.A_Extraccion.utils_extraccion.steam_requests import _parse_supported_languages
@@ -63,18 +64,38 @@ def get_appdetails(appid : str) -> dict:
     return appdetails
 
 def get_image_metadata(url: str) -> tuple[float, list]:
-    """Obtiene el embedding y el brillo a partir de la url de la imagen
+    """Obtiene el embedding y el brillo a partir de la url de la imagen (o base64)
     """
-    print(f"Obteniendo metadatos de la imagen {url}")
-    # Cargar imagen desde URL
-    response = requests.get(url)
-    img = Image.open(BytesIO(response.content)).convert('RGB')
+    print(f"Obteniendo metadatos de la imagen (longitud: {len(url)})")
     
-    # Obtener brilo
+    # Cargar imagen
+    if url.startswith("http"):
+        # Descarga desde URL
+        response = requests.get(url)
+        img = Image.open(BytesIO(response.content)).convert('RGB')
+    elif "," in url:
+        # Decodificación desde Base64 (típico de req.image)
+        try:
+            header, encoded = url.split(",", 1)
+            data = base64.b64decode(encoded)
+            img = Image.open(BytesIO(data)).convert('RGB')
+        except Exception as e:
+            print(f"Error decodificando base64: {e}")
+            # Fallback a imagen gris si falla
+            img = Image.new('RGB', (224, 224), color='gray')
+    else:
+        # Carga desde ruta local
+        try:
+            img = Image.open(url).convert('RGB')
+        except Exception as e:
+            print(f"Error cargando imagen local {url}: {e}")
+            img = Image.new('RGB', (224, 224), color='gray')
+    
+    # Obtener brillo
     stat = ImageStat.Stat(img)
     brillo = round(stat.mean[0], 4)
     
-    # Extraer embedding
+    # Extraer embedding CLIP
     feat_clip = MODEL_CLIP.encode(img)
     vector_clip = [round(float(x), 4) for x in feat_clip.tolist()]
     
