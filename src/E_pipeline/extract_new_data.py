@@ -273,6 +273,38 @@ def b_transformacion(gamelist_path, minio_cfg={"minio_write": False, "minio_read
     print(f"B_Transformación completada.")
     print(f"Archivos guardados en:\n - \"new_games_info_popularity.parquet\"\n - \"new_games_info_prices.parquet\"")
 
+def c_transformacion_youtube(youtube_stats_path, minio_cfg={"minio_write": False, "minio_read": False}):
+    """
+    Filtra los vídeos mediante LLM, aplana las estadísticas y calcula el yt_score final.
+    Mantiene la estructura de columnas exacta para el merge posterior.
+    """
+    print("Iniciando C_Transformación YouTube...")
+    
+
+    data = read_file(youtube_stats_path, minio_cfg)
+    if not data:
+        print("No se encontraron datos de YouTube para procesar.")
+        return
+
+
+    print("Filtrando vídeos con LLM para eliminar ruido...")
+    data_filtrado = filtrado_por_clasificacion(data, minio_cfg)
+    
+
+    print("Transformando a DataFrame y aplanando estadísticas...")
+    df = _transform_to_dataframe(data_filtrado)
+
+
+    print("Calculando métrica yt_score...")
+    df_metrica = procesar_impacto_youtube(df)
+
+
+    print(f"Guardando Parquet en: \"new_yt_stats.parquet\"")
+    df_metrica.to_parquet("new_yt_stats.parquet")
+    
+    print("C_Transformación YouTube completada.")
+
+
 
 def integrate_new_data():
 
@@ -291,3 +323,5 @@ if __name__ == "__main__":
     youtube_info_1 = read_file(new_youtube_info_file)
     youtube_info_2 = extract_youtube_info_2(youtube_info_1, session)
     b_transformacion(new_gameinfo_file)
+    c_transformacion_youtube(youtube_info_2)
+    
