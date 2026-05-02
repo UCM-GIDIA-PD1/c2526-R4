@@ -16,7 +16,7 @@ from src.utils.files import erase_file, file_exists, write_to_file
 from src.utils.config import yt_statslist_file
 from src.utils.minio_server import upload_to_minio
 
-from utils_extraccion.sesion import get_pending_games, overwrite_confirmation, ask_overwrite_file, update_config
+from src.A_Extraccion.utils_extraccion.sesion import get_pending_games, overwrite_confirmation, ask_overwrite_file, update_config
 
 def _get_apikey():
     """

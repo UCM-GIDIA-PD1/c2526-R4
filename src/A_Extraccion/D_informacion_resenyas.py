@@ -16,9 +16,9 @@ from src.utils.files import erase_file, write_to_file, file_exists
 from src.utils.minio_server import upload_to_minio
 from src.utils.exceptions import SteamAPIException
 
-from utils_extraccion.webscraping import user_agents
-from utils_extraccion.steam_requests import get_resenyas
-from utils_extraccion.sesion import get_pending_games, ask_overwrite_file, overwrite_confirmation, update_config
+from src.A_Extraccion.utils_extraccion.webscraping import user_agents
+from src.A_Extraccion.utils_extraccion.steam_requests import get_resenyas
+from src.A_Extraccion.utils_extraccion.sesion import get_pending_games, ask_overwrite_file, overwrite_confirmation, update_config
 
 def _download_game_data(game, curr_idx, sesion):
     """

@@ -20,10 +20,9 @@ from sentence_transformers import SentenceTransformer
 from src.utils.minio_server import upload_to_minio
 from src.utils.files import write_to_file, erase_file, file_exists
 from src.utils.config import banners_file, project_root, data_path
-
-from utils_extraccion.webscraping import user_agents
-from utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games
-from utils_extraccion.sesion import overwrite_confirmation, handle_input
+from src.A_Extraccion.utils_extraccion.webscraping import user_agents
+from src.A_Extraccion.utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games
+from src.A_Extraccion.utils_extraccion.sesion import overwrite_confirmation, handle_input
 
 def _analiza_imagen(img_path, url,  trans, appid, download_images, model_resnet, model_clip, model_convnext, sesion):
     """
