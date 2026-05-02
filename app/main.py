@@ -427,7 +427,7 @@ def predict_precio(req: PredictionRequest):
     print('Predicción', range_label, prediction)
     return PriceResponse(price=range_label)
 
-@app.post("/api/predict/reviews", response_model=ReviewsTopicsResponse)
+@app.post("/api/predict/reviews/topics", response_model=ReviewsTopicsResponse)
 def predict_reviews(req: PredictionRequest):
     """Predicción de sentimiento de reseñas (stub)."""
     appid = str(req.appid)
@@ -442,15 +442,16 @@ def predict_reviews(req: PredictionRequest):
 
 @app.post("/api/predict/reviews", response_model=ReviewsValueResponse)
 def predict_review_value(req : PredictionReviewsRequest):
+    """Predice si una reseña es positiva (True) o negativa (False)"""
     text = clean_text(req.review)
     row = pd.DataFrame(
         {
             'is_positive' : 'dummy',
-            'text' : text
+            'text' : [text] # Aseguramos que sea una lista para evitar errores de longitud
         })
 
     prediction = predict_logistic_regression(app.state.model_reviews, row, None )
-    return ReviewsValueResponse( value=int(prediction[0]))
+    return ReviewsValueResponse( value=bool(prediction[0]))
 
 # endregion
 

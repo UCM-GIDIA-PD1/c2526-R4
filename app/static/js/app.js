@@ -797,7 +797,7 @@ function navigateToCustomGame() {
                     <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px;">
                         <button type="button" id="btn-search-yt" class="btn-predict-custom" style="padding: 6px 12px; margin: 0; font-size: 0.75rem;">Buscar vídeos</button>
                     </div>
-                    <p style="font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 10px;">Buscamos vídeos antes de la fecha de publicación. Selecciona los que quieras usar para la predicción. Se necesita el título del vídeo y la fecha de publicación</p>
+                    <p style="font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 10px;">Buscamos vídeos antes de la fecha de publicación. Selecciona los que quieras usar para la predicción. Se necesita el título del vídeo y la fecha de publicación para realizar la búsqueda.</p>
                     <div id="cg-yt-results" class="yt-videos-grid">
                         <!-- Los vídeos se inyectarán aquí -->
                     </div>
@@ -822,7 +822,7 @@ function navigateToCustomGame() {
 
         <div class="custom-game-review-container vision-glass" style="margin-top: 2rem;">
             <h3 class="pred-title">Analizador de Reseñas</h3>
-            <p style="color: rgba(255, 255, 255, 0.4); font-size: 1rem; font-weight: 300; margin-bottom: 1.5rem;">Escribe una reseña y el modelo predecirá si es positiva o negativa.</p>
+            <p style="color: rgba(255, 255, 255, 0.4); font-size: 1rem; font-weight: 300; margin-bottom: 1.5rem;">Escribe una reseña en INGLÉS y el modelo predecirá si es positiva o negativa.</p>
             <textarea id="cg-review-text" rows="4" placeholder="Escribe tu reseña aquí..." class="custom-select-style" style="resize: vertical; font-size: 1rem; font-weight: 300;"></textarea>
             <button id="btn-predict-review" class="btn-predict-custom" style="margin-top: 1rem; margin-bottom: 1rem;">Analizar Sentimiento</button>
             <div id="cg-review-result" style="display: none; font-size: 1.2rem; font-weight: 500; text-align: center; padding: 1rem; border-radius: var(--radius-md);"></div>
@@ -1129,13 +1129,13 @@ function navigateToCustomGame() {
             });
             const data = await res.json();
             
-            if (data.value === 1) {
-                resultDiv.innerHTML = '✨ Reseña Positiva';
+            if (data.value) {
+                resultDiv.innerHTML = 'Reseña Positiva';
                 resultDiv.style.backgroundColor = 'rgba(46, 204, 113, 0.1)';
                 resultDiv.style.color = '#2ecc71';
                 resultDiv.style.border = '1px solid rgba(46, 204, 113, 0.3)';
             } else {
-                resultDiv.innerHTML = '🔻 Reseña Negativa';
+                resultDiv.innerHTML = 'Reseña Negativa';
                 resultDiv.style.backgroundColor = 'rgba(231, 76, 60, 0.1)';
                 resultDiv.style.color = '#e74c3c';
                 resultDiv.style.border = '1px solid rgba(231, 76, 60, 0.3)';
