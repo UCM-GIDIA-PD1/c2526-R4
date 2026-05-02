@@ -21,7 +21,7 @@ import pandas as pd
 from src.B_Transformacion.B_games_info_transformacion import trans_prices, trans_popularity
 from src.B_Transformacion.C_estadisticas_youtube import _transform_to_dataframe, procesar_impacto_youtube
 from src.B_Transformacion.filtrado_youtube_llm import descargar_modelo, clasificacion_ollama
-from src.utils.config import appidlist_file, gamelist_file
+from src.utils.config import appidlist_file, gamelist_file, pipelines_path
 from src.B_Transformacion.E_info_imagenes_transformacion import reduct_dataframes_from_models
 from src.B_Transformacion.D2_limpieza_reviews import limpieza_inicial, detect_language, limpieza_final, to_dataframe
 
@@ -29,7 +29,7 @@ def extract_new_appids():
     appid_list = read_file(appidlist_file)        
     last_appid = appid_list[-1]
     new_appids = get_appids(last_appid=last_appid)
-    write_to_file(new_appids, Path("new_appid_list.json.gz"))
+    write_to_file(new_appids, Path(pipelines_path() / "new_appid_list.json.gz"))
     return new_appids
 
 def extract_new_appids_v2():
@@ -37,11 +37,11 @@ def extract_new_appids_v2():
     old_appids = set(game.get("id") for game in gamesinfo)
     new_appids = get_appids(last_appid=0)
     new_appids = [appid for appid in new_appids if appid not in old_appids]
-    write_to_file(new_appids, Path("new_appid_list.json.gz"))
+    write_to_file(new_appids, Path(pipelines_path() / "new_appid_list.json.gz"))
     return new_appids
 
 def extract_steam_info(new_appids, session):
-    output_file = Path("new_gamelist.jsonl.gz")
+    output_file = Path(pipelines_path() / "new_gamelist.jsonl.gz")
     with tqdm(new_appids, unit = "appids") as pbar:
         for appid in pbar:
             pbar.set_description(f"Procesando appid {appid}")
@@ -73,9 +73,9 @@ def _load_image_models():
 
 def extract_steam_images(apps_info, session):
     model_resnet, model_convnext, model_clip, trans = _load_image_models()
-    ruta_imagenes = Path("new_images/")
+    ruta_imagenes = Path(pipelines_path() / "new_images/")
     os.makedirs(ruta_imagenes, exist_ok=True)
-    output_file = Path("new_info_imagenes.jsonl.gz")
+    output_file = Path(pipelines_path() / "new_info_imagenes.jsonl.gz")
 
     with tqdm(apps_info, unit="juegos") as pbar:
         for juego in pbar:
@@ -99,7 +99,7 @@ def extract_steam_images(apps_info, session):
     return output_file
 
 def extract_steam_reviews(apps_info, session):
-    output_file = Path("new_reviews.jsonl.gz")
+    output_file = Path(pipelines_path() / "new_reviews.jsonl.gz")
     with tqdm(apps_info, unit="juegos") as pbar:
         for juego in pbar:
             appid = juego.get("id")
@@ -120,7 +120,7 @@ def extract_youtube_info_1(apps_info):
     session = new_configured_chromium_page()
     last_timestamp = time()
     interval = _IP_interval_rotation()
-    output_file = Path("new_info_steam_youtube.jsonl.gz")
+    output_file = Path(pipelines_path() / "new_info_steam_youtube.jsonl.gz")
     with tqdm(apps_info, unit="juegos") as pbar:
         for game in pbar:
             appid = game.get('id')
@@ -143,7 +143,7 @@ def extract_youtube_info_1(apps_info):
 def extract_youtube_info_2(yt_search_data):
     API_KEY = _get_apikey()
     youtube = build('youtube', 'v3', developerKey=API_KEY)
-    output_file = Path("new_youtube_statistics.jsonl.gz")
+    output_file = Path(pipelines_path() / "new_youtube_statistics.jsonl.gz")
     with tqdm(yt_search_data, unit="juegos") as pbar:
         for app in pbar:
             appid = app.get('id')
@@ -162,12 +162,12 @@ def b_transformacion(gamelist_path):
     data = read_file(gamelist_path)
     df_full = pd.DataFrame(data)
     df_pop = trans_popularity(df_full.copy(), {"minio_write": False, "minio_read": False})
-    df_pop.to_parquet(Path("new_games_info_popularity.parquet"))
+    df_pop.to_parquet(Path(pipelines_path() / "new_games_info_popularity.parquet"))
     df_prices = trans_prices(df_full.copy(), {"minio_write": False, "minio_read": False})
-    df_prices.to_parquet(Path("new_games_info_prices.parquet"))
+    df_prices.to_parquet(Path(pipelines_path() / "new_games_info_prices.parquet"))
 
 def filtrado_por_clasificacion(data, minio):
-    raw_steam_info = read_file(Path("new_gamelist.jsonl.gz"), minio)
+    raw_steam_info = read_file(Path(pipelines_path() / "new_gamelist.jsonl.gz"), minio)
     dict_id_description = {str(item["id"]): {"short_description": item['appdetails'].get("short_description", "No description"), 
                                         "name": item['appdetails'].get("name", "No name")} 
                                         for item in raw_steam_info}
@@ -207,13 +207,13 @@ def c_transformacion_youtube(youtube_stats_path):
     data_filtrado = filtrado_por_clasificacion(data, {"minio_write": False, "minio_read": False})
     df = _transform_to_dataframe(data_filtrado)
     df_metrica = procesar_impacto_youtube(df)
-    df_metrica.to_parquet(Path("new_yt_stats.parquet"))
+    df_metrica.to_parquet(Path(pipelines_path() / "new_yt_stats.parquet"))
 
 def e_transformacion_imagenes(banners_raw_path):
     data = read_file(banners_raw_path)
     df = pd.DataFrame(data)
     reduct_dataframes_from_models(df)
-    df.to_parquet(Path("new_P_info_imagenes.parquet"))
+    df.to_parquet(Path(pipelines_path() / "new_P_info_imagenes.parquet"))
 
 def d_transformacion_reviews(reviews_raw_path):
     raw_data = read_file(reviews_raw_path)
@@ -226,7 +226,7 @@ def d_transformacion_reviews(reviews_raw_path):
     df_en["appid"] = df_en["appid"].astype(str)
     df_en.drop(columns=["language"], inplace=True)
     df_en["language"] = "en" 
-    df_en.to_parquet(Path("new_steam_reviews_processed.parquet"))
+    df_en.to_parquet(Path(pipelines_path() / "new_steam_reviews_processed.parquet"))
 
 def crear_parquets_definitivos(pop_path, prices_path, images_path, youtube_path):
     print("Consolidando parquets definitivos...")
@@ -264,8 +264,8 @@ def crear_parquets_definitivos(pop_path, prices_path, images_path, youtube_path)
 
         df_final.drop(columns=cols_sobrantes, inplace=True)
 
-    df_final_prices.to_parquet(Path("final_dataset_prices.parquet"))
-    df_final_pop.to_parquet(Path("final_dataset_popularity.parquet"))
+    df_final_prices.to_parquet(Path(pipelines_path() / "final_dataset_prices.parquet"))
+    df_final_pop.to_parquet(Path(pipelines_path() / "final_dataset_popularity.parquet"))
 
 
 def integrar_datos():
@@ -291,8 +291,8 @@ def integrar_datos():
     ]
 
     for item in config_fusion:
-        path_v = Path(item["viejo"])
-        path_n = Path(item["nuevo"])
+        path_v = Path(pipelines_path() / item["viejo"])
+        path_n = Path(pipelines_path() / item["nuevo"])
         
         if not path_v.exists() or not path_n.exists():
             print(f"Saltando {item['salida']}: No se encontró alguno de los archivos.")
@@ -304,28 +304,26 @@ def integrar_datos():
 
         df_final = pd.concat([df_v, df_n], ignore_index=True)
         df_final = df_final.drop_duplicates(subset=item["id"], keep='last')
-        df_final.to_parquet(Path(item["salida"]))
+        df_final.to_parquet(pipelines_path() / Path(item["salida"]))
         
 
 
 if __name__ == "__main__":
+    """
+    Para ejecutar este sript es necesario tener en el directorio la lista de appids antigua, y los parquets definitivos anteriores
+    """
     session = Session()
     
     new_appids = extract_new_appids()
     new_gameinfo_file = extract_steam_info(new_appids, session)
-    new_gameinfo_file = Path("new_gamelist.jsonl.gz")
     print(os.getcwd())
     apps_info = read_file(new_gameinfo_file)
     assert apps_info is not None
     new_images_file = extract_steam_images(apps_info, session)
-    new_images_file = Path("new_info_imagenes.jsonl.gz")
     new_reviews_file = extract_steam_reviews(apps_info, session)
-    new_reviews_file = Path("new_reviews.jsonl.gz")
     new_yt_search_file = extract_youtube_info_1(apps_info)
-    new_yt_search_file = Path("new_info_steam_youtube.jsonl.gz")
     yt_search_data = read_file(new_yt_search_file)
     new_yt_stats_file = extract_youtube_info_2(yt_search_data)
-    new_yt_stats_file = Path("new_youtube_statistics.jsonl.gz")
 
     b_transformacion(new_gameinfo_file)
     
@@ -336,11 +334,11 @@ if __name__ == "__main__":
     d_transformacion_reviews(new_reviews_file)
 
     crear_parquets_definitivos(
-        pop_path=Path("new_games_info_popularity.parquet"),
-        prices_path=Path("new_games_info_prices.parquet"),
-        images_path=Path("new_P_info_imagenes.parquet"),
-        youtube_path=Path("new_yt_stats.parquet")
+        pop_path=Path(pipelines_path() / "new_games_info_popularity.parquet"),
+        prices_path=Path(pipelines_path() / "new_games_info_prices.parquet"),
+        images_path=Path(pipelines_path() / "new_P_info_imagenes.parquet"),
+        youtube_path=Path(pipelines_path() / "new_yt_stats.parquet")
     )
-    
+
     integrar_datos()
    

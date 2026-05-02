@@ -124,6 +124,11 @@ def processed_data_path():
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def pipelines_path():
+    path = project_root() / "src" / "E_pipeline"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
 def app_dir():
     """Devuelve un objecto Path con el directorio de la aplicación (app/)"""
     return project_root() / "app"
