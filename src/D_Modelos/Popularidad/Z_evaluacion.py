@@ -10,9 +10,9 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error, median_absolute_error
 
-from src.utils.config import popularity, seed
+from src.utils.config import popularity, seed, new_data_popularity
 from src.utils.files import read_file
-from src.D_Modelos.model_list import models_popularidad
+from src.D_Modelos.model_list import models_popularidad, best_popularity_model_retrained
 
 def evaluate_models(minio):
     run = wandb.init(
@@ -23,8 +23,9 @@ def evaluate_models(minio):
     )
 
     df_raw = read_file(popularity, minio)
-    y_variable = "recomendaciones_totales"
+    df_new = read_file(new_data_popularity, minio)
 
+    y_variable = "recomendaciones_totales"
     table = wandb.Table(columns=["Model", "MAE", "RMSE", "MEDAE"])
 
     for model_name, info in models_popularidad.items():
@@ -47,6 +48,17 @@ def evaluate_models(minio):
             medae = median_absolute_error(y_real, y_pred)
 
             table.add_data(model_name, mae, rmse, medae)
+
+    info_retrained = best_popularity_model_retrained
+    model_retrained = info_retrained["class_ref"](minio=minio, **info_retrained.get("kwargs", {}))
+    
+    metricas_retrained = model_retrained.evaluate(
+        df_raw, 
+        config=info_retrained["config"], 
+        df_test=df_new
+    )
+    
+    table.add_data("MLP (Retrained)", metricas_retrained["mae"], metricas_retrained["rmse"], metricas_retrained["medae"])
 
     wandb.log({"comparative_table": table})
     print("\nEvaluación completada.")
