@@ -402,24 +402,31 @@ def crear_parquets_definitivos(pop_path, prices_path, images_path, youtube_path)
 
 
 def integrate_new_data():
-
     pass
 
 if __name__ == "__main__":
     session = Session()
+    print("1----------------")
     new_appids = extract_new_appids()
+    print("2----------------")
     new_gameinfo_file = extract_steam_info(new_appids, session)
-
     apps_info = read_file(new_gameinfo_file)
+    print("3----------------")
     extract_steam_images(apps_info, session)
+    print("4----------------")
     extract_steam_reviews(apps_info, session)
-
+    print("5----------------")
     new_youtube_info_file = extract_youtube_info_1(apps_info, session)
     youtube_info_1 = read_file(new_youtube_info_file)
+    print("6----------------")
     youtube_info_2 = extract_youtube_info_2(youtube_info_1, session)
+    print("7----------------")
     b_transformacion(new_gameinfo_file)
+    print("8----------------")
     c_transformacion_youtube(youtube_info_2)
+    print("9----------------")
     d_transformacion_reviews("new_reviews.jsonl.gz")
+    print("10---------------")
     crear_parquets_definitivos(
         pop_path="new_games_info_popularity.parquet",
         prices_path="new_games_info_prices.parquet",
