@@ -31,7 +31,7 @@ from src.D_Modelos.Popularidad.mlp import MLPPopularity
 from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_mlp_file, reviews_logistic_regression_optuna_file
 from src.utils.files import read_file
 from src.D_Modelos.Reviews.logistic_regression import predict_logistic_regression
-# from src.D_Modelos.Reviews.FASTopic_classifier import load_topic_model,pipeline
+from src.D_Modelos.Reviews.FASTopic_classifier import load_topic_model,pipeline
 
 # Dependencias para limpiar texto
 nltk.download('stopwords')
@@ -113,7 +113,7 @@ class GameInfo(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    minio = {"minio_write": False, "minio_read": True}
+    minio = {"minio_write": False, "minio_read": False}
 
     # Cargar modelos 
     print("Cargando modelo de popularidad")
@@ -123,7 +123,7 @@ async def lifespan(app: FastAPI):
     print("Cargando modelo de reviews(Simple)")
     app.state.model_reviews = read_file(reviews_logistic_regression_optuna_file, minio)
     print("Cargando modelo de reviews (Complejo)")
-    # app.state.model_topics = load_topic_model() 
+    app.state.model_topics = load_topic_model() 
 
     # Cargar los datos históricos de developers y publishers
     print("Cargando datos históricos de juegos")

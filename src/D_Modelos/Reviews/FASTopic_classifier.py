@@ -16,7 +16,7 @@ from fastopic import FASTopic
 import re
 import spacy
 
-nlp = spacy.load(reviews_en_core_web_sm)
+nlp = spacy.load("en_core_web_sm")
 def spacy_tokenizer(text):
     doc = nlp(text)
     return [
@@ -29,14 +29,35 @@ def spacy_tokenizer(text):
         and len(token.text) > 2
     ]
 
+
+import sys
+import types
+
 def load_topic_model():
+    # Pickle needs to find 'spacy_tokenizer' in the module it was saved from.
+    # When running under uvicorn/fastapi workers, __main__ is the worker entry point,
+    # not your script — so we inject the function there manually before loading.
+    for mod_name in ("__main__", "__mp_main__"):
+        mod = sys.modules.get(mod_name)
+        if mod is not None and not hasattr(mod, "spacy_tokenizer"):
+            mod.spacy_tokenizer = spacy_tokenizer
+
     topic_model = FASTopic.from_pretrained(reviews_fastopic_file)
-    # daba errores de tensores en distintos dispositivos (cuda, cpu), así que se asegura que todo esté en CPU para evitar esos problemas
+
     topic_model.model.to("cpu")
     topic_model.train_doc_embeddings = topic_model.train_doc_embeddings.to("cpu")
     if hasattr(topic_model.model, 'topic_embeddings'):
         topic_model.model.topic_embeddings = topic_model.model.topic_embeddings.to("cpu")
+
     return topic_model
+# def load_topic_model():
+#     topic_model = FASTopic.from_pretrained(reviews_fastopic_file)
+#     # daba errores de tensores en distintos dispositivos (cuda, cpu), así que se asegura que todo esté en CPU para evitar esos problemas
+#     topic_model.model.to("cpu")
+#     topic_model.train_doc_embeddings = topic_model.train_doc_embeddings.to("cpu")
+#     if hasattr(topic_model.model, 'topic_embeddings'):
+#         topic_model.model.topic_embeddings = topic_model.model.topic_embeddings.to("cpu")
+#     return topic_model
 
 def remove_hearts(text):
     text = re.sub(r'(hearts){2,}', '', text)
@@ -74,9 +95,9 @@ def return_statistics(df):
     print(counts)
     return counts
 
-def pipeline(df):
-    print("Cargando modelo FASTopic...")
-    model = load_topic_model()
+def pipeline(df, model):
+    # print("Cargando modelo FASTopic...")
+    # model = load_topic_model()
 
     print("Realizando predicciones de temas...")
     df = topic_predict(df, model)
