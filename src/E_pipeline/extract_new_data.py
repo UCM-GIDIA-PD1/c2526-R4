@@ -52,8 +52,16 @@ from src.A_Extraccion.C1_informacion_youtube_busquedas import _IP_interval_rotat
 from src.A_Extraccion.utils_extraccion.webscraping import start_tor, renew_tor_ip, new_configured_chromium_page, search_youtube
 from src.A_Extraccion.C2_informacion_youtube_videos import _get_apikey, _request_youtube
 from googleapiclient.discovery import build
-
+import pandas as pd
+from src.B_Transformacion.B_games_info_transformacion import trans_prices, trans_popularity
+from src.B_Transformacion.C_estadisticas_youtube import _transform_to_dataframe, procesar_impacto_youtube
+from src.B_Transformacion.filtrado_youtube_llm import filtrado_por_clasificacion
+from src.utils.config import yt_stats_parquet_file
 from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, steam_reviews_file, banners_file
+from src.B_Transformacion.E_info_imagenes_transformacion import reduct_dataframes_from_models
+from src.utils.config import P_banners_file
+from src.B_Transformacion.D2_limpieza_reviews import limpieza_inicial, detect_language, limpieza_final, to_dataframe
+from src.utils.config import steam_reviews_parquet_file
 # Extraer los nuevos de appids
 
 def extract_new_appids():
@@ -239,7 +247,33 @@ def extract_youtube_info_2(apps_info):
                 pbar.write(f"Error obteniendo información de YouTube para el juego {appid}: {e}")
     return "new_youtube_statistics.jsonl.gz"
 
-# Integrar los nuevos datos con los anteriores
+def b_transformacion(gamelist_path, minio_cfg={"minio_write": False, "minio_read": False}):
+    """
+    Transforma la información técnica de Steam para los dos problemas (Precio y Popularidad).
+    Usa las funciones originales para asegurar consistencia en los nombres de las columnas.
+    """
+    print("Iniciando B_Transformación...")
+    
+
+    data = read_file(gamelist_path, minio_cfg)
+    if not data:
+        print("No se encontraron datos para transformar.")
+        return
+    
+    df_full = pd.DataFrame(data)
+
+    print("Generando Parquet de Popularidad...")
+    df_pop = trans_popularity(df_full.copy(), minio_cfg)
+    df_pop.to_parquet("new_games_info_popularity.parquet")
+
+    print("Generando Parquet de Precios...")
+    df_prices = trans_prices(df_full.copy(), minio_cfg)
+    df_prices.to_parquet("new_games_info_prices.parquet")
+    
+    print(f"B_Transformación completada.")
+    print(f"Archivos guardados en:\n - \"new_games_info_popularity.parquet\"\n - \"new_games_info_prices.parquet\"")
+
+
 def integrate_new_data():
 
     pass
@@ -256,3 +290,4 @@ if __name__ == "__main__":
     new_youtube_info_file = extract_youtube_info_1(apps_info, session)
     youtube_info_1 = read_file(new_youtube_info_file)
     youtube_info_2 = extract_youtube_info_2(youtube_info_1, session)
+    b_transformacion(new_gameinfo_file)
