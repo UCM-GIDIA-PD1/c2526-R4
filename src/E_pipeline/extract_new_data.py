@@ -37,7 +37,7 @@ Ya en general, quitar complejidad innecesaria y un codigo más legible y sencill
 
 from src.A_Extraccion.utils_extraccion.steam_requests import get_appids
 from src.A_Extraccion.B_informacion_juegos import _download_game_data
-from utils.files import read_file, write_to_file
+from src.utils.files import read_file, write_to_file
 from tqdm import tqdm
 from time import sleep, time
 from numpy.random import uniform
@@ -370,6 +370,37 @@ def d_transformacion_reviews(reviews_raw_path, minio_cfg={"minio_write": False, 
     
     print("D_Transformación Reseñas completada.")
 
+def crear_parquets_definitivos(pop_path, prices_path, images_path, youtube_path):
+    """
+    Junta los parquets de transformación (B, C, E) para generar los datasets finales 
+    listos para entrenamiento.
+    """
+    print("Iniciando creación de parquets definitivos...")
+
+    df_B_pop = pd.read_parquet(pop_path)
+    df_B_prices = pd.read_parquet(prices_path)
+    df_E = pd.read_parquet(images_path)
+    df_C = pd.read_parquet(youtube_path)
+
+    for df in [df_B_pop, df_B_prices, df_E, df_C]:
+        df["id"] = df["id"].astype(str)
+
+
+    print("Consolidando dataset de PRECIOS...")
+    df_final_prices = pd.merge(df_B_prices, df_E, on="id")
+    df_final_prices = df_final_prices.dropna()
+    df_final_prices.to_parquet("new_precios.parquet")
+
+    print("Consolidando dataset de POPULARIDAD...")
+    df_final_pop = pd.merge(df_B_pop, df_E, on="id")
+    df_final_pop = pd.merge(df_final_pop, df_C, on="id")
+    df_final_pop = df_final_pop.dropna()
+    df_final_pop.to_parquet("new_popularidad.parquet")
+
+    print(f"Proceso completado con éxito.")
+    print(f"Datasets generados:\n - final_dataset_prices.parquet\n - final_dataset_popularity.parquet")
+
+
 def integrate_new_data():
 
     pass
@@ -388,5 +419,11 @@ if __name__ == "__main__":
     youtube_info_2 = extract_youtube_info_2(youtube_info_1, session)
     b_transformacion(new_gameinfo_file)
     c_transformacion_youtube(youtube_info_2)
-    e_transformacion_imagenes("new_popularidad.parquet")
     d_transformacion_reviews("new_reviews.jsonl.gz")
+    crear_parquets_definitivos(
+        pop_path="new_games_info_popularity.parquet",
+        prices_path="new_games_info_prices.parquet",
+        images_path="new_P_info_imagenes.parquet",
+        youtube_path="new_yt_stats.parquet"
+    )
+    e_transformacion_imagenes("new_popularidad.parquet")
