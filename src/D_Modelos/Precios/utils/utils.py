@@ -3,7 +3,7 @@ Módulo de preprocesamiento de dataframe de precios para los modelos de predicci
 '''
 
 from src.utils.files import read_file, write_to_file
-from src.utils.config import prices, reduced_prices
+from src.utils.config import prices, reduced_prices, new_data_prices
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
@@ -39,6 +39,15 @@ def read_prices(minio = {"minio_write": False, "minio_read": False}):
     df['release_year'] = df['release_year'].apply(lambda x : int(x))
 
     return df
+
+def read_new_data(minio={"minio_write": False, "minio_read": False}):
+    
+    
+    df = read_file(filepath=new_data_prices, minio=minio)
+    assert df is not None, 'Error archivo reviews.parquet no encontrado'
+
+    return df
+
 
 def read_prices_reduced(minio = {"minio_write": False, "minio_read": False}):
     df = read_file(filepath=reduced_prices, minio=minio)

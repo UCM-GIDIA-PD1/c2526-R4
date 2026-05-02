@@ -1,6 +1,6 @@
 from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, popularidad_mlp_file
 from src.utils.config import popularidad_linear_regression_file, popularidad_linear_regression_log_file, popularidad_knn_log_file
-from src.utils.config import precios_xgboostumap_file, precios_knncompleteclusters_file, precios_mlp_file, precios_logistic_regression_file
+from src.utils.config import precios_xgboostumap_file, precios_knncompleteclusters_file, precios_mlp_file, precios_logistic_regression_file, precios_knncompleteclusters_retrained_file
 from src.utils.config import reviews_logistic_regression_optuna_file, reviews_naive_bayes_cv_file, reviews_naive_bayes_tfidf_file, reviews_logistic_regression_optuna_retrained_file
 
 from src.D_Modelos.Popularidad.baseline import predict_baseline_median, predict_baseline_mean
@@ -133,4 +133,12 @@ best_reviews_model_retrained = {
     "transform_function": transform_logistic_regression_reviews,
     "model_path": reviews_logistic_regression_optuna_retrained_file ,
     "prediction_function": predict_logistic_regression_reviews,
+}
+
+best_prices_model_retrained = {
+    "K-NN Complete Clusters": {
+            "transform_function": transform_knn_precios,
+            "model_path": precios_knncompleteclusters_retrained_file,
+            "prediction_function": predict_knn_precios,
+        }
 }
