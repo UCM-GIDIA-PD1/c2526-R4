@@ -277,7 +277,7 @@ reviews_en_core_web_sm = models_path() / "en_core_web_sm/en_core_web_sm-3.8.0"
 # Modelos reentrenados
 reviews_logistic_regression_optuna_retrained_file = models_reviews_path() / "logistic_regression_optuna_retrained.pkl"
 popularidad_mlp_retrained_file = models_popularidad_path() / "mlp_model_popularidad_retrained.pkl"
-
+precios_knncompleteclusters_retrained_file = models_precios_path() / "knncompleteclusters_retrained.pkl"
 #endregion
 # region ------ PATHS A DATOS PARA APP  ------ #
 
