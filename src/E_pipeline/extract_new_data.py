@@ -268,48 +268,72 @@ def crear_parquets_definitivos(pop_path, prices_path, images_path, youtube_path)
     df_final_pop.to_parquet(Path("final_dataset_popularity.parquet"))
 
 
+def integrar_datos():
+    config_fusion = [
+        {
+            "viejo": "popularidad.parquet",
+            "nuevo": "final_dataset_popularity.parquet",
+            "salida": "popularidad_v2.parquet",
+            "id": "id"
+        },
+        {
+            "viejo": "precios.parquet",
+            "nuevo": "final_dataset_prices.parquet",
+            "salida": "precios_v2.parquet",
+            "id": "id"
+        },
+        {
+            "viejo": "resenyas.parquet",
+            "nuevo": "new_steam_reviews_processed.parquet",
+            "salida": "resenyas_v2.parquet",
+            "id": ["appid", "text"]
+        }
+    ]
+
+    for item in config_fusion:
+        path_v = Path(item["viejo"])
+        path_n = Path(item["nuevo"])
+        
+        if not path_v.exists() or not path_n.exists():
+            print(f"Saltando {item['salida']}: No se encontró alguno de los archivos.")
+            continue
+ 
+        df_v = pd.read_parquet(path_v)
+        df_n = pd.read_parquet(path_n)
+        print("Número de elementos nuevos: ", len(df_n))
+
+        df_final = pd.concat([df_v, df_n], ignore_index=True)
+        df_final = df_final.drop_duplicates(subset=item["id"], keep='last')
+        df_final.to_parquet(Path(item["salida"]))
+        
+
 
 if __name__ == "__main__":
     session = Session()
     
-    #new_appids = extract_new_appids()
-    #print("1/11")
-    
-    #new_gameinfo_file = extract_steam_info(new_appids, session)
-    print("2/11")
-
+    new_appids = extract_new_appids()
+    new_gameinfo_file = extract_steam_info(new_appids, session)
     new_gameinfo_file = Path("new_gamelist.jsonl.gz")
     print(os.getcwd())
     apps_info = read_file(new_gameinfo_file)
     assert apps_info is not None
-    #new_images_file = extract_steam_images(apps_info, session)
+    new_images_file = extract_steam_images(apps_info, session)
     new_images_file = Path("new_info_imagenes.jsonl.gz")
-    #print("3/11")
-    
-    #new_reviews_file = extract_steam_reviews(apps_info, session)
+    new_reviews_file = extract_steam_reviews(apps_info, session)
     new_reviews_file = Path("new_reviews.jsonl.gz")
-    #print("4/11")
-    
-    #new_yt_search_file = extract_youtube_info_1(apps_info)
-    #print("5/11")
-    
+    new_yt_search_file = extract_youtube_info_1(apps_info)
     new_yt_search_file = Path("new_info_steam_youtube.jsonl.gz")
     yt_search_data = read_file(new_yt_search_file)
-    #new_yt_stats_file = extract_youtube_info_2(yt_search_data)
+    new_yt_stats_file = extract_youtube_info_2(yt_search_data)
     new_yt_stats_file = Path("new_youtube_statistics.jsonl.gz")
-    #print("6/11")
 
-    #b_transformacion(new_gameinfo_file)
-    print("7/11")
+    b_transformacion(new_gameinfo_file)
     
-    #c_transformacion_youtube(new_yt_stats_file)
-    print("8/11")
-    
-    #e_transformacion_imagenes(new_images_file)
-    print("9/11")
+    c_transformacion_youtube(new_yt_stats_file)
+
+    e_transformacion_imagenes(new_images_file)
     
     d_transformacion_reviews(new_reviews_file)
-    print("10/11")
 
     crear_parquets_definitivos(
         pop_path=Path("new_games_info_popularity.parquet"),
@@ -317,6 +341,6 @@ if __name__ == "__main__":
         images_path=Path("new_P_info_imagenes.parquet"),
         youtube_path=Path("new_yt_stats.parquet")
     )
-    print("11/11 - Done")
-
+    
+    integrar_datos()
    
