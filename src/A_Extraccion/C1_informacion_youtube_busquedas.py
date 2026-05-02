@@ -18,8 +18,8 @@ from src.utils.files import write_to_file, erase_file, file_exists
 from src.utils.config import youtube_scraping_file
 from src.utils.minio_server import upload_to_minio
 
-from utils_extraccion.webscraping import start_tor, renew_tor_ip, new_configured_chromium_page, search_youtube
-from utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games, overwrite_confirmation
+from src.A_Extraccion.utils_extraccion.webscraping import start_tor, renew_tor_ip, new_configured_chromium_page, search_youtube
+from src.A_Extraccion.utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games, overwrite_confirmation
 
 def _IP_interval_rotation():
     """Cambio de IP manual randomizado cada 5-6 minutos"""
