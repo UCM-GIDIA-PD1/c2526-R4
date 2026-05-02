@@ -18,6 +18,7 @@ from src.utils.config import reviews_logistic_regression_gridsearch_file, review
 from tqdm import tqdm
 
 from src.D_Modelos.Reviews.utils.preprocesamiento import clean_text_stem
+from src.D_Modelos.Reviews.utils.utils import get_metrics
 from src.utils.config import seed
 
 def transform_logistic_regression(df):
@@ -142,19 +143,15 @@ def train_optuna(X_train, X_test, y_train, y_test, minio):
     
     y_pred_test = model.predict(X_test)
 
-    accuracy = accuracy_score(y_test, y_pred_test)
-    f1 = f1_score(y_test, y_pred_test)
-    balanced_accuracy = balanced_accuracy_score(y_test, y_pred_test)
-    recall= recall_score(y_test, y_pred_test)
-    precision=  precision_score(y_test, y_pred_test)
+    metricas = get_metrics(y_test, y_pred_test)
     
     run.config.update(study.best_params)
     run.log({
-        "Accuracy": accuracy,
-        "Balanced accuracy": balanced_accuracy,
-        "Precision": precision,
-        "Recall": recall,
-        "F1-score": f1
+        "Accuracy": metricas["accuracy"],
+        "Balanced accuracy": metricas["balanced_accuracy"],
+        "Precision": metricas["precision"],
+        "Recall": metricas["recall"],
+        "F1-score": metricas["f1-score"]
     })
     run.finish()
 
@@ -162,13 +159,7 @@ def train_optuna(X_train, X_test, y_train, y_test, minio):
     write_to_file(model, reviews_logistic_regression_optuna_file, minio)
     print(f"Modelo guardado en {reviews_logistic_regression_optuna_file}")
     
-    print(f"Valor de accuracy: {accuracy}")
-    print(f"Valor de f1: {f1}")
-    print(f"Valor de balanced_accuracy: {balanced_accuracy}")
-    print(f"Valor de recall: {recall}")
-    print(f"Valor de precision: {precision}")
-    
-    return study.best_params
+    return best_params
     
 def train_gridsearch(X_train, X_test, y_train, y_test, minio):
     import wandb
@@ -220,31 +211,21 @@ def train_gridsearch(X_train, X_test, y_train, y_test, minio):
     
     y_pred_test = grid.predict(X_test)
 
-    accuracy = accuracy_score(y_test, y_pred_test)
-    f1 = f1_score(y_test, y_pred_test)
-    balanced_accuracy = balanced_accuracy_score(y_test, y_pred_test)
-    recall= recall_score(y_test, y_pred_test)
-    precision=  precision_score(y_test, y_pred_test)
+    metricas = get_metrics(y_test, y_pred_test)
     
     run.config.update(best_params)
     run.log({
-        "Accuracy": accuracy,
-        "Balanced accuracy": balanced_accuracy,
-        "Precision": precision,
-        "Recall": recall,
-        "F1-score": f1
+        "Accuracy": metricas["accuracy"],
+        "Balanced accuracy": metricas["balanced_accuracy"],
+        "Precision": metricas["precision"],
+        "Recall": metricas["recall"],
+        "F1-score": metricas["f1-score"]
     })
     run.finish()
 
     os.makedirs(models_reviews_path(), exist_ok=True)
     write_to_file(grid, reviews_logistic_regression_gridsearch_file, minio)
     print(f"Modelo guardado en {reviews_logistic_regression_gridsearch_file}")
-    
-    print(f"Valor de accuracy: {accuracy}")
-    print(f"Valor de f1: {f1}")
-    print(f"Valor de balanced_accuracy: {balanced_accuracy}")
-    print(f"Valor de recall: {recall}")
-    print(f"Valor de precision: {precision}")
     
     return best_params
     
