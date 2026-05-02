@@ -124,6 +124,16 @@ def processed_data_path():
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def processed_new_data_path():
+    """Devuelve un objecto Path con el directorio processed.
+
+    Returns:
+        Path: directorio processed.
+    """
+    path = processed_data_path() / "new_data"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
 def pipelines_path():
     path = project_root() / "src" / "E_pipeline"
     path.mkdir(parents=True, exist_ok=True)
@@ -223,6 +233,12 @@ P_banners_file = processed_data_path() / "P_info_imagenes.parquet"
 popularity = processed_data_path() / "popularidad.parquet"
 prices = processed_data_path() / "precios.parquet"
 reviews =  processed_data_path() / "resenyas.parquet"
+
+# Nuevos datos
+
+new_data_popularity = processed_new_data_path() / "new_data_popularity.parquet"
+new_data_prices = processed_new_data_path() / "final_dataset_prices.parquet"
+new_data_reviews =  processed_new_data_path() / "new_steam_reviews_processed.parquet"
 
 # Reducción en modelo de precios
 reduced_prices = processed_data_path() / "precios_reducido.parquet"

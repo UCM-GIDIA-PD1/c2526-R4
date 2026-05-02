@@ -16,7 +16,7 @@ from fastopic import FASTopic
 import re
 import spacy
 
-nlp = spacy.load(reviews_en_core_web_sm)
+nlp = spacy.load("en_core_web_sm")
 def spacy_tokenizer(text):
     doc = nlp(text)
     return [

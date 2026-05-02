@@ -66,14 +66,18 @@ class PredictionResponse(BaseModel):
     details: dict
 
 class CustomGameRequest(BaseModel):
-    """Datos de entrada para la predicción de un juego personalizado."""
     name: str
     developer: str
     release_date: str
     genres: list[str]
-    required_age: int = 0
+    categories: list[str]
     languages_count: int = 1
     image: str | None = None
+    youtube_videos: list[dict] = []
+
+class YouTubeSearchRequest(BaseModel):
+    name: str
+    release_date: str
 
 class PopularityResponse(BaseModel):
     """Resultado de la predicción del problema de popularidad
@@ -447,31 +451,80 @@ def predict_review_value(req : PredictionReviewsRequest):
 
 # endregion
 
+@app.post("/api/youtube/search")
+def youtube_search(req: YouTubeSearchRequest):
+    """Busca vídeos en YouTube antes de la fecha de publicación."""
+    try:
+        results = get_video_data(req.name, req.release_date)
+        return results
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.post("/api/predict/custom")
 async def predict_custom_game(req: CustomGameRequest):
     """
-    Predicción de precio y popularidad para un juego personalizado.
-    Actualmente devuelve datos mock simulando las llamadas a APIs (YouTube, etc.).
+    Predicción real de precio y popularidad para un juego personalizado.
+    Utiliza los vídeos seleccionados por el usuario para las estadísticas de YouTube.
     """
-    import asyncio
-    import random
-    
-    # Simular llamadas a la API de YouTube y procesamiento del modelo
-    print(f"Simulando pipeline de extracción para juego custom: {req.name}")
-    await asyncio.sleep(2)
-    
-    # Generar precio mock (o usar un precio fijo basado en los géneros/desarrollador)
-    is_free_to_play = any("free to play" in g.lower() for g in req.genres)
-    
-    if is_free_to_play:
-        mock_price = "Gratis"
-    else:
-        # Mocking prices between different ranges
-        mock_price = random.choice(PRICE_ORDER)
+    try:
+        # 1. Preparar géneros y categorías
+        mapped_genres = [{"description": g} for g in req.genres]
+        mapped_categories = [{"description": c} for c in req.categories]
         
-    # Generar popularidad mock
-    mock_popularity = random.randint(100, 50000)
-    return {
-        "price": mock_price,
-        "popularity": mock_popularity
-    }
+        # 2. Crear objeto 'data' similar al de Steam API
+        custom_data = {
+            "name": req.name,
+            "developers": [req.developer],
+            "publishers": [req.developer],
+            "genres": mapped_genres,
+            "categories": mapped_categories,
+            "release_date": {"date": req.release_date},
+            "supported_languages": ",".join(["English"] * req.languages_count),
+            "header_url": "",
+            "short_description": "Custom game description"
+        }
+
+        # 3. Datos Multimedia
+        # Brillo y v_clip por defecto si no hay imagen (o procesarla si existiera lógica)
+        brillo, v_clip = 0.5, [0.0] * 512
+        
+        # Usar los vídeos de YouTube seleccionados por el usuario
+        yt_data = req.youtube_videos
+        
+        app_reviews = {"rollups": {"recommendations_up": 0, "recommendations_down": 0}}
+        
+        # 4. Transformación para Popularidad
+        row_pop = transform_for_popularity(
+            custom_data, "0", app.state.historic_data, 
+            v_clip, brillo, app_reviews, yt_data
+        )
+        
+        # Preprocesamiento específico del modelo MLP
+        dummy_model = MLPPopularity(minio={"minio_write": False, "minio_read": False})
+        df_prep = dummy_model._preprocess_data(row_pop, {"avoid_multicol": False})
+        if "recomendaciones_totales" in df_prep.columns:
+            df_prep = df_prep.drop(columns=["recomendaciones_totales"])
+            
+        model_pop = app.state.model_popularity.get('model') if isinstance(app.state.model_popularity, dict) else app.state.model_popularity
+        pop_pred = model_pop.predict(df_prep)
+        popularity = int(round(float(pop_pred[0])))
+
+        # 5. Transformación para Precio
+        row_price = transform_for_prices(
+            custom_data, "0", app.state.historic_data, v_clip, brillo
+        )
+        price_pred = app.state.model_price.predict(row_price)
+        
+        idx = int(round(float(price_pred[0])))
+        idx = max(0, min(idx, len(PRICE_ORDER) - 1))
+        price_label = PRICE_ORDER[idx]
+        
+        return {
+            "price": price_label,
+            "popularity": popularity
+        }
+    except Exception as e:
+        print(f"Error en predicción custom: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": f"Error en la predicción: {str(e)}"})

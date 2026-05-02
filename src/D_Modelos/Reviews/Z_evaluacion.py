@@ -9,17 +9,15 @@ import wandb
 import nltk
 
 from src.utils.files import read_file
-from src.utils.config import reviews_logistic_regression_gridsearch_file, reviews_logistic_regression_optuna_file
-from src.utils.config import reviews
 from src.utils.config import seed
 
-from src.D_Modelos.Reviews.utils.preprocesamiento import read_reviews
+from src.D_Modelos.Reviews.utils.preprocesamiento import read_reviews, read_new_data
 
 import wandb
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 
-from src.D_Modelos.model_list import models_reviews
+from src.D_Modelos.model_list import models_reviews, best_reviews_model_retrained
 from src.D_Modelos.Reviews.utils.utils import get_metrics
 
 def evaluate_models(minio):
@@ -59,6 +57,28 @@ def evaluate_models(minio):
             metrics_dict['precision']
         )
 
+    df_raw_new = read_new_data(minio)
+    df = best_reviews_model_retrained["transform_function"](df_raw_new)
+    
+    train_df = None
+    test_df = df
+    
+    model_data = read_file(best_reviews_model_retrained["model_path"], minio)
+    
+    y_real = df[y_variable]
+    y_pred = best_reviews_model_retrained["prediction_function"](model_data, test_df, train_df)
+    
+    metrics_dict = get_metrics(y_real, y_pred)
+
+    table.add_data(
+        "Logistic Regression Retrained",
+        metrics_dict['accuracy'],
+        metrics_dict['f1-score'],
+        metrics_dict['balanced_accuracy'],
+        metrics_dict['recall'],
+        metrics_dict['precision']
+    )
+    
     wandb.log({"comparative_table": table})
     print("Evaluación completada. Resultados en W&B.")
     run.finish()
