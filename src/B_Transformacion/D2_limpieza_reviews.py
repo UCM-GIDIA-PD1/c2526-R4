@@ -107,7 +107,7 @@ def D2_limpieza_reviews(minio):
     print("Segunda fase limpieza...")
     df_en["text"] = df_en["text"].apply(limpieza_final) # emojis, unicode, ascii
     df_en["weight"] = df_en["weight"].astype(float)
-    df.drop(columns=["language"], inplace=True)
+    df_en.drop(columns=["language"], inplace=True)
     df_en.to_parquet(steam_reviews_parquet_file)
 
     if minio["minio_write"]:
