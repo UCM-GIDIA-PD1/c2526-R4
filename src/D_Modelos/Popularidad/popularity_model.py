@@ -41,10 +41,11 @@ class PopularityModel(ABC):
        'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards', 
        'es_primer_juego_developers', 'es_primer_juego_publishers']
 
-    def __init__(self, run_name: str, model_path, minio: dict):
+    def __init__(self, run_name: str, model_path, minio: dict, full_model_path=None):
         self.project_name = "Popularidad"
         self.run_name = run_name
         self.model_path = model_path
+        self.full_train_model_path = full_model_path
         self.minio = minio
         self.entity = "pd1-c2526-team4"
     
@@ -67,24 +68,32 @@ class PopularityModel(ABC):
         preds = model.predict(X_test)
         return np.maximum(preds, 0)
 
-    def run_experiment(self, df_raw, config, hyperparameters=None):
+    def run_experiment(self, df_raw, config, hyperparameters=None, full_train=False):
         """Flujo de ejecución de un modelo"""
         import wandb
         
-        run = wandb.init(
-            entity=self.entity, 
-            project=self.project_name, 
-            name=self.run_name,
-            job_type="model-training",
-            config=config
-        )
+        if not full_train:
+            run = wandb.init(
+                entity=self.entity, 
+                project=self.project_name, 
+                name=self.run_name,
+                job_type="model-training",
+                config=config
+            )
+
         print(f"\nIniciando experimento: {self.run_name} ---")
 
         df_prep = self._preprocess_data(df_raw, config)
-        data_splits = self._split_data(df_prep)
-        
-        X_train, X_test = data_splits["X_train"], data_splits["X_test"]
-        y_train, y_test = data_splits["y_train"], data_splits["y_test"]
+
+        if full_train:
+            X_train = df_prep.drop(columns=["recomendaciones_totales"])
+            y_train = df_prep["recomendaciones_totales"]
+            X_test, y_test = None, None
+            print("Entrenando con todos los datos...")
+        else:
+            data_splits = self._split_data(df_prep)
+            X_train, X_test = data_splits["X_train"], data_splits["X_test"]
+            y_train, y_test = data_splits["y_train"], data_splits["y_test"]
 
         # Intentamos cargar hiperparámetros en caso de que ya se hayan encontrado los óptimos
         model_data = None
@@ -94,9 +103,22 @@ class PopularityModel(ABC):
             pass
         
         if model_data is not None:
-            print(f"Cargando modelo existente de {self.model_path}...")
-            modelo_final = model_data["model"]
-            best_params = model_data.get("hyperparameters", {})
+            if full_train:
+                best_params = model_data.get("hyperparameters", {})
+                modelo_final = self._build_pipeline(best_params, config, X_train)
+                modelo_final.fit(X_train, y_train)
+
+                os.makedirs(os.path.dirname(self.full_train_model_path), exist_ok=True)
+                write_to_file({"model": modelo_final, "hyperparameters": best_params}, self.full_train_model_path, self.minio)
+                print(f"Modelo guardado exitosamente en {self.full_train_model_path}")
+            else:
+                print(f"Cargando modelo existente de {self.model_path}...")
+                modelo_final = model_data["model"]
+                best_params = model_data.get("hyperparameters", {})
+        elif full_train:
+            raise FileNotFoundError(
+                f"Full_train requiere un modelo previo en {self.model_path} del que cargar hiperparámetros."
+            )
         else:
             print("No se encontró pkl. Iniciando entrenamiento...")
             if hyperparameters:
@@ -111,15 +133,19 @@ class PopularityModel(ABC):
             write_to_file({"model": modelo_final, "hyperparameters": best_params}, self.model_path, self.minio)
             print(f"Modelo guardado exitosamente en {self.model_path}")
 
-        wandb.config.update({"params": best_params})
-        
-        preds = self._predict(modelo_final, X_test, X_train)
-        metrics = self._calculate_metrics(y_test, preds)
+        if not full_train:
+            wandb.config.update({"params": best_params})
+            
+            preds = self._predict(modelo_final, X_test, X_train)
+            metrics = self._calculate_metrics(y_test, preds)
 
-        print(f"Resultados de {self.run_name}: {self._format_metrics(metrics)}")        
-        wandb.log({f"test_{k}": v for k, v in metrics.items()}) # Logueamos estandarizado
-        
-        run.finish()
+            print(f"Resultados de {self.run_name}: {self._format_metrics(metrics)}")        
+            wandb.log({f"test_{k}": v for k, v in metrics.items()}) # Logueamos estandarizado
+            
+            run.finish()
+        else:
+            print("Entrenamiento completo finalizado. Modelo guardado.")
+
         return modelo_final
 
     # Evaluación para Z_evaluaciones.py
