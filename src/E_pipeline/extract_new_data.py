@@ -26,9 +26,9 @@ from src.B_Transformacion.E_info_imagenes_transformacion import reduct_dataframe
 from src.B_Transformacion.D2_limpieza_reviews import limpieza_inicial, detect_language, limpieza_final, to_dataframe
 
 def extract_new_appids():
-    appid_list = read_file(appidlist_file)        
-    last_appid = appid_list[-1]
-    new_appids = get_appids(last_appid=last_appid)
+    #appid_list = read_file(appidlist_file)        
+    #last_appid = appid_list[-1]
+    new_appids = get_appids(50,last_appid=0)
     write_to_file(new_appids, Path(pipelines_path() / "new_appid_list.json.gz"))
     return new_appids
 
@@ -262,7 +262,7 @@ def crear_parquets_definitivos(pop_path, prices_path, images_path, youtube_path)
             if col in df_final.columns:
                 df_final[col] = df_final[col].astype('float64')
 
-        df_final.drop(columns=cols_sobrantes, inplace=True)
+        df_final.drop(columns=cols_sobrantes, inplace=True, errors="ignore")
 
     df_final_prices.to_parquet(Path(pipelines_path() / "final_dataset_prices.parquet"))
     df_final_pop.to_parquet(Path(pipelines_path() / "final_dataset_popularity.parquet"))
