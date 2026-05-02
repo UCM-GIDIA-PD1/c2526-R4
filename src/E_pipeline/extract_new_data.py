@@ -313,32 +313,36 @@ if __name__ == "__main__":
     Para ejecutar este sript es necesario tener en el directorio la lista de appids antigua, y los parquets definitivos anteriores
     """
     session = Session()
-    
+    print("----FASE 1--------")
     new_appids = extract_new_appids()
+    print("----FASE 2--------")
     new_gameinfo_file = extract_steam_info(new_appids, session)
-    print(os.getcwd())
+    print("----FASE 3--------")
     apps_info = read_file(new_gameinfo_file)
     assert apps_info is not None
     new_images_file = extract_steam_images(apps_info, session)
+    print("----FASE 4--------")
     new_reviews_file = extract_steam_reviews(apps_info, session)
+    print("----FASE 5--------")
     new_yt_search_file = extract_youtube_info_1(apps_info)
+    print("----FASE 6--------")
     yt_search_data = read_file(new_yt_search_file)
     new_yt_stats_file = extract_youtube_info_2(yt_search_data)
-
+    print("----FASE 7--------")
     b_transformacion(new_gameinfo_file)
-    
+    print("----FASE 8--------")
     c_transformacion_youtube(new_yt_stats_file)
-
+    print("----FASE 9--------")
     e_transformacion_imagenes(new_images_file)
-    
+    print("----FASE 10--------")
     d_transformacion_reviews(new_reviews_file)
-
+    print("----FASE 11--------")
     crear_parquets_definitivos(
         pop_path=Path(pipelines_path() / "new_games_info_popularity.parquet"),
         prices_path=Path(pipelines_path() / "new_games_info_prices.parquet"),
         images_path=Path(pipelines_path() / "new_P_info_imagenes.parquet"),
         youtube_path=Path(pipelines_path() / "new_yt_stats.parquet")
     )
-
+    print("----FASE 12--------")
     integrar_datos()
    

@@ -174,8 +174,9 @@ def get_reviews(session: requests.Session, appid, reviews_to_extract):
 
 def _test_get_reviews():
     session = requests.Session()
-    reviews = get_reviews(session, "1623730", 5)
+    reviews = get_reviews(session, "1623730", 1)
     print(reviews)
+
 
 if __name__ == "__main__":
     _test_get_reviews()
