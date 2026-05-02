@@ -11,6 +11,7 @@ from subprocess import Popen, DEVNULL
 from time import sleep
 from random import choice
 import platform
+from pathlib import Path
 
 from src.utils.config import config_path
 
@@ -141,6 +142,9 @@ def new_configured_chromium_page():
         ChromiumPage: Nueva sesión de ChromiumPage ya configurada.
     """
     co = ChromiumOptions()
+    # si no encuentra el navegador especificar manualmente
+    brower_path = Path(r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe")
+    co.set_browser_path(brower_path)
     
     # Configuramos el nuevo ChromiumPage
     co.set_user_agent(np_random.choice(user_agents))

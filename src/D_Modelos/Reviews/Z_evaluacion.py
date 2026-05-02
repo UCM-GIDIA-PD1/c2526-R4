@@ -17,8 +17,6 @@ from src.D_Modelos.Reviews.utils.preprocesamiento import read_reviews
 
 import wandb
 from tqdm import tqdm
-
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score,f1_score
 from sklearn.model_selection import train_test_split
 
 from src.D_Modelos.model_list import models_reviews
