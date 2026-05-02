@@ -117,17 +117,17 @@ class GameInfo(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    minio = {"minio_write": False, "minio_read": False}
+    minio = {"minio_write": False, "minio_read": True}
 
     # Cargar modelos 
     print("Cargando modelo de popularidad")
     app.state.model_popularity = read_file(popularidad_mlp_file, minio)
     print("Cargando modelo de precios")
     app.state.model_price = read_file(precios_knncompleteclusters_file, minio)
-    print("Cargando modelo de reviews(Simple)")
+    print("Cargando modelo de reviews (Simple)")
     app.state.model_reviews = read_file(reviews_logistic_regression_optuna_file, minio)
     print("Cargando modelo de reviews (Complejo)")
-    app.state.model_topics = load_topic_model() 
+    app.state.model_topics = load_topic_model(minio) 
 
     # Cargar los datos históricos de developers y publishers
     print("Cargando datos históricos de juegos")
