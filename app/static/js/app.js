@@ -8,6 +8,32 @@ let filterOptions = {
     max_languages: 74
 };
 
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    const icon = type === 'error' ? '✕' : 'ℹ';
+    
+    notification.innerHTML = `
+        <span class="notification-icon">${icon}</span>
+        <span class="notification-message">${message}</span>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(notification);
+    
+    // Show
+    setTimeout(() => container.classList.add('show'), 10);
+    
+    // Hide
+    setTimeout(() => {
+        container.classList.remove('show');
+    }, 4000);
+}
+
 // ============================================================
 // NAVIGATION
 // ============================================================
@@ -697,23 +723,16 @@ function navigateToCustomGame() {
     const container = document.getElementById('custom-game-detail-content');
     
     // Generar géneros desde filterOptions (global) con fallback al sidebar
-    let genresToUse = filterOptions.genres;
-    if (!genresToUse || genresToUse.length === 0) {
-        const sidebarOptions = Array.from(document.querySelectorAll('#genre-dropdown .filter-option'));
-        genresToUse = sidebarOptions.filter(o => o.dataset.val !== 'all').map(o => o.dataset.val);
-    }
+    // Listas fijas en inglés según variables del modelo
+    const GENRES_LIST = ['Action', 'Adventure', 'Casual', 'Early Access', 'Free To Play', 'Indie', 'RPG', 'Simulation', 'Strategy'];
+    const CATEGORIES_LIST = ['Co-op', 'Custom Volume Controls', 'Family Sharing', 'Full controller support', 'Multi-player', 'Online Co-op', 'Online PvP', 'Partial Controller Support', 'Playable without Timed Input', 'PvP', 'Remote Play Together', 'Shared/Split Screen', 'Single-player', 'Steam Achievements', 'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards'];
     
-    const genreOptionsHtml = genresToUse
+    const genreOptionsHtml = GENRES_LIST
                            .map(g => `<div class="custom-selector-option" data-val="${g}">${g}</div>`)
                            .join('');
 
-    // Generar edades desde filterOptions (global)
-    let agesToUse = filterOptions.ages || [0, 3, 7, 12, 16, 18];
-    const ageOptionsHtml = agesToUse
-                           .map(age => {
-                               const label = age === 0 ? 'Para todos los públicos' : age + '+';
-                               return `<div class="custom-selector-option age-option" data-val="${age}">${label}</div>`;
-                           })
+    const categoryOptionsHtml = CATEGORIES_LIST
+                           .map(c => `<div class="custom-selector-option cat-option" data-val="${c}">${c}</div>`)
                            .join('');
 
     container.innerHTML = `
@@ -726,8 +745,8 @@ function navigateToCustomGame() {
                     <input type="file" id="cg-image" accept="image/*" style="display:none;">
                 </div>
                 <div class="hero-right">
-                    <input type="text" id="cg-name" class="hero-name-input" required placeholder="Nombre del Juego" autocomplete="off">
-                    <input type="text" id="cg-dev" class="hero-desc-input" required placeholder="Nombre del Desarrollador" autocomplete="off">
+                    <input type="text" id="cg-name" class="hero-name-input" placeholder="Nombre del Juego" autocomplete="off">
+                    <input type="text" id="cg-dev" class="hero-desc-input" placeholder="Nombre del Desarrollador" autocomplete="off">
                 </div>
             </div>
 
@@ -758,19 +777,32 @@ function navigateToCustomGame() {
                         <input type="number" id="cg-languages" min="1" max="${filterOptions.max_languages}" value="1" class="custom-select-style default-val">
                     </div>
                     <div class="form-group">
-                        <label>Edad mínima requerida</label>
+                        <label>Categorías</label>
                         <div class="custom-selector-wrapper">
-                            <div class="custom-selector-trigger" id="cg-age-trigger">
-                                <span id="cg-age-selected-label" style="color: rgba(255,255,255,0.4); font-weight: 300;">Para todos los públicos</span>
+                            <div class="custom-selector-trigger" id="cg-categories-trigger">
+                                <div class="selected-tags-container" id="cg-selected-cats">
+                                    <span style="color: rgba(255,255,255,0.4); font-weight: 300;">Seleccionar categorías...</span>
+                                </div>
                                 <span class="sidebar-icon-arrow" style="font-size: 0.8rem; transform: rotate(90deg);">↓</span>
                             </div>
-                            <div class="custom-selector-dropdown" id="cg-age-dropdown">
-                                ${ageOptionsHtml}
+                            <div class="custom-selector-dropdown" id="cg-categories-dropdown">
+                                ${categoryOptionsHtml}
                             </div>
-                            <input type="hidden" id="cg-age" value="0">
                         </div>
                     </div>
                 </div>
+
+                <!-- SECCIÓN YOUTUBE -->
+                <div class="yt-search-section">
+                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px;">
+                        <button type="button" id="btn-search-yt" class="btn-predict-custom" style="padding: 6px 12px; margin: 0; font-size: 0.75rem;">Buscar vídeos</button>
+                    </div>
+                    <p style="font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 10px;">Buscamos vídeos antes de la fecha de publicación. Selecciona los que quieras usar para la predicción. Se necesita el título del vídeo y la fecha de publicación</p>
+                    <div id="cg-yt-results" class="yt-videos-grid">
+                        <!-- Los vídeos se inyectarán aquí -->
+                    </div>
+                </div>
+
                 <button type="submit" class="btn-predict-custom" style="margin-top: 30px;">Predecir Popularidad y Precio</button>
             </div>
         </form>
@@ -793,7 +825,7 @@ function navigateToCustomGame() {
             <p style="color: rgba(255, 255, 255, 0.4); font-size: 1rem; font-weight: 300; margin-bottom: 1.5rem;">Escribe una reseña y el modelo predecirá si es positiva o negativa.</p>
             <textarea id="cg-review-text" rows="4" placeholder="Escribe tu reseña aquí..." class="custom-select-style" style="resize: vertical; font-size: 1rem; font-weight: 300;"></textarea>
             <button id="btn-predict-review" class="btn-predict-custom" style="margin-top: 1rem; margin-bottom: 1rem;">Analizar Sentimiento</button>
-            <div id="cg-review-result" style="display: none; font-size: 1.2rem; font-weight: 500; text-align: center; padding: 1rem; border-radius: 8px;"></div>
+            <div id="cg-review-result" style="display: none; font-size: 1.2rem; font-weight: 500; text-align: center; padding: 1rem; border-radius: var(--radius-md);"></div>
         </div>
     `;
 
@@ -844,44 +876,109 @@ function navigateToCustomGame() {
         }
     }
 
-    // --- Lógica del selector de EDAD (Single-select) ---
-    const aTrigger = document.getElementById('cg-age-trigger');
-    const aDropdown = document.getElementById('cg-age-dropdown');
-    const aLabel = document.getElementById('cg-age-selected-label');
-    const aInput = document.getElementById('cg-age');
+    // --- Lógica del selector de CATEGORÍAS (Multi-select) ---
+    const cTrigger = document.getElementById('cg-categories-trigger');
+    const cDropdown = document.getElementById('cg-categories-dropdown');
+    const cTagsContainer = document.getElementById('cg-selected-cats');
+    let selectedCategories = [];
 
-    aTrigger.addEventListener('click', (e) => {
+    cTrigger.addEventListener('click', (e) => {
         e.stopPropagation();
-        const wasActive = aTrigger.classList.contains('active');
+        const wasActive = cTrigger.classList.contains('active');
         closeAllCustomDropdowns();
         if (!wasActive) {
-            aDropdown.classList.add('show');
-            aTrigger.classList.add('active');
+            cDropdown.classList.add('show');
+            cTrigger.classList.add('active');
         }
     });
 
-    aDropdown.querySelectorAll('.custom-selector-option').forEach(item => {
+    cDropdown.querySelectorAll('.custom-selector-option').forEach(item => {
         item.addEventListener('click', (e) => {
             e.stopPropagation();
             const val = item.dataset.val;
-            const label = item.textContent;
-            
-            // UI Update
-            aDropdown.querySelectorAll('.custom-selector-option').forEach(o => o.classList.remove('selected'));
-            item.classList.add('selected');
-            aLabel.textContent = label;
-            aLabel.style.color = '#fff';
-            aLabel.style.fontWeight = '500';
-            aInput.value = val;
-
-            // Close
-            closeAllCustomDropdowns();
+            if (selectedCategories.includes(val)) {
+                selectedCategories = selectedCategories.filter(c => c !== val);
+                item.classList.remove('selected');
+            } else {
+                selectedCategories.push(val);
+                item.classList.add('selected');
+            }
+            updateCategoryTags();
         });
     });
 
-    // Marcar el por defecto (0)
-    const defaultAgeOpt = aDropdown.querySelector('.custom-selector-option[data-val="0"]');
-    if (defaultAgeOpt) defaultAgeOpt.classList.add('selected');
+    function updateCategoryTags() {
+        if (selectedCategories.length === 0) {
+            cTagsContainer.innerHTML = '<span style="color: rgba(255,255,255,0.4); font-weight: 300;">Seleccionar categorías...</span>';
+        } else {
+            cTagsContainer.innerHTML = selectedCategories.map(c => `<span class="custom-tag-pill">${c}</span>`).join('');
+        }
+    }
+
+    // --- Lógica de Búsqueda en YouTube ---
+    const btnSearchYt = document.getElementById('btn-search-yt');
+    const ytResultsContainer = document.getElementById('cg-yt-results');
+    let selectedVideos = []; // Almacenará los objetos de vídeo seleccionados
+
+    btnSearchYt.addEventListener('click', async () => {
+        const gameName = document.getElementById('cg-name').value.trim();
+        const releaseDate = document.getElementById('cg-date').value;
+
+        if (!gameName || !releaseDate) {
+            showNotification('Por favor, introduce el nombre del juego y la fecha de lanzamiento para buscar en YouTube.', 'error');
+            return;
+        }
+
+        btnSearchYt.textContent = 'Buscando...';
+        btnSearchYt.disabled = true;
+        ytResultsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px;"><div class="spinner" style="margin: auto;"></div></div>';
+
+        try {
+            const response = await fetch('/api/youtube/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: gameName, release_date: releaseDate })
+            });
+
+            const videos = await response.json();
+            ytResultsContainer.innerHTML = '';
+            selectedVideos = [];
+
+            if (videos.length === 0) {
+                ytResultsContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: rgba(255,255,255,0.4);">No se encontraron vídeos relevantes.</p>';
+            } else {
+                videos.forEach(video => {
+                    const card = document.createElement('div');
+                    card.className = 'yt-video-card';
+                    card.innerHTML = `
+                        <div class="yt-thumb-wrapper">
+                            <img src="${video.thumbnail}" class="yt-thumb">
+                            <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" class="yt-play-btn" onclick="event.stopPropagation()">▶</a>
+                        </div>
+                        <div class="yt-checkbox"></div>
+                        <div class="yt-info">
+                            <div class="yt-title" title="${video.video_title}">${video.video_title}</div>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => {
+                        const isSelected = card.classList.toggle('selected');
+                        if (isSelected) {
+                            selectedVideos.push(video);
+                        } else {
+                            selectedVideos = selectedVideos.filter(v => v.id !== video.id);
+                        }
+                    });
+                    ytResultsContainer.appendChild(card);
+                });
+            }
+        } catch (error) {
+            console.error('Error YouTube search:', error);
+            ytResultsContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #ef4444;">Error al conectar con YouTube.</p>';
+        } finally {
+            btnSearchYt.textContent = 'Buscar vídeos';
+            btnSearchYt.disabled = false;
+        }
+    });
 
     // --- Lógica de subida de imagen ---
     const heroUpload = document.getElementById('cg-hero-upload');
@@ -939,17 +1036,40 @@ function navigateToCustomGame() {
         e.preventDefault();
         
         const btn = form.querySelector('button[type="submit"]');
+        
+        // Validación manual de campos
+        const nameVal = document.getElementById('cg-name').value.trim();
+        const devVal = document.getElementById('cg-dev').value.trim();
+
+        if (!nameVal) {
+            showNotification('Por favor, introduce el nombre del juego.', 'error');
+            return;
+        }
+        if (!devVal) {
+            showNotification('Por favor, introduce el nombre del desarrollador.', 'error');
+            return;
+        }
+        if (selectedGenres.length === 0) {
+            showNotification('Por favor, selecciona al menos un género.', 'error');
+            return;
+        }
+        if (selectedCategories.length === 0) {
+            showNotification('Por favor, selecciona al menos una categoría.', 'error');
+            return;
+        }
+
         btn.textContent = 'Calculando...';
         btn.disabled = true;
 
         const payload = {
-            name: document.getElementById('cg-name').value,
-            developer: document.getElementById('cg-dev').value,
+            name: nameVal,
+            developer: devVal,
             release_date: document.getElementById('cg-date').value,
             genres: selectedGenres,
-            required_age: parseInt(document.getElementById('cg-age').value) || 0,
+            categories: selectedCategories,
             languages_count: parseInt(document.getElementById('cg-languages').value) || 1,
-            image: base64Image
+            image: base64Image,
+            youtube_videos: selectedVideos // Enviamos los vídeos seleccionados
         };
 
         const resultDiv = document.getElementById('cg-predictions-result');
@@ -979,11 +1099,13 @@ function navigateToCustomGame() {
         }
     });
 
-    // Manejar predicción de reseña
     const btnReview = document.getElementById('btn-predict-review');
     btnReview.addEventListener('click', async () => {
         const text = document.getElementById('cg-review-text').value.trim();
-        if (!text) return;
+        if (!text) {
+            showNotification('Por favor, escribe una reseña para analizar.', 'error');
+            return;
+        }
 
         btnReview.textContent = 'Analizando...';
         btnReview.disabled = true;
