@@ -686,14 +686,14 @@ function navigateToCustomGame() {
 
     const container = document.getElementById('custom-game-detail-content');
     
-    // Obtener géneros actuales del dropdown para usarlos en el select
+    // Obtener géneros actuales del dropdown para usarlos en el selector personalizado
     const genreDropdown = document.getElementById('genre-dropdown');
-    let genreOptions = '';
+    let genreOptionsHtml = '';
     if (genreDropdown) {
         const options = Array.from(genreDropdown.querySelectorAll('.filter-option'));
-        genreOptions = options.filter(o => o.dataset.val !== 'all')
-                              .map(o => `<option value="${o.dataset.val}">${o.textContent}</option>`)
-                              .join('');
+        genreOptionsHtml = options.filter(o => o.dataset.val !== 'all')
+                               .map(o => `<div class="genre-option-item" data-val="${o.dataset.val}">${o.textContent}</div>`)
+                               .join('');
     }
 
     container.innerHTML = `
@@ -718,13 +718,31 @@ function navigateToCustomGame() {
                         <input type="date" id="cg-date" required class="custom-select-style">
                     </div>
                     <div class="form-group">
-                        <label>Géneros (Ctrl para varios)</label>
-                        <select id="cg-genres" multiple required size="4" class="custom-select-style">
-                            ${genreOptions}
-                        </select>
+                        <label>Géneros</label>
+                        <div class="custom-genre-selector">
+                            <div class="genre-select-trigger" id="cg-genres-trigger">
+                                <div class="selected-genres-tags" id="cg-selected-tags">
+                                    <span style="color: rgba(255,255,255,0.4); font-weight: 300;">Seleccionar géneros...</span>
+                                </div>
+                                <span class="sidebar-icon-arrow" style="font-size: 0.8rem; transform: rotate(90deg);">↓</span>
+                            </div>
+                            <div class="genre-options-dropdown" id="cg-genres-dropdown">
+                                ${genreOptionsHtml}
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <button type="submit" class="btn-predict-custom">Predecir Popularidad y Precio</button>
+                <div class="form-group-row" style="margin-top: 10px;">
+                    <div class="form-group">
+                        <label>Edad mínima requerida</label>
+                        <input type="number" id="cg-age" min="0" max="100" value="0" class="custom-select-style">
+                    </div>
+                    <div class="form-group">
+                        <label>Nº de idiomas soportados</label>
+                        <input type="number" id="cg-languages" min="1" max="100" value="1" class="custom-select-style">
+                    </div>
+                </div>
+                <button type="submit" class="btn-predict-custom" style="margin-top: 30px;">Predecir Popularidad y Precio</button>
             </div>
         </form>
 
@@ -750,7 +768,48 @@ function navigateToCustomGame() {
         </div>
     `;
 
-    // Manejar subida de imagen al hacer clic en el hero
+    // --- Lógica del selector de géneros personalizado ---
+    const trigger = document.getElementById('cg-genres-trigger');
+    const dropdown = document.getElementById('cg-genres-dropdown');
+    const tagsContainer = document.getElementById('cg-selected-tags');
+    let selectedGenres = [];
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('show');
+        trigger.classList.toggle('active');
+    });
+
+    document.addEventListener('click', () => {
+        dropdown.classList.remove('show');
+        trigger.classList.remove('active');
+    });
+
+    dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+    dropdown.querySelectorAll('.genre-option-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const val = item.dataset.val;
+            if (selectedGenres.includes(val)) {
+                selectedGenres = selectedGenres.filter(g => g !== val);
+                item.classList.remove('selected');
+            } else {
+                selectedGenres.push(val);
+                item.classList.add('selected');
+            }
+            updateGenreTags();
+        });
+    });
+
+    function updateGenreTags() {
+        if (selectedGenres.length === 0) {
+            tagsContainer.innerHTML = '<span style="color: rgba(255,255,255,0.4); font-weight: 300;">Seleccionar géneros...</span>';
+        } else {
+            tagsContainer.innerHTML = selectedGenres.map(g => `<span class="genre-tag-pill">${g}</span>`).join('');
+        }
+    }
+
+    // --- Lógica de subida de imagen ---
     const heroUpload = document.getElementById('cg-hero-upload');
     const imageInput = document.getElementById('cg-image');
     const previewContainer = document.getElementById('cg-image-preview-container');
@@ -773,22 +832,22 @@ function navigateToCustomGame() {
         }
     });
 
-    // Manejar submit del formulario principal
+    // --- Submit del formulario ---
     const form = document.getElementById('custom-game-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const btn = form.querySelector('.btn-predict-custom');
+        const btn = form.querySelector('button[type="submit"]');
         btn.textContent = 'Calculando...';
         btn.disabled = true;
-
-        const selectedGenres = Array.from(document.getElementById('cg-genres').selectedOptions).map(opt => opt.value);
 
         const payload = {
             name: document.getElementById('cg-name').value,
             developer: document.getElementById('cg-dev').value,
             release_date: document.getElementById('cg-date').value,
             genres: selectedGenres,
+            required_age: parseInt(document.getElementById('cg-age').value) || 0,
+            languages_count: parseInt(document.getElementById('cg-languages').value) || 1,
             image: base64Image
         };
 
@@ -807,6 +866,8 @@ function navigateToCustomGame() {
             
             document.getElementById('cg-pred-popularity-value').textContent = formatNumber(data.popularity) + ' Reseñas';
             document.getElementById('cg-pred-price-value').textContent = data.price;
+            
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
         } catch (err) {
             console.error(err);
             document.getElementById('cg-pred-popularity-value').textContent = 'Error';
@@ -839,7 +900,6 @@ function navigateToCustomGame() {
             });
             const data = await res.json();
             
-            // data.value = 1 (positiva) o 0 (negativa)
             if (data.value === 1) {
                 resultDiv.innerHTML = '✨ Reseña Positiva';
                 resultDiv.style.backgroundColor = 'rgba(46, 204, 113, 0.1)';
