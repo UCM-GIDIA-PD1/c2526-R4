@@ -56,9 +56,7 @@ def predict_knn(model_data, test_df, train_df):
     X_train = train_df.drop(columns=['price_range']).fillna(0)
     X_test = test_df.drop(columns=['price_range']).fillna(0)
     
-    _, X_test_clustered = cluster_embedings(X_train, X_test, emb_col='v_clip')
-    
-    y_pred = model_data.predict(X_test_clustered)
+    y_pred = model_data.predict(X_test)
     
     le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
     le.fit([[c] for c in le.categories[0]])
