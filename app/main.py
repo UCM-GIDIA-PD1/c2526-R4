@@ -330,13 +330,27 @@ def get_filter_options():
             {"label": "> 40€", "min": 40.01, "max": -1}
         ]
         
+        # Extraer edades
+        all_ages = set()
+        if "required_age" in df.columns:
+            all_ages.update(df["required_age"].unique())
+        elif "required_age" in df.iloc[0].index if not df.empty else False: # fallback
+            all_ages.update(df["required_age"].unique())
+        else:
+            # Fallback a valores comunes si no está la columna
+            all_ages = {0, 3, 7, 12, 16, 18}
+        
+        sorted_ages = sorted([int(a) for a in all_ages if pd.notna(a)])
+        
         return {
             "genres": sorted_genres,
-            "prices": price_options
+            "prices": price_options,
+            "ages": sorted_ages,
+            "max_languages": 74
         }
     except Exception as e:
         print(f"Error en /api/filter-options: {e}")
-        return {"genres": [], "prices": []}
+        return {"genres": [], "prices": [], "ages": [0, 3, 7, 12, 16, 18], "max_languages": 74}
 
 # endregion
 
@@ -457,7 +471,6 @@ async def predict_custom_game(req: CustomGameRequest):
         
     # Generar popularidad mock
     mock_popularity = random.randint(100, 50000)
-    
     return {
         "price": mock_price,
         "popularity": mock_popularity
