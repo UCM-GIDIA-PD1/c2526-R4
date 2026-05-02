@@ -3,8 +3,6 @@ Dado resenyas.parquet crea un modelo de Regresión Logística para predecir
 si la review es positiva o negativa en base al texto de esta. Utiliza TF-IDF
 para la transformación de texto a vectores numéricos.
 """
-import wandb
-import optuna
 import numpy as np
 import os
 
@@ -116,6 +114,8 @@ def _build_pipeline(best_params):
     return Pipeline([("tfidf", tfidf),("clf", clf)])
 
 def train_optuna(X_train, X_test, y_train, y_test, minio):
+    import wandb
+    import optuna
     '''
     Función para el entrenamiento del modelo usando Optuna para la
     búsqueda de los mejores hiperparámetros.
@@ -171,6 +171,7 @@ def train_optuna(X_train, X_test, y_train, y_test, minio):
     return study.best_params
     
 def train_gridsearch(X_train, X_test, y_train, y_test, minio):
+    import wandb
     '''
     Función para el entrenamiento del modelo usando GridSearchCV para la
     búsqueda de los mejores hiperparámetros.
@@ -269,6 +270,7 @@ def retrain_final_model(X, y, best_params, minio):
 
 
 def main(minio = {"minio_write": False, "minio_read": False}):
+    from tqdm import tqdm
     tqdm.pandas(desc="Limpiando texto")
     print("Leyendo Datos")
     df = read_file(reviews, minio)

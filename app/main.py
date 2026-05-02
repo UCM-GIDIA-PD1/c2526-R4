@@ -71,6 +71,8 @@ class CustomGameRequest(BaseModel):
     developer: str
     release_date: str
     genres: list[str]
+    required_age: int = 0
+    languages_count: int = 1
     image: str | None = None
 
 class PopularityResponse(BaseModel):
