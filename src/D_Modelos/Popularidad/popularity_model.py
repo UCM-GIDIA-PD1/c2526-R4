@@ -68,9 +68,13 @@ class PopularityModel(ABC):
         preds = model.predict(X_test)
         return np.maximum(preds, 0)
 
-    def run_experiment(self, df_raw, config, hyperparameters=None, full_train=False):
+    def run_experiment(self, df_raw, config, hyperparameters=None):
         """Flujo de ejecución de un modelo"""
         import wandb
+
+        full_train = False
+        if "full_train" in config:
+            full_train = config["full_train"]
         
         if not full_train:
             run = wandb.init(
@@ -81,7 +85,7 @@ class PopularityModel(ABC):
                 config=config
             )
 
-        print(f"\nIniciando experimento: {self.run_name} ---")
+        print(f"\nIniciando experimento: {self.run_name}")
 
         df_prep = self._preprocess_data(df_raw, config)
 
@@ -149,18 +153,33 @@ class PopularityModel(ABC):
         return modelo_final
 
     # Evaluación para Z_evaluaciones.py
-    def evaluate(self, df_raw, config) -> dict:
+    def evaluate(self, df_raw, config, df_test=None) -> dict:
         """Hace todo el pipeline de datos y predice cargando los hiperparámetros óptimos"""
-        df_prep = self._preprocess_data(df_raw, config)
-        data_splits = self._split_data(df_prep)
-        
-        model_data = read_file(self.model_path, self.minio)
-        if model_data is None:
-            raise FileNotFoundError(f"No se encontró el modelo en {self.model_path} para evaluación.")
+        if 'full_train' in config and config['full_train']:
+            model_data = read_file(self.full_train_model_path, self.minio)
+
+            if model_data is None:
+                raise FileNotFoundError(f"No se encontró el modelo en {self.full_train_model_path} para evaluación.")
             
-        modelo_final = model_data["model"]
-        preds = self._predict(modelo_final, data_splits["X_test"], data_splits["X_train"])
-        
+            df_prep_test = self._preprocess_data(df_test, config)
+            X_test = df_prep_test.drop(columns=["recomendaciones_totales"])
+            y_test = df_prep_test["recomendaciones_totales"]
+
+            modelo_final = model_data["model"]
+            preds = self._predict(modelo_final, X_test)
+
+            return self._calculate_metrics(y_test, preds)
+        else:
+            df_prep = self._preprocess_data(df_raw, config)
+            data_splits = self._split_data(df_prep)
+            
+            model_data = read_file(self.model_path, self.minio)
+            if model_data is None:
+                raise FileNotFoundError(f"No se encontró el modelo en {self.model_path} para evaluación.")
+                
+            modelo_final = model_data["model"]
+            preds = self._predict(modelo_final, data_splits["X_test"], data_splits["X_train"])
+
         return self._calculate_metrics(data_splits["y_test"], preds)
 
     def _preprocess_data(self, df, config):

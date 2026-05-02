@@ -34,37 +34,37 @@ models_popularidad = {
         "type": "class",
         "class_ref": LinearRegressionPopularity,
         "kwargs": {"run_name": "linear-regression-raw", "model_path": popularidad_linear_regression_file},
-        "config": {"use_log": False, "avoid_multicol": False} # Se encarga forward selection
+        "config": {"use_log": False, "avoid_multicol": False, "full_train": False} # Se encarga forward selection
     },
     "Linear Regression (Log)": {
         "type": "class",
         "class_ref": LinearRegressionPopularity,
         "kwargs": {"run_name": "linear-regression-log", "model_path": popularidad_linear_regression_log_file},
-        "config": {"use_log": True, "avoid_multicol": False} # Se encarga forward selection
+        "config": {"use_log": True, "avoid_multicol": False, "full_train": False} # Se encarga forward selection
     },
     "XGBoost (Normal)": {
         "type": "class",
         "class_ref": XGBoostPopularity,
         "kwargs": {"run_name": "xgboost-with_multicol-raw", "model_path": popularidad_xgboost_file},
-        "config": {"avoid_multicol": False, "use_log": False}
+        "config": {"avoid_multicol": False, "use_log": False, "full_train": False}
     },
     "XGBoost (Log)": {
         "type": "class",
         "class_ref": XGBoostPopularity,
         "kwargs": {"run_name": "xgboost-with_multicol-log", "model_path": popularidad_xgboost_log_file},
-        "config": {"avoid_multicol": False, "use_log": True}
+        "config": {"avoid_multicol": False, "use_log": True, "full_train": False}
     },
     "MLP": {
         "type": "class",
         "class_ref": MLPPopularity,
         "kwargs": {},
-        "config": {"avoid_multicol": False, "use_log": False}
+        "config": {"avoid_multicol": False, "use_log": False, "full_train": False}
     },
     "KNN (Log)": {
         "type": "class",
         "class_ref": KNNPopularity,
         "kwargs": {},
-        "config": {"avoid_multicol": True, "use_log": True}
+        "config": {"avoid_multicol": True, "use_log": True, "full_train": False}
     }
 }
 
@@ -121,8 +121,16 @@ models_reviews = {
         }
 }
 
+best_popularity_model_retrained = {
+    "type": "class",
+    "class_ref": MLPPopularity,
+    "kwargs": {},
+    "config": {"avoid_multicol": False, "use_log": False, "full_train": True}
+}
+
+
 best_reviews_model_retrained = {
-            "transform_function": transform_logistic_regression_reviews,
-            "model_path": reviews_logistic_regression_optuna_retrained_file ,
-            "prediction_function": predict_logistic_regression_reviews,
-        }
+    "transform_function": transform_logistic_regression_reviews,
+    "model_path": reviews_logistic_regression_optuna_retrained_file ,
+    "prediction_function": predict_logistic_regression_reviews,
+}
