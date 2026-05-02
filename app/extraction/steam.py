@@ -14,7 +14,7 @@ APPREVIEWSHISTOGRAM_URL = "https://store.steampowered.com/appreviewhistogram/"
 APPREVIEWS_URL = "https://store.steampowered.com/appreviews/"
 
 # Modelo CLIP para las imágenes
-MODEL_CLIP = SentenceTransformer('clip-ViT-B-32')
+MODEL_CLIP = SentenceTransformer('clip-ViT-B-32', device='cpu')
 
 
 def get_appdetails(appid : str) -> dict:

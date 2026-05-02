@@ -1,7 +1,4 @@
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 def get_env_var(name):
     """Obtiene una variable de entorno y valida su existencia."""

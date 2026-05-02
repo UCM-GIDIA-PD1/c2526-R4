@@ -5,7 +5,7 @@ Realiza las transformaciones necesarias para tener los mismos datos que necesita
 
 import pandas as pd
 import numpy as np
-from app.transformation.common import  initial_transformations, add_img_info
+from app.transformation.common import initial_transformations, add_img_info
 
 UNPROCESSED_COLUMNS = ['description_len', 'price_overview', 'num_languages',
        'release_year', 'Action', 'Adventure', 'Casual', 'Early Access',
@@ -19,7 +19,8 @@ UNPROCESSED_COLUMNS = ['description_len', 'price_overview', 'num_languages',
        'es_primer_juego_developers', 'ema_reviews_developers',
        'max_historico_reviews_developers', 'num_juegos_previos_publishers',
        'es_primer_juego_publishers', 'ema_reviews_publishers',
-       'max_historico_reviews_publishers', 'v_clip', 'brillo',
+       'max_historico_reviews_publishers', 'total_games_by_publisher', 
+       'total_games_by_developer', 'v_clip', 'brillo',
        'video_0_video_statistics.viewCount',
        'video_0_video_statistics.likeCount',
        'video_0_video_statistics.commentCount',
@@ -52,6 +53,7 @@ HISTORY_COLS = [
     'ema_reviews_developers', 'max_historico_reviews_developers',
     'num_juegos_previos_publishers', 'es_primer_juego_publishers',
     'ema_reviews_publishers', 'max_historico_reviews_publishers',
+    'total_games_by_publisher', 'total_games_by_developer'
 ]
 
 YT_STAT_COLS = [
@@ -84,7 +86,7 @@ def _transform_game_dict(game: dict, appid: str, historic_data: pd.DataFrame) ->
     if not match.empty:
         hist_row = match.iloc[0]
         for col in HISTORY_COLS:
-            row[col] = hist_row[col]
+            row[col] = hist_row.get(col, 0)
     else:
         for col in HISTORY_COLS:
             row[col] = 0
@@ -187,7 +189,8 @@ def transform_for_popularity(game: dict,
        'video_3_video_statistics.viewCount',
        'video_3_video_statistics.likeCount',
        'video_3_video_statistics.commentCount',
-       'video_3_video_statistics.favoriteCount', 'yt_score'],
+       'video_3_video_statistics.favoriteCount', 'yt_score',
+       'total_games_by_publisher', 'total_games_by_developer'],
       dtype='str')
     """
     
