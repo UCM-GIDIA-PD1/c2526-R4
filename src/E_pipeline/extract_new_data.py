@@ -329,7 +329,46 @@ def e_transformacion_imagenes(banners_raw_path, minio_cfg={"minio_write": False,
     
     print("E_Transformación Imágenes completada.")
 
+def d_transformacion_reviews(reviews_raw_path, minio_cfg={"minio_write": False, "minio_read": False}):
+    """
+    Aplana las reseñas, filtra por idioma inglés y aplica limpieza profunda de texto.
+    Genera un dataset listo para modelos de sentimiento o lenguaje (BERT/NLP).
+    """
+    print("Iniciando D_Transformación Reseñas...")
 
+    raw_data = read_file(reviews_raw_path, minio_cfg)
+    if not raw_data:
+        print("No se encontraron reseñas para procesar.")
+        return
+
+
+    print("Aplanando reseñas a formato tabular...")
+    df = to_dataframe(raw_data)
+
+ 
+    print("Ejecutando limpieza inicial (links y etiquetas)...")
+    df["text"] = df["text"].apply(limpieza_inicial)
+
+    
+    print("Detectando idiomas y filtrando por inglés (esto puede tardar)...")
+    df["language"] = df["text"].apply(detect_language)
+    df_en = df[df["language"] == "en"].copy()
+    
+  
+    print("Ejecutando limpieza final y normalización de texto...")
+    df_en["text"] = df_en["text"].apply(limpieza_final)
+    
+
+    df_en["weight"] = df_en["weight"].astype(float)
+    df_en["appid"] = df_en["appid"].astype(str)
+
+
+    df_en.drop(columns=["language"], inplace=True)
+    
+    print(f"Guardando Parquet de reseñas en: \"new_steam_reviews_processed.parquet\"")
+    df_en.to_parquet("new_steam_reviews_processed.parquet")
+    
+    print("D_Transformación Reseñas completada.")
 
 def integrate_new_data():
 
@@ -350,3 +389,4 @@ if __name__ == "__main__":
     b_transformacion(new_gameinfo_file)
     c_transformacion_youtube(youtube_info_2)
     e_transformacion_imagenes("new_popularidad.parquet")
+    d_transformacion_reviews("new_reviews.jsonl.gz")
