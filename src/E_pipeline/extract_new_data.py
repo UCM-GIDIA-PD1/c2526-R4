@@ -304,6 +304,31 @@ def c_transformacion_youtube(youtube_stats_path, minio_cfg={"minio_write": False
     
     print("C_Transformación YouTube completada.")
 
+def e_transformacion_imagenes(banners_raw_path, minio_cfg={"minio_write": False, "minio_read": False}):
+    """
+    Toma los metadatos de las imágenes extraídas y aplica reducción de dimensionalidad.
+    Genera las columnas de visualización (PCA/TSNE) manteniendo los nombres originales.
+    """
+    print("Iniciando E_Transformación Imágenes...")
+    
+
+    data = read_file(banners_raw_path, minio_cfg)
+    if not data:
+        print("No se encontraron metadatos de imágenes para procesar.")
+        return
+
+    df = pd.DataFrame(data)
+
+
+    print("Calculando reducciones PCA y TSNE para los modelos visuales (ResNet, ConvNeXt, CLIP)...")
+    reduct_dataframes_from_models(df)
+
+
+    print(f"Guardando Parquet de imágenes en: \"new_P_info_imagenes.parquet\"")
+    df.to_parquet("new_P_info_imagenes.parquet")
+    
+    print("E_Transformación Imágenes completada.")
+
 
 
 def integrate_new_data():
@@ -324,4 +349,4 @@ if __name__ == "__main__":
     youtube_info_2 = extract_youtube_info_2(youtube_info_1, session)
     b_transformacion(new_gameinfo_file)
     c_transformacion_youtube(youtube_info_2)
-    
+    e_transformacion_imagenes("new_popularidad.parquet")
