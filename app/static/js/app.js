@@ -641,18 +641,23 @@ async function navigateToGame(appid) {
 
     // 2. Inyección del nuevo HTML en el contenedor
     container.innerHTML = `
-        <div class="game-hero-section vision-glass">
-            <div class="hero-left">
-                <img class="hero-banner console-transition" src="${game.banner_url}" alt="${game.name}">
-            </div>
-            <div class="hero-right">
-                <h1 class="hero-name">${game.name}</h1>
-                <p class="hero-desc">${game.short_description || 'Explora esta increíble experiencia que te mantendrá al borde de tu asiento.'}</p>
-                <div class="hero-genres">
-                    ${safeGenres}
+        <a href="https://store.steampowered.com/app/${game.appid}" target="_blank" class="game-hero-link" title="Ver en Steam">
+            <div class="game-hero-section vision-glass">
+                <div class="hero-left">
+                    <img class="hero-banner console-transition" src="${game.banner_url}" alt="${game.name}">
+                </div>
+                <div class="hero-right">
+                    <h1 class="hero-name">${game.name}</h1>
+                    <p class="hero-desc">${game.short_description || 'Explora esta increíble experiencia que te mantendrá al borde de tu asiento.'}</p>
+                    <div class="hero-genres">
+                        ${safeGenres}
+                    </div>
+                </div>
+                <div class="steam-float-icon">
+                    <img src="/static/img/steam_icon.png" alt="Steam">
                 </div>
             </div>
-        </div>
+        </a>
 
         <div class="game-meta-grid">
             <div class="vision-glass meta-card">
@@ -719,12 +724,12 @@ async function loadRealTopicsPrediction(appid) {
     if (!container) return;
 
     const TOPIC_DISPLAY = {
-        "Updates & Bugs":    { name: "BUGS/UPDATES:", keywords: "Parches, Errores, Actualizaciones" },
-        "Action & Combat":   { name: "COMBATE:",      keywords: "Acción, Peleas, Mecánicas" },
-        "Music & Atmosphere":{ name: "ATMÓSFERA:",    keywords: "Música, Sonido, Ambiente" },
-        "Story & Design":    { name: "HISTORIA:",     keywords: "Narrativa, Personajes, Diseño" },
-        "Casual & Humor":    { name: "HUMOR:",        keywords: "Casual, Divertido, Ligero" },
-        "General Opinion":   { name: "OPINIÓN:",      keywords: "General, Recomendación, Valoración" },
+        "Updates & Bugs":    { name: "Updates & Bugs", keywords: "Parches, Errores, Actualizaciones" },
+        "Action & Combat":   { name: "Action & Combat",      keywords: "Acción, Peleas, Mecánicas" },
+        "Music & Atmosphere":{ name: "Music & Atmosphere",    keywords: "Música, Sonido, Ambiente" },
+        "Story & Design":    { name: "Story & Design",     keywords: "Narrativa, Personajes, Diseño" },
+        "Casual & Humor":    { name: "Casual & Humor",        keywords: "Casual, Divertido, Ligero" },
+        "General Opinion":   { name: "General Opinion",      keywords: "General, Recomendación, Valoración" },
     };
 
     try {
