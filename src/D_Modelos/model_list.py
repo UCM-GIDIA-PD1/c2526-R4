@@ -97,7 +97,7 @@ models_precios = {
         }
 }
 
-# RESEÑAS
+# REVIEWS
 models_reviews = {
         "Baseline Mode": {
             "transform_function": transform_baseline_reviews,
@@ -118,10 +118,11 @@ models_reviews = {
             "transform_function": transform_naive_bayes_tfidf,
             "model_path":  reviews_naive_bayes_tfidf_file,
             "prediction_function": predict_naive_bayes_tfidf,
-        },
-        "Logistic Regression Retrained": {
+        }
+}
+
+best_reviews_model_retrained = {
             "transform_function": transform_logistic_regression_reviews,
             "model_path": reviews_logistic_regression_optuna_retrained_file ,
             "prediction_function": predict_logistic_regression_reviews,
         }
-}
