@@ -16,9 +16,9 @@ from src.utils.files import log_appid_errors, write_to_file, erase_file, file_ex
 from src.utils.config import gamelist_file
 from src.utils.minio_server import upload_to_minio
 
-from utils_extraccion.webscraping import user_agents
-from utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games, overwrite_confirmation
-from utils_extraccion.steam_requests import get_appdetails, get_appreviewhistogram
+from src.A_Extraccion.utils_extraccion.webscraping import user_agents
+from src.A_Extraccion.utils_extraccion.sesion import ask_overwrite_file, update_config, get_pending_games, overwrite_confirmation
+from src.A_Extraccion.utils_extraccion.steam_requests import get_appdetails, get_appreviewhistogram
 
 def _download_game_data(appid, session):
     """
