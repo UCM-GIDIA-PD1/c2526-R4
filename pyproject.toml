@@ -26,6 +26,7 @@ dependencies = [
     "fastopic>=1.0.1",
     "xgboost>=3.2.0",
     "umap-learn>=0.5.11",
+    "spacy>=3.8.14",
 ]
 
 [dependency-groups]
