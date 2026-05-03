@@ -74,7 +74,7 @@ def upload_file_to_minio(filepath: Path):
 
         client.fput_object(
             bucket_name="pd1",
-            object_name=str(minio_path),
+            object_name=minio_path,
             file_path=str(filepath)
         )
         
