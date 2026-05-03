@@ -72,14 +72,14 @@ setx MINIO_SECRET_KEY clave_secreta
 setx PD1_ID identificador_grupo
 ```
 
-En Linux o MacOS hay que crear un archivo `.env` y añadir:
+En Linux, MacOS o si vas a querer ejecutar el contenedor, hay que crear un archivo `.env` y añadir:
 ```bash
-export STEAM_API_KEY=clave_api
-export API_KEY_YT=clave_api
-export WANDB_API_KEY=clave_api
-export MINIO_ACCESS_KEY=clave_de_acceso
-export MINIO_SECRET_KEY=clave_secreta
-export PD1_ID=identificador_grupo
+STEAM_API_KEY=clave_api
+API_KEY_YT=clave_api
+WANDB_API_KEY=clave_api
+MINIO_ACCESS_KEY=clave_de_acceso
+MINIO_SECRET_KEY=clave_secreta
+PD1_ID=identificador_grupo
 ```
 
 Definición de variables:
