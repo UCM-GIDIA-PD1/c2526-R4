@@ -1,9 +1,10 @@
 """
-Modulo que proporciona funciones para extraer datos para el proyecto.
+Modulo que proporciona funciones para extraer datos de Steam.
 """
-from src_2.config import get_steam_api_key, get_youtube_api_key
+from src_2.config import get_steam_api_key
 
 from tqdm import tqdm
+
 import time
 import requests
 from requests.exceptions import RequestException, JSONDecodeError
