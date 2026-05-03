@@ -48,56 +48,6 @@ PRICE_ORDER = [
 ]
 
 # region classes
-
-class PredictionRequest(BaseModel):
-    """Datos de entrada para una predicción."""
-    appid: int
-    model_name: str = "default"
-
-class PredictionReviewsRequest(BaseModel):
-    """Datos de entrada para el problema de predecir la valoración de una review.
-    """
-    review : str
-
-class PredictionResponse(BaseModel):
-    """Resultado de una predicción."""
-    value: float
-    confidence: float
-    model_used: str
-    details: dict
-
-class CustomGameRequest(BaseModel):
-    name: str
-    developer: str
-    release_date: str
-    genres: list[str]
-    categories: list[str]
-    languages_count: int = 1
-    image: str | None = None
-    youtube_videos: list[dict] = []
-
-class YouTubeSearchRequest(BaseModel):
-    name: str
-    release_date: str
-
-class PopularityResponse(BaseModel):
-    """Resultado de la predicción del problema de popularidad
-    """
-    reviews : int
-
-class PriceResponse(BaseModel):
-    """Resultado de la predicción del problema de precios
-    """
-    price : str
-
-class ReviewsTopicsResponse(BaseModel):
-    """Resultado de la predicción del problema de puntos positivos y negativos"""
-    topics : dict
-
-class ReviewsValueResponse(BaseModel):
-    value : bool
-
-
 class GameInfo(BaseModel):
     """Información básica de un juego. Usada para mostrar un juego en la página web y para luego obtener la información
     de dicho juego en cada modelo"""
@@ -110,6 +60,35 @@ class GameInfo(BaseModel):
     price: float
     positive_reviews: int
     negative_reviews: int
+
+class PredictionRequest(BaseModel):
+    """Datos de entrada para una predicción en los problemas de precio, popularidad y reviews (Complejo)"""
+    appid: int
+
+class PredictionReviewsRequest(BaseModel):
+    """Datos de entrada para el problema de predecir la valoración de una review"""
+    review : str
+
+class CustomGameRequest(BaseModel):
+    """Datos de entrada del menú de juego personalizado"""
+    name: str
+    developer: str
+    release_date: str
+    genres: list[str]
+    categories: list[str]
+    languages_count: int = 1
+    image: str | None = None
+    youtube_videos: list[dict] = []
+
+class YouTubeSearchRequest(BaseModel):
+    """Datos entrada para realizar un petición de búsqueda a la API de youtube.
+    Utilizado para los juegos personalizados"""
+    name: str
+    release_date: str
+
+class PredictionResponse(BaseModel):
+    """Resultado de una predicción."""
+    details : dict
 
 # endregion
 
@@ -141,7 +120,6 @@ async def lifespan(app: FastAPI):
     yield
     print("SteamPredictor API detenida")
 
-
 # Crear la aplicación web
 app = FastAPI(
     title="SteamPredictor API",
@@ -158,7 +136,7 @@ templates = Jinja2Templates(directory= app_dir() / "templates")
 
 #endregion
 
-# region search
+# region página principal
 
 def _df_rows_to_list(df, offset: int = 0, limit: int = 20) -> dict:
     """Convierte las filas especificadas del DataFrame a una particion paginada con id, name, img."""
@@ -362,29 +340,31 @@ def get_filter_options():
 # endregion
 
 #region predictions
-@app.post("/api/predict/popularidad", response_model=PopularityResponse)
+@app.post("/api/predict/popularidad", response_model=PredictionResponse)
 def predict_popularidad(req: PredictionRequest):
-    """Predicción de popularidad (stub)."""
+    """Predicción de popularidad."""
     print('Predicting popularity')
+
+    # Obtención de información de Steam
     appid = str(req.appid)
     data = get_appdetails(appid)
     release_date = data['release_date']
     data['appreviewshistogram'] = get_appreviewshistogram(appid, release_date)
     print(data)
 
+    # CLIP embeddings
     header_url = data['header_url']
     brillo, v_clip = get_image_metadata(header_url)
     print(brillo)
     print(v_clip, len(v_clip))
 
+    # Información de Youtube
     name = data['name']
-    print(name, release_date)
     yt_data = get_video_data(name, release_date)
     print(yt_data)
+    yt_stats = {"video_statistics": yt_data}  # El transformador espera un dict con la clave "video_statistics"
 
-    # El transformador espera un dict con la clave "video_statistics"
-    yt_stats = {"video_statistics": yt_data}
-    
+    # Transformación para el input del modelo
     row = transform_for_popularity(data, appid, app.state.historic_data, v_clip, brillo, data['appreviewshistogram'], yt_stats)
     
     # Instanciamos el modelo para usar su lógica de preprocesamiento
@@ -399,41 +379,45 @@ def predict_popularidad(req: PredictionRequest):
     prediction = model.predict(df_prep)
     print('Prediction',prediction)
 
-    reviews_pred = int(round(float(prediction[0])))
-    return PopularityResponse(reviews=reviews_pred)
+    prediction = int(round(float(prediction[0])))
+    return PredictionResponse(details={ 'model' : 'MLP Popularity' , 'prediction' : prediction })
 
-@app.post("/api/predict/precio", response_model=PriceResponse)
+@app.post("/api/predict/precio", response_model=PredictionResponse)
 def predict_precio(req: PredictionRequest):
     """Predicción de precio (stub)."""
     print('Predicting prices')
+    
+    # Obtención de información de Steam
     appid = str(req.appid)
     data = get_appdetails(appid)
     print(data)
-
+    
+    # CLIP embeddings
     header_url = data['header_url']
     brillo, v_clip = get_image_metadata(header_url)
     print(brillo)
     print(v_clip, len(v_clip))
 
-    print("Transforming data to dataFrame")
+    # Transformación para el input del modelo
     row = transform_for_prices(data, appid, app.state.historic_data, v_clip, brillo )
     print(row)
     print(row.columns)
 
+    # Predicción del modelo
     prediction = app.state.model_price.predict(row)
-
     idx = int(round(float(prediction[0])))
     idx = max(0, min(idx, len(PRICE_ORDER) - 1))
     range_label = PRICE_ORDER[idx]
-
     print('Predicción', range_label, prediction)
-    return PriceResponse(price=range_label)
+    
+    return PredictionResponse(details= { 'model' : 'KNN Clusters', 'prediction' : range_label })
 
-@app.post("/api/predict/reviews/topics", response_model=ReviewsTopicsResponse)
+@app.post("/api/predict/reviews/topics", response_model=PredictionResponse)
 def predict_reviews(req: PredictionRequest):
     """Predicción de sentimiento de reseñas (stub)."""
     print("Predicting reviews topics")
 
+    # Temas de FASTopic
     TOPIC_TAGS = {
         0: "Updates & Bugs",
         1: "Action & Combat",
@@ -443,44 +427,41 @@ def predict_reviews(req: PredictionRequest):
         5: "General Opinion",
     }
 
+    # Obtención de 200 reviews de un juego
     appid = str(req.appid)
     reviews = get_reviews_text(appid)
     print(reviews)
     print(len(reviews))
 
+    # Transformacióin para input del modelo
     reviews_df = to_dataframe([{"id": appid, "reviews": {"lista_resenyas": reviews}}])
+    
+    # Predicción del modelo
     stats = pipeline(reviews_df, app.state.model_topics)
-    print(stats)
-
     prediction = dict()
     for key,topic in TOPIC_TAGS.items():
         prediction[topic] = stats.loc[topic, 'positive_ratio']
+    print(stats)
 
-    return ReviewsTopicsResponse(topics = prediction)
+    return PredictionResponse(details = { 'model' : 'FASTopic Classifier', 'prediction' : prediction })
 
-@app.post("/api/predict/reviews", response_model=ReviewsValueResponse)
+@app.post("/api/predict/reviews", response_model=PredictionResponse)
 def predict_review_value(req : PredictionReviewsRequest):
     """Predice si una reseña es positiva (True) o negativa (False)"""
+    print('Predicting review value')
+    
+    # Limpieza del texto
     text = clean_text(req.review)
+
+    # Transformación para input del modelo
     row = pd.DataFrame(
         {
             'is_positive' : 'dummy',
             'text' : [text] # Aseguramos que sea una lista para evitar errores de longitud
         })
-
     prediction = predict_logistic_regression(app.state.model_reviews, row, None )
-    return ReviewsValueResponse( value=bool(prediction[0]))
-
-# endregion
-
-@app.post("/api/youtube/search")
-def youtube_search(req: YouTubeSearchRequest):
-    """Busca vídeos en YouTube antes de la fecha de publicación."""
-    try:
-        results = get_video_data(req.name, req.release_date)
-        return results
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    
+    return PredictionResponse(details = { 'model' : 'Logistic Regression', 'prediction' : prediction })
 
 @app.post("/api/predict/custom")
 async def predict_custom_game(req: CustomGameRequest):
@@ -489,11 +470,11 @@ async def predict_custom_game(req: CustomGameRequest):
     Utiliza los vídeos seleccionados por el usuario para las estadísticas de YouTube.
     """
     try:
-        # 1. Preparar géneros y categorías
+        # Preparar géneros y categorías
         mapped_genres = [{"description": g} for g in req.genres]
         mapped_categories = [{"description": c} for c in req.categories]
         
-        # 2. Crear objeto 'data' similar al de Steam API
+        # Crear objeto 'data' similar al de Steam API
         custom_data = {
             "name": req.name,
             "developers": [req.developer],
@@ -507,14 +488,14 @@ async def predict_custom_game(req: CustomGameRequest):
             "img": req.image
         }
 
-        # 3. Datos Multimedia
+        # Datos Multimedia
         brillo, v_clip = get_image_metadata(custom_data['img'])
         # Usar los vídeos de YouTube seleccionados por el usuario
         yt_data = req.youtube_videos
         
         app_reviews = {"rollups": {"recommendations_up": 0, "recommendations_down": 0}}
         
-        # 4. Transformación para Popularidad
+        # Transformación para Popularidad
         # Envolvemos yt_data para el transformador
         yt_stats = {"video_statistics": yt_data}
         
@@ -548,7 +529,7 @@ async def predict_custom_game(req: CustomGameRequest):
         pop_pred = model_pop.predict(df_prep)
         popularity = int(round(float(pop_pred[0])))
 
-        # 5. Transformación para Precio
+        # Transformación para Precio
         row_price = transform_for_prices(
             custom_data, "0", app.state.historic_data, v_clip, brillo
         )
@@ -580,3 +561,14 @@ async def predict_custom_game(req: CustomGameRequest):
         import traceback
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"error": f"Error en la predicción: {str(e)}"})
+
+@app.post("/api/youtube/search")
+def youtube_search(req: YouTubeSearchRequest):
+    """Busca vídeos en YouTube antes de la fecha de publicación."""
+    try:
+        results = get_video_data(req.name, req.release_date)
+        return results
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+# endregion

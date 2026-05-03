@@ -719,74 +719,6 @@ async function navigateToGame(appid) {
     loadRealTopicsPrediction(game.appid)
 }
 
-async function loadRealTopicsPrediction(appid) {
-    const container = document.getElementById('nlp-themes-container');
-    if (!container) return;
-
-    const TOPIC_DISPLAY = {
-        "Updates & Bugs":    { name: "Updates & Bugs", keywords: "Parches, Errores, Actualizaciones" },
-        "Action & Combat":   { name: "Action & Combat",      keywords: "Acción, Peleas, Mecánicas" },
-        "Music & Atmosphere":{ name: "Music & Atmosphere",    keywords: "Música, Sonido, Ambiente" },
-        "Story & Design":    { name: "Story & Design",     keywords: "Narrativa, Personajes, Diseño" },
-        "Casual & Humor":    { name: "Casual & Humor",        keywords: "Casual, Divertido, Ligero" },
-        "General Opinion":   { name: "General Opinion",      keywords: "General, Recomendación, Valoración" },
-    };
-
-    try {
-        const res = await fetch('/api/predict/reviews/topics', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ appid: appid }),
-        });
-        const data = await res.json(); // { topics: { "Story & Design": 0.87, ... } }
-
-        const themes = Object.entries(data.topics).map(([key, ratio]) => {
-            const score = Math.round(ratio * 100);
-            const display = TOPIC_DISPLAY[key] || { name: key.toUpperCase() + ':', keywords: '' };
-            return { name: display.name, keywords: display.keywords, score };
-        });
-
-        // Sort best to worst
-        themes.sort((a, b) => b.score - a.score);
-
-        container.innerHTML = themes.map(theme => {
-            let colorClass, labelText;
-            if      (theme.score >= 80) { colorClass = 'excellent'; labelText = 'apartado excelente'; }
-            else if (theme.score >= 60) { colorClass = 'positive';  labelText = 'apartado bueno'; }
-            else if (theme.score >= 40) { colorClass = 'mixed';     labelText = 'apartado malo'; }
-            else                        { colorClass = 'negative';  labelText = 'apartado pésimo'; }
-
-            const offset = (125.6 * (1 - theme.score / 100)).toFixed(2);
-
-            let r, g;
-            if (theme.score <= 60) { r = 255; g = Math.round(255 * (theme.score / 60)); }
-            else                   { g = 255; r = Math.round(255 * (1 - (theme.score - 60) / 40)); }
-
-            return `
-                <div class="nlp-theme-row" style="--tint-color: rgba(${r},${g},0,0.05); --tint-hover: rgba(${r},${g},0,0.12);">
-                    <div class="nlp-theme-text">
-                        <span class="nlp-theme-name">${theme.name}</span>
-                        <span class="nlp-theme-keywords">${theme.keywords}</span>
-                    </div>
-                    <div class="nlp-gauge-wrapper">
-                        <span class="gauge-label ${colorClass}">${labelText}</span>
-                        <div class="nlp-mini-gauge ${colorClass}">
-                            <svg viewBox="0 0 100 50" class="gauge-svg">
-                                <path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50"/>
-                                <path class="gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" style="stroke-dashoffset: ${offset};"/>
-                            </svg>
-                            <span class="gauge-score">${theme.score}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-    } catch (e) {
-        container.innerHTML = '<p style="color:rgba(255,255,255,0.4); text-align:center;">No se pudieron cargar los temas.</p>';
-    }
-}
-
 function navigateToCustomGame() {
     showView('view-custom-game');
 
@@ -1199,8 +1131,8 @@ function navigateToCustomGame() {
             });
             const data = await res.json();
             
-            if (data.value) {
-                resultDiv.innerHTML = 'Reseña Positiva';
+            if (data.details.prediction) {
+                    resultDiv.innerHTML = 'Reseña Positiva';
                 resultDiv.style.backgroundColor = 'rgba(46, 204, 113, 0.1)';
                 resultDiv.style.color = '#2ecc71';
                 resultDiv.style.border = '1px solid rgba(46, 204, 113, 0.3)';
@@ -1226,7 +1158,6 @@ async function loadRealPricePrediction(appid, genres, currentPrice) {
     const conclusion = document.getElementById('pred-price-conclusion');
     if (!priceValue) return;
 
-    // Si es Free to Play, ignoramos el modelo y ponemos Gratis directamente
     const isFreeToPlay = genres.some(g => g.toLowerCase().includes('free to play'));
     if (isFreeToPlay) {
         priceValue.textContent = 'Gratis';
@@ -1238,10 +1169,11 @@ async function loadRealPricePrediction(appid, genres, currentPrice) {
         const res = await fetch(`/api/predict/precio`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ appid: appid }),
+            body: JSON.stringify({ appid }),
         });
         const data = await res.json();
-        priceValue.textContent = data.price;
+        const predicted = data.details.prediction;
+        priceValue.textContent = predicted;
 
         if (conclusion) {
             const PRICE_ORDER = [
@@ -1253,32 +1185,32 @@ async function loadRealPricePrediction(appid, genres, currentPrice) {
                 'Entre 30.00€ y 39.99€', 
                 'Más de 40€'
             ];
-            const predictedIndex = PRICE_ORDER.indexOf(data.price);
+            const predictedIndex = PRICE_ORDER.indexOf(predicted);
             
             let realIndex = -1;
             const price = parseFloat(currentPrice);
             if (!isNaN(price)) {
-                if (price <= 4.99) realIndex = 0;
-                else if (price <= 9.99) realIndex = 1;
+                if      (price <= 4.99)  realIndex = 0;
+                else if (price <= 9.99)  realIndex = 1;
                 else if (price <= 14.99) realIndex = 2;
                 else if (price <= 19.99) realIndex = 3;
                 else if (price <= 29.99) realIndex = 4;
                 else if (price <= 39.99) realIndex = 5;
-                else realIndex = 6;
+                else                     realIndex = 6;
             }
             
             if (predictedIndex !== -1 && realIndex !== -1) {
                 const diff = realIndex - predictedIndex;
-                let text = '';
-                if (diff === 0) text = 'Precio justo';
-                else if (diff === 1) text = 'Precio elevado';
-                else if (diff === 2) text = 'Precio desorbitado';
-                else if (diff >= 3) text = 'No tiene sentido comprar este juego a este precio';
-                else if (diff === -1) text = 'Precio asequible';
-                else if (diff === -2) text = 'Precio bajo';
-                else if (diff <= -3) text = 'Este juego es una ganga';
-                
-                conclusion.textContent = text;
+                const labels = {
+                     3: 'No tiene sentido comprar este juego a este precio',
+                     2: 'Precio desorbitado',
+                     1: 'Precio elevado',
+                     0: 'Precio justo',
+                    '-1': 'Precio asequible',
+                    '-2': 'Precio bajo',
+                    '-3': 'Este juego es una ganga',
+                };
+                conclusion.textContent = labels[Math.max(-3, Math.min(3, diff))] ?? '';
             } else {
                 conclusion.style.display = 'none';
             }
@@ -1297,12 +1229,79 @@ async function loadRealPopularityPrediction(appid) {
         const res = await fetch(`/api/predict/popularidad`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ appid: appid }),
+            body: JSON.stringify({ appid }),
         });
         const data = await res.json();
-        popValue.textContent = formatNumber(data.reviews) + ' Reseñas';
+        popValue.textContent = formatNumber(data.details.prediction) + ' Reseñas';
     } catch (e) {
         popValue.textContent = 'Error';
+    }
+}
+
+async function loadRealTopicsPrediction(appid) {
+    const container = document.getElementById('nlp-themes-container');
+    if (!container) return;
+
+    const TOPIC_DISPLAY = {
+        "Updates & Bugs":     { name: "Updates & Bugs",     keywords: "Parches, Errores, Actualizaciones" },
+        "Action & Combat":    { name: "Action & Combat",    keywords: "Acción, Peleas, Mecánicas" },
+        "Music & Atmosphere": { name: "Music & Atmosphere", keywords: "Música, Sonido, Ambiente" },
+        "Story & Design":     { name: "Story & Design",     keywords: "Narrativa, Personajes, Diseño" },
+        "Casual & Humor":     { name: "Casual & Humor",     keywords: "Casual, Divertido, Ligero" },
+        "General Opinion":    { name: "General Opinion",    keywords: "General, Recomendación, Valoración" },
+    };
+
+    try {
+        const res = await fetch('/api/predict/reviews/topics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appid }),
+        });
+        const data = await res.json();
+
+        const themes = Object.entries(data.details.prediction).map(([key, ratio]) => {
+            const score = Math.round(ratio * 100);
+            const display = TOPIC_DISPLAY[key] ?? { name: key, keywords: '' };
+            return { name: display.name, keywords: display.keywords, score };
+        });
+
+        themes.sort((a, b) => b.score - a.score);
+
+        container.innerHTML = themes.map(theme => {
+            let colorClass, labelText;
+            if      (theme.score >= 80) { colorClass = 'excellent'; labelText = 'apartado excelente'; }
+            else if (theme.score >= 60) { colorClass = 'positive';  labelText = 'apartado bueno'; }
+            else if (theme.score >= 40) { colorClass = 'mixed';     labelText = 'apartado malo'; }
+            else                        { colorClass = 'negative';  labelText = 'apartado pésimo'; }
+
+            const offset = (125.6 * (1 - theme.score / 100)).toFixed(2);
+
+            let r, g;
+            if (theme.score <= 60) { r = 255; g = Math.round(255 * (theme.score / 60)); }
+            else                   { g = 255; r = Math.round(255 * (1 - (theme.score - 60) / 40)); }
+
+            return `
+                <div class="nlp-theme-row" style="--tint-color: rgba(${r},${g},0,0.05); --tint-hover: rgba(${r},${g},0,0.12);">
+                    <div class="nlp-theme-text">
+                        <span class="nlp-theme-name">${theme.name}</span>
+                        <span class="nlp-theme-keywords">${theme.keywords}</span>
+                    </div>
+                    <div class="nlp-gauge-wrapper">
+                        <span class="gauge-label ${colorClass}">${labelText}</span>
+                        <div class="nlp-mini-gauge ${colorClass}">
+                            <svg viewBox="0 0 100 50" class="gauge-svg">
+                                <path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50"/>
+                                <path class="gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" style="stroke-dashoffset: ${offset};"/>
+                            </svg>
+                            <span class="gauge-score">${theme.score}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (e) {
+        container.innerHTML = '<p style="color:rgba(255,255,255,0.4); text-align:center;">No se pudieron cargar los temas.</p>';
     }
 }
 
