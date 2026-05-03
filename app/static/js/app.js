@@ -1345,7 +1345,7 @@ function showPredictionView(type, prediction) {
         <div class="loading"><div class="spinner"></div></div>
     `;
     showView('view-prediction');
-    navigateToPredictionDetail(type, prediction);
+    renderPredictionDetail(type, prediction);
 }
 
 async function loadPrediction(type, appid) {

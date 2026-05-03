@@ -89,8 +89,6 @@ class YouTubeSearchRequest(BaseModel):
 
 class PredictionResponse(BaseModel):
     """Resultado de una predicción."""
-    value: Any
-    model_used: str
     details: dict
 
 # endregion
@@ -459,8 +457,7 @@ def predict_review_value(req : PredictionReviewsRequest):
     # Convertir numpy bool a python bool para serialización
     is_positive = bool(prediction[0])
     
-    return PredictionResponse(value=is_positive, model_used="Logistic Regression",
-                            details = {'model':'Logistic Regression','prediction':is_positive })
+    return PredictionResponse(details = {'model':'Logistic Regression','prediction':is_positive })
 
 @app.post("/api/predict/custom")
 async def predict_custom_game(req: CustomGameRequest):
