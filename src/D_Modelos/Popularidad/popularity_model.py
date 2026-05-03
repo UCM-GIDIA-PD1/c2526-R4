@@ -72,9 +72,7 @@ class PopularityModel(ABC):
         """Flujo de ejecución de un modelo"""
         import wandb
 
-        full_train = False
-        if "full_train" in config:
-            full_train = config["full_train"]
+        full_train = config.get('full_train', False)
         
         if not full_train:
             run = wandb.init(
