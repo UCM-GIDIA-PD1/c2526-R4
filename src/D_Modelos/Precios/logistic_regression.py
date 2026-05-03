@@ -8,7 +8,6 @@ import pandas as pd
 import numpy as np
 import os
 import wandb
-import optuna
 import warnings
 
 from src.utils.config import prices, load_env_file, seed
@@ -184,6 +183,7 @@ def _create_lr_model(X_train, X_test, y_train, y_test, best_params, minio):
     run.finish()
 
 def training_optuna(df):
+    import optuna
     # Silenciar específicamente los avisos de convergencia de Scikit-Learn
     warnings.filterwarnings("ignore", category=ConvergenceWarning)
 

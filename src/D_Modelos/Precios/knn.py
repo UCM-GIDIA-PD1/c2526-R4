@@ -14,7 +14,6 @@ from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import cross_validate
 from sklearn.pipeline import Pipeline
 
-import wandb
 import os
 
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -142,6 +141,7 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
     preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
     
     #Iniciamos Weights and Bias
+    import wandb
     run = wandb.init(entity="pd1-c2526-team4", project="Precios", name=modelName, job_type='knn')
     
     #WARNING: 

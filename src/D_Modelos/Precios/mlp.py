@@ -13,10 +13,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.cluster import KMeans
 from sklearn.model_selection import cross_val_score
 from umap import UMAP
-import optuna
 import os
-
-import wandb
 
 from pandas import DataFrame, concat
 from numpy import vstack
@@ -161,6 +158,7 @@ def _best_params_mlp(X_train, Y_train):
 
 def _best_params_mlp_optuna_umap(X_train, Y_train):
     """ OPTUNA + UMAP """
+    import optuna
     def objective(trial):
         params = {
             'hidden_layer_sizes': trial.suggest_categorical('hidden_layer_sizes', [(64,), (128,), (64, 32), (128, 64), (128, 64, 32)]),
@@ -197,6 +195,7 @@ def _best_params_mlp_optuna_umap(X_train, Y_train):
 
 def _best_params_mlp_optuna(X_train, Y_train):
     """ OPTUNA """
+    import optuna
     def objective(trial):
         params = {
             'hidden_layer_sizes': trial.suggest_categorical('hidden_layer_sizes', [(64,), (128,), (64, 32), (128, 64), (128, 64, 32)]),
@@ -219,6 +218,7 @@ def _best_params_mlp_optuna(X_train, Y_train):
     return params_mejor_modelo
 
 def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers, minio):
+    import wandb
     run = wandb.init(
         entity="pd1-c2526-team4",
         project="Precios", 

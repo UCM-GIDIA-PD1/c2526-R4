@@ -19,6 +19,7 @@ src/*
 
 # ============= GENERAL =============
 # Excluir archivos innecesarios de las carpetas incluidas
+**/.venv/
 **/__pycache__
 **/*.pyc
 *.env

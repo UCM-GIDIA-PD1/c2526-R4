@@ -9,7 +9,6 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_s
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.model_selection import cross_val_score, train_test_split
-import optuna
 import wandb
 import os
 import json
@@ -93,6 +92,7 @@ def entrenar_modelo_con_gridsearch(X_train, y_train):
     return final_model, grid_search.best_params_
 
 def entrenar_modelo_con_optuna(X_train, y_train, n_trials=50):
+    import optuna
     def objective(trial):
         ngram_max = trial.suggest_int('ngram_max', 1, 2)
         

@@ -2,8 +2,6 @@
 Dado popularidad.parquet, ejecuta el modelo óptimo para predecir recomendaciones_totales
 """
 import numpy as np
-import pandas as pd
-import optuna
 import warnings
 
 from sklearn.pipeline import Pipeline
@@ -128,6 +126,7 @@ class KNNPopularity(PopularityModel):
 
     def _optimize_hyperparameters(self, data_splits, config):
         """Optimiza hiperparámetros y realiza Feature Selection simultánea."""
+        import optuna
         X_train = data_splits["X_train"]
         y_train = data_splits["y_train"]
 

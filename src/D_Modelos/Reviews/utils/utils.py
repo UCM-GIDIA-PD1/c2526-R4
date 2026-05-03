@@ -5,8 +5,7 @@ from sklearn.metrics import ConfusionMatrixDisplay, classification_report
 import os
 import joblib
 
-import matplotlib.pyplot as plt
-import wandb
+import joblib
 
 def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=False):
     """Calcula y muestra las métricas de rendimiento para un modelo de clasificación.
@@ -44,6 +43,8 @@ def get_metrics(y_test, y_pred, classes=None, img_path=None, download_images=Fal
 
     wandb_matrix = None
     if classes:
+        import matplotlib.pyplot as plt
+        import wandb
         fig, ax = plt.subplots(figsize=(10,6))
         disp = ConfusionMatrixDisplay.from_predictions(
             y_test, y_pred,
