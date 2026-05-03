@@ -7,20 +7,12 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['CUDA_VISIBLE_DEVICES'] = '' # Para forzar CPU
 
 import numpy as np
-import optuna
 import warnings
 
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.preprocessing import PowerTransformer, QuantileTransformer, MinMaxScaler, StandardScaler, FunctionTransformer
 from sklearn.model_selection import KFold, cross_validate
-
-import keras
-from keras.models import Model
-from keras.layers import Input, Dense, Dropout, Concatenate
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from keras.regularizers import l2
-from scikeras.wrappers import KerasRegressor
 
 from src.utils.files import read_file
 from src.utils.config import popularity, popularidad_mlp_file, popularidad_mlp_retrained_file, seed
@@ -52,6 +44,11 @@ class MLPPopularity(PopularityModel):
 
     @staticmethod
     def build_keras_heavyweight(hidden_layer_sizes=(256, 128, 64), activation='swish', learning_rate_init=0.001, alpha=0.0001, drop_rate=0.4, image_features=512, meta=None):
+        import keras
+        from keras.models import Model
+        from keras.layers import Input, Dense, Dropout, Concatenate
+        from keras.regularizers import l2
+        
         keras.utils.set_random_seed(seed)
         
         n_features = meta["n_features_in_"]
@@ -94,6 +91,9 @@ class MLPPopularity(PopularityModel):
         return model
 
     def _build_pipeline(self, hyperparameters, config, X_train):
+        from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+        from scikeras.wrappers import KerasRegressor
+        
         mlp_params = {k: v for k, v in hyperparameters.items()}
         transformer_name = mlp_params.pop('transformer', 'power')
         skew_transformer = PowerTransformer(method='yeo-johnson') if transformer_name == 'power' else QuantileTransformer(output_distribution='normal', random_state=seed)
@@ -150,6 +150,7 @@ class MLPPopularity(PopularityModel):
         return TransformedTargetRegressor(regressor=pipeline, func=np.log1p, inverse_func=MLPPopularity.safe_expm1)
 
     def _optimize_hyperparameters(self, data_splits, config):
+        import optuna
         X_train = data_splits["X_train"]
         y_train = data_splits["y_train"]
 

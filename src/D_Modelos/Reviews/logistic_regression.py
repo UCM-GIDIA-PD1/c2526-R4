@@ -14,9 +14,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split, cross_val_score
 from src.utils.config import reviews_logistic_regression_gridsearch_file, reviews_logistic_regression_optuna_file, reviews_logistic_regression_optuna_retrained_file,  models_reviews_path
-
-from tqdm import tqdm
-
 from src.D_Modelos.Reviews.utils.preprocesamiento import clean_text_stem
 from src.D_Modelos.Reviews.utils.utils import get_metrics
 from src.utils.config import seed
