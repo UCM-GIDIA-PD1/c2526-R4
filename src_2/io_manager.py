@@ -59,6 +59,31 @@ def write_to_file(data, filepath: Path):
     except Exception as e:
         print(f"Error inesperado escribiendo {filepath.name}: {e}")
 
+# -------------------- Subida MinIO --------------------
+def upload_file_to_minio(filepath: Path):
+    """
+    Sube un archivo local al servidor MinIO manteniendo la estructura del proyecto.
+    """
+    if not filepath.exists():
+        print(f"Error: El archivo {filepath.name} no existe localmente.")
+        return False
+
+    try:
+        client = get_minio_client()
+        minio_path = get_minio_path(filepath)
+
+        client.fput_object(
+            bucket_name="pd1",
+            object_name=str(minio_path),
+            file_path=str(filepath)
+        )
+        
+        print(f"Archivo {filepath.name} subido correctamente a: {minio_path}")
+        return True
+    except Exception as e:
+        print(f"Error al subir a MinIO: {e}")
+        return False
+    
 # -------------------- Lectura Local --------------------
 def _read_json(filepath: Path, is_gz: bool = False):
     opener = gzip.open if is_gz else open
@@ -140,6 +165,7 @@ def read_file_minio(filepath: Path, default_return=None):
             response.close()
             response.release_conn()
 
+# -------------------- Lectura General --------------------
 def read_file(filepath: Path, default_return=None):
     if filepath.exists():
         return read_file_local(filepath, default_return)
