@@ -4,7 +4,7 @@ según sus características.
 """
 
 from src.D_Modelos.Precios.utils.utils import get_metrics, read_prices, cluster_embedings, get_train_test
-from src.utils.config import precios_knncompleteclusters_file, models_precios_path
+from src.utils.config import precios_knncompleteclusters_file,precios_knncompleteclusters_retrained_file, models_precios_path
 from src.utils.files import write_to_file
 
 from sklearn.neighbors import KNeighborsClassifier
@@ -56,9 +56,7 @@ def predict_knn(model_data, test_df, train_df):
     X_train = train_df.drop(columns=['price_range']).fillna(0)
     X_test = test_df.drop(columns=['price_range']).fillna(0)
     
-    _, X_test_clustered = cluster_embedings(X_train, X_test, emb_col='v_clip')
-    
-    y_pred = model_data.predict(X_test_clustered)
+    y_pred = model_data.predict(X_test)
     
     le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
     le.fit([[c] for c in le.categories[0]])
@@ -182,9 +180,58 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
     run.log(metrics_dict)
     run.finish()
 
+def retrain_final_model(df, best_params, minio):
+    
+    df = df.dropna()
+    # Transformación de variable target
+    le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
+    df['price_range'] = le.fit_transform(df[['price_range']])
+
+    # División de datos
+    y = df['price_range']
+    X = df.drop(columns=['price_range'])
+
+    # Definimos transformaciones para el pipeline
+    cols_sesgadas = ['num_languages', 'num_juegos_previos_developers', 'ema_precio_developers', 'max_historico_precio_developers',
+                     'num_juegos_previos_publishers', 'ema_precio_publishers', 'max_historico_precio_publishers']
+    cols_normales = ['description_len']
+    cols_minmax = ['release_year', 'brillo']
+    cols_ohe = ['cluster']
+    final_transformers = [
+        ('sesgadas', PowerTransformer(method='yeo-johnson'), cols_sesgadas),
+        ('normales', StandardScaler(), cols_normales),
+        ('minmax', MinMaxScaler(), cols_minmax),
+        ('ohe', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cols_ohe)
+    ]
+    preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
+    
+    # Hacemos las transformaciones para buscar los mejoras hiperparámetros
+    clustering_step = ClusterEmbeddingsTransformer(emb_col='v_clip', n_clusters=8)
+    X_train_clustered = clustering_step.fit_transform(X)
+    X_train_transformed = preprocessor.fit_transform(X_train_clustered)
+
+    # Obtenemos los mejores hiperparámetros
+    best_params = grid_search_knn_full(X_train_transformed, y)
+
+    # Pipeline completo del modelo
+    pipeline = Pipeline([
+        ('clustering', ClusterEmbeddingsTransformer(emb_col='v_clip', n_clusters=8)),
+        ('preprocessor', preprocessor),
+        ('classifier', KNeighborsClassifier(**best_params))
+    ])
+    pipeline.fit(X, y)
+    
+    os.makedirs(models_precios_path(), exist_ok=True)
+    write_to_file(pipeline, precios_knncompleteclusters_retrained_file, minio)
+    print(f"Modelo guardado en {precios_knncompleteclusters_retrained_file}")
+
+
 def knnprecios(minio):
     df = read_prices(minio)
-    _complete_model(df.copy(), minio, modelName='K-NN Complete Clusters')
+    best_params = _complete_model(df.copy(), minio, modelName='K-NN Complete Clusters')
+    retrain = True
+    if retrain:
+        retrain_final_model(df, best_params, minio)
 
 def main(minio = {"minio_write": False, "minio_read": False}):
     knnprecios(minio)

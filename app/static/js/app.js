@@ -588,11 +588,7 @@ async function navigateToGame(appid) {
     const safeGenres = parsedGenres.map(g => `<span class="glow-chip">${g}</span>`).join('');
 
     // --- Dynamic NLP Themes ---
-    let nlpThemes = [
-        { name: "GRÁFICOS:", keywords: "Impresionante, Visuales, Estética", score: 80 },
-        { name: "HISTORIA:", keywords: "Narrativa, Personajes, Final", score: 95 },
-        { name: "RENDIMIENTO:", keywords: "FPS, Optimización, Stuttering", score: 30 }
-    ];
+    let nlpThemes = [];
     
     // Sort from best to worst
     nlpThemes.sort((a, b) => b.score - a.score);
@@ -645,18 +641,23 @@ async function navigateToGame(appid) {
 
     // 2. Inyección del nuevo HTML en el contenedor
     container.innerHTML = `
-        <div class="game-hero-section vision-glass">
-            <div class="hero-left">
-                <img class="hero-banner console-transition" src="${game.banner_url}" alt="${game.name}">
-            </div>
-            <div class="hero-right">
-                <h1 class="hero-name">${game.name}</h1>
-                <p class="hero-desc">${game.short_description || 'Explora esta increíble experiencia que te mantendrá al borde de tu asiento.'}</p>
-                <div class="hero-genres">
-                    ${safeGenres}
+        <a href="https://store.steampowered.com/app/${game.appid}" target="_blank" class="game-hero-link" title="Ver en Steam">
+            <div class="game-hero-section vision-glass">
+                <div class="hero-left">
+                    <img class="hero-banner console-transition" src="${game.banner_url}" alt="${game.name}">
+                </div>
+                <div class="hero-right">
+                    <h1 class="hero-name">${game.name}</h1>
+                    <p class="hero-desc">${game.short_description || 'Explora esta increíble experiencia que te mantendrá al borde de tu asiento.'}</p>
+                    <div class="hero-genres">
+                        ${safeGenres}
+                    </div>
+                </div>
+                <div class="steam-float-icon">
+                    <img src="/static/img/steam_icon.png" alt="Steam">
                 </div>
             </div>
-        </div>
+        </a>
 
         <div class="game-meta-grid">
             <div class="vision-glass meta-card">
@@ -701,20 +702,89 @@ async function navigateToGame(appid) {
                     <div class="market-label" id="pred-price-conclusion">Calculando...</div>
                 </div>
             </div>
-            
-            <div class="vision-glass nlp-card">
-                <h3 class="pred-title">RESUMEN DE RESEÑAS</h3>
-                <div class="nlp-themes-list">
-                    ${nlpThemesHTML}
-                </div>
+        <div class="vision-glass nlp-card">
+            <h3 class="pred-title">RESUMEN DE RESEÑAS</h3>
+            <div class="nlp-themes-list" id="nlp-themes-container">
+                <div class="loading"><div class="spinner"></div></div>
             </div>
         </div>
+    </div>
     `;
 
     // Cargar predicción real de precio
     loadRealPricePrediction(game.appid, parsedGenres, game.price_overview);
     // Cargar predicción real de popularidad
     loadRealPopularityPrediction(game.appid);
+    // Cargar predicción de topics
+    loadRealTopicsPrediction(game.appid)
+}
+
+async function loadRealTopicsPrediction(appid) {
+    const container = document.getElementById('nlp-themes-container');
+    if (!container) return;
+
+    const TOPIC_DISPLAY = {
+        "Updates & Bugs":    { name: "Updates & Bugs", keywords: "Parches, Errores, Actualizaciones" },
+        "Action & Combat":   { name: "Action & Combat",      keywords: "Acción, Peleas, Mecánicas" },
+        "Music & Atmosphere":{ name: "Music & Atmosphere",    keywords: "Música, Sonido, Ambiente" },
+        "Story & Design":    { name: "Story & Design",     keywords: "Narrativa, Personajes, Diseño" },
+        "Casual & Humor":    { name: "Casual & Humor",        keywords: "Casual, Divertido, Ligero" },
+        "General Opinion":   { name: "General Opinion",      keywords: "General, Recomendación, Valoración" },
+    };
+
+    try {
+        const res = await fetch('/api/predict/reviews/topics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appid: appid }),
+        });
+        const data = await res.json(); // { topics: { "Story & Design": 0.87, ... } }
+
+        const themes = Object.entries(data.topics).map(([key, ratio]) => {
+            const score = Math.round(ratio * 100);
+            const display = TOPIC_DISPLAY[key] || { name: key.toUpperCase() + ':', keywords: '' };
+            return { name: display.name, keywords: display.keywords, score };
+        });
+
+        // Sort best to worst
+        themes.sort((a, b) => b.score - a.score);
+
+        container.innerHTML = themes.map(theme => {
+            let colorClass, labelText;
+            if      (theme.score >= 80) { colorClass = 'excellent'; labelText = 'apartado excelente'; }
+            else if (theme.score >= 60) { colorClass = 'positive';  labelText = 'apartado bueno'; }
+            else if (theme.score >= 40) { colorClass = 'mixed';     labelText = 'apartado malo'; }
+            else                        { colorClass = 'negative';  labelText = 'apartado pésimo'; }
+
+            const offset = (125.6 * (1 - theme.score / 100)).toFixed(2);
+
+            let r, g;
+            if (theme.score <= 60) { r = 255; g = Math.round(255 * (theme.score / 60)); }
+            else                   { g = 255; r = Math.round(255 * (1 - (theme.score - 60) / 40)); }
+
+            return `
+                <div class="nlp-theme-row" style="--tint-color: rgba(${r},${g},0,0.05); --tint-hover: rgba(${r},${g},0,0.12);">
+                    <div class="nlp-theme-text">
+                        <span class="nlp-theme-name">${theme.name}</span>
+                        <span class="nlp-theme-keywords">${theme.keywords}</span>
+                    </div>
+                    <div class="nlp-gauge-wrapper">
+                        <span class="gauge-label ${colorClass}">${labelText}</span>
+                        <div class="nlp-mini-gauge ${colorClass}">
+                            <svg viewBox="0 0 100 50" class="gauge-svg">
+                                <path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50"/>
+                                <path class="gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" style="stroke-dashoffset: ${offset};"/>
+                            </svg>
+                            <span class="gauge-score">${theme.score}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (e) {
+        container.innerHTML = '<p style="color:rgba(255,255,255,0.4); text-align:center;">No se pudieron cargar los temas.</p>';
+    }
 }
 
 function navigateToCustomGame() {

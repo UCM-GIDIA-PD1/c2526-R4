@@ -31,6 +31,7 @@ from src.D_Modelos.Popularidad.mlp import MLPPopularity
 from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_mlp_file, reviews_logistic_regression_optuna_file
 from src.utils.files import read_file
 from src.D_Modelos.Reviews.logistic_regression import predict_logistic_regression
+from src.D_Modelos.Reviews.FASTopic_classifier import load_topic_model,pipeline
 
 # Dependencias para limpiar texto
 nltk.download('stopwords')
@@ -91,7 +92,7 @@ class PriceResponse(BaseModel):
 
 class ReviewsTopicsResponse(BaseModel):
     """Resultado de la predicción del problema de puntos positivos y negativos"""
-    topics : list
+    topics : dict
 
 class ReviewsValueResponse(BaseModel):
     value : bool
@@ -123,8 +124,10 @@ async def lifespan(app: FastAPI):
     app.state.model_popularity = read_file(popularidad_mlp_file, minio)
     print("Cargando modelo de precios")
     app.state.model_price = read_file(precios_knncompleteclusters_file, minio)
-    print("Cargando modelo de reviews(Simple)")
+    print("Cargando modelo de reviews (Simple)")
     app.state.model_reviews = read_file(reviews_logistic_regression_optuna_file, minio)
+    print("Cargando modelo de reviews (Complejo)")
+    app.state.model_topics = load_topic_model(minio) 
 
     # Cargar los datos históricos de developers y publishers
     print("Cargando datos históricos de juegos")
@@ -399,7 +402,6 @@ def predict_popularidad(req: PredictionRequest):
     reviews_pred = int(round(float(prediction[0])))
     return PopularityResponse(reviews=reviews_pred)
 
-
 @app.post("/api/predict/precio", response_model=PriceResponse)
 def predict_precio(req: PredictionRequest):
     """Predicción de precio (stub)."""
@@ -430,15 +432,31 @@ def predict_precio(req: PredictionRequest):
 @app.post("/api/predict/reviews/topics", response_model=ReviewsTopicsResponse)
 def predict_reviews(req: PredictionRequest):
     """Predicción de sentimiento de reseñas (stub)."""
+    print("Predicting reviews topics")
+
+    TOPIC_TAGS = {
+        0: "Updates & Bugs",
+        1: "Action & Combat",
+        2: "Music & Atmosphere",
+        3: "Story & Design",
+        4: "Casual & Humor",
+        5: "General Opinion",
+    }
+
     appid = str(req.appid)
-    reviews_list = get_reviews_text(appid)
-    print(reviews_list)
-    print(len(reviews_list))
+    reviews = get_reviews_text(appid)
+    print(reviews)
+    print(len(reviews))
 
-    reviews_df = to_dataframe(reviews_list)
+    reviews_df = to_dataframe([{"id": appid, "reviews": {"lista_resenyas": reviews}}])
+    stats = pipeline(reviews_df, app.state.model_topics)
+    print(stats)
 
-    #TODO: llamar al modelo y predecir
-    return ReviewsTopicsResponse(['Nebullet Party', 'GymFlex'])
+    prediction = dict()
+    for key,topic in TOPIC_TAGS.items():
+        prediction[topic] = stats.loc[topic, 'positive_ratio']
+
+    return ReviewsTopicsResponse(topics = prediction)
 
 @app.post("/api/predict/reviews", response_model=ReviewsValueResponse)
 def predict_review_value(req : PredictionReviewsRequest):
