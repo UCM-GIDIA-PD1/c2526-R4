@@ -13,11 +13,40 @@ def project_root():
     return current
 
 def config_files_folder():
-    """Devuelve un objecto Path con el directorio de config."""
+    """Devuelve un objeto Path con el directorio de config."""
     path = project_root() / "config_files"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def data_folder():
+    """Devuelve un objeto Path con el directorio de la carpeta data."""
+    path = project_root() / "data"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def models_folder():
+    """Devuelve un objeto Path con el directorio de la carpeta models."""
+    path = project_root() / "models"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def models_popularidad_folder():
+    """Devuelve un objecto Path con el directorio models/popularidad."""
+    path = models_folder() / "popularidad"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def models_precios_folder():
+    """Devuelve un objecto Path con el directorio models/precios."""
+    path = models_folder() / "precios"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def models_reviews_path():
+    """Devuelve un objecto Path con el directorio models/reviews."""
+    path = models_folder() / "reviews"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 # ------- Variables de entorno -------
 def get_env_var(name):
     """Obtiene una variable de entorno y valida su existencia."""
@@ -42,11 +71,11 @@ BROWSER_PATH = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.
 
 # ------- Configuración de para ChromiumPage --------
 _sys = platform.system()
-if _sys == 'Windows':
-    USER_AGENTS = ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36']
-elif _sys == 'Darwin':
-    USER_AGENTS = ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36']
+if _sys == "Windows":
+    USER_AGENTS = ["Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"]
+elif _sys == "Darwin":
+    USER_AGENTS = ["Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"]
 else:
-    USER_AGENTS = ['Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36']
+    USER_AGENTS = ["Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"]
 
 COMMON_RESOLUTIONS = [(1920, 1080), (1366, 768), (1536, 864), (1440, 900)]

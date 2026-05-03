@@ -13,9 +13,9 @@ from src_2.config import TORRC_PATH, TOR_CONTROL_PORT
 _TOR_BIN = "tor.exe" if platform.system() == "Windows" else "tor"
 
 def _is_tor_running():
-    for proc in process_iter(attrs=['name']):
+    for proc in process_iter(attrs=["name"]):
         try:
-            if _TOR_BIN.lower() == proc.info['name'].lower():
+            if _TOR_BIN.lower() == proc.info["name"].lower():
                 return True
         except (KeyError, AttributeError):
             continue
@@ -25,7 +25,7 @@ def start_tor():
     if _is_tor_running():
         return
     subprocess.Popen(
-        [_TOR_BIN, '-f', str(TORRC_PATH)],
+        [_TOR_BIN, "-f", str(TORRC_PATH)],
         stdout=subprocess.DEVNULL, 
         stderr=subprocess.DEVNULL
     )
