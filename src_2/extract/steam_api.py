@@ -137,29 +137,29 @@ def get_reviews_first_month(session: requests.Session, appid: str, release_date:
     url = f"https://store.steampowered.com/appreviewhistogram/" + appid
     data = _request(session, url, None)
 
-    if not data or data.get('success') != 1:
+    if not data or data.get("success") != 1:
         return {
             "positive_reviews_first_month": 0,
             "negative_reviews_first_month": 0,
             "total_reviews_first_month": 0
         }
 
-    results = data.get('results', {})
-    rollups = results.get('rollups', [])
-    rollup_type = results.get('rollup_type', 'week')
+    results = data.get("results", {})
+    rollups = results.get("rollups", [])
+    rollup_type = results.get("rollup_type", "week")
 
     SEC_DAY = 86400
     SEC_WEEK = 7 * SEC_DAY
     SEC_MONTH = 30 * SEC_DAY
     
     end_date = release_date + SEC_MONTH
-    duration = SEC_MONTH if rollup_type == 'month' else SEC_WEEK
+    duration = SEC_MONTH if rollup_type == "month" else SEC_WEEK
     
     pos_total = 0.0
     neg_total = 0.0
 
     for rollup in rollups:
-        rollup_start = rollup['date']
+        rollup_start = rollup["date"]
         rollup_end = rollup_start + duration
 
         if rollup_start >= end_date:
@@ -174,8 +174,8 @@ def get_reviews_first_month(session: requests.Session, appid: str, release_date:
 
         if overlap_duration > 0:
             ratio = overlap_duration / duration
-            pos_total += rollup['recommendations_up'] * ratio
-            neg_total += rollup['recommendations_down'] * ratio
+            pos_total += rollup["recommendations_up"] * ratio
+            neg_total += rollup["recommendations_down"] * ratio
 
     return {
         "positive_reviews_first_month": int(pos_total),
@@ -214,33 +214,33 @@ def get_reviews(session: requests.Session, appid: str, reviews_to_extract: int):
 
     url = f"https://store.steampowered.com/appreviews/" + appid
     extracted_reviews = []
-    cursor = '*'
+    cursor = "*"
     
     with tqdm(total=reviews_to_extract, desc=f"Reviews {appid}", unit="reviews") as pbar:
         while len(extracted_reviews) < reviews_to_extract:
             params = {
-                'json': 1,
-                'filter': 'recent',
-                'language': 'english',
-                'num_per_page': 100,
-                'cursor': cursor,
-                'purchase_type': 'all',
-                'day_range': 'all'
+                "json": 1,
+                "filter": "recent",
+                "language": "english",
+                "num_per_page": 100,
+                "cursor": cursor,
+                "purchase_type": "all",
+                "day_range": "all"
             }
             
             data = _request(session, url, params)
             
-            if data.get('success') != 1:
+            if data.get("success") != 1:
                 break
 
-            batch = data.get('reviews', [])
+            batch = data.get("reviews", [])
             if not batch:
                 break
                 
             extracted_reviews.extend(batch)
             pbar.update(len(batch))
             
-            new_cursor = data.get('cursor')
+            new_cursor = data.get("cursor")
   
             if not new_cursor or new_cursor == cursor:
                 break   
