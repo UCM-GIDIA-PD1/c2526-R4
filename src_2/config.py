@@ -13,8 +13,20 @@ def project_root():
     return current
 
 def config_files_folder():
-    """Devuelve un objecto Path con el directorio de config."""
+    """Devuelve un objeto Path con el directorio de config."""
     path = project_root() / "config_files"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def data_folder():
+    """Devuelve un objeto Path con el directorio de la carpeta data."""
+    path = project_root() / "data"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def models_folder():
+    """Devuelve un objeto Path con el directorio de la carpeta models."""
+    path = project_root() / "models"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
