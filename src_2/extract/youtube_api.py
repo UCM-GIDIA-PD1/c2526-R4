@@ -149,7 +149,9 @@ def test_process_game_youtube_data():
     except Exception as e:
         print(f"Test fallido: {e}")
     finally:
+        session.quit()
         service.close()
 
 if __name__ == "__main__":
+    test_get_video_ids()
     test_process_game_youtube_data()
