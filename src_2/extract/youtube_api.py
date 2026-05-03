@@ -26,7 +26,9 @@ def new_configured_chromium_page():
 def get_video_ids(session: ChromiumPage, game_name: str, date: str):
     """
     Busca IDs de vídeos en YouTube filtrando por nombre de juego y fecha.
-
+    Importante: la sesión que recibe debe estar configurada con TOR.\n
+    start_tor()\n 
+    session = new_configured_chromium_page()
     Args:
         session: Sesión de ChromiumPage.
         game_name: Nombre del juego.
@@ -132,5 +134,22 @@ def process_game_youtube_data(app_data, service):
         
     return result
 
+def test_process_game_youtube_data():
+    print("Test process_game_youtube_data()--------------------")
+    app_data = {"appid": "1172470", "name": "Apex Legends", "video_statistics": []}
+    try:
+        start_tor()
+        session = new_configured_chromium_page()
+        video_ids = get_video_ids(session, "Apex Legends", "2020-11-05")
+        app_data["video_statistics"] = video_ids
+        service = get_youtube_service()
+        result = process_game_youtube_data(app_data, service)
+        assert isinstance(result, dict), "El resultado debe ser un diccionario."
+        print(f"Test exitoso: {result}")
+    except Exception as e:
+        print(f"Test fallido: {e}")
+    finally:
+        service.close()
+
 if __name__ == "__main__":
-    test_get_video_ids()
+    test_process_game_youtube_data()
