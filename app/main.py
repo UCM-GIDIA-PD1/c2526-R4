@@ -325,7 +325,7 @@ def get_filter_options():
             # Fallback a valores comunes si no está la columna
             all_ages = {0, 3, 7, 12, 16, 18}
         
-        sorted_ages = sorted([int(a) for a in all_ages if pd.notna(a)])
+        sorted_ages = sorted([int(''.join(filter(str.isdigit, str(a)))) for a in all_ages if pd.notna(a) and any(c.isdigit() for c in str(a))])
         
         return {
             "genres": sorted_genres,
