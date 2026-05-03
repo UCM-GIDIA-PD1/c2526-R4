@@ -30,6 +30,23 @@ def models_folder():
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def models_popularidad_folder():
+    """Devuelve un objecto Path con el directorio models/popularidad."""
+    path = models_folder() / "popularidad"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def models_precios_folder():
+    """Devuelve un objecto Path con el directorio models/precios."""
+    path = models_folder() / "precios"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def models_reviews_path():
+    """Devuelve un objecto Path con el directorio models/reviews."""
+    path = models_folder() / "reviews"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 # ------- Variables de entorno -------
 def get_env_var(name):
     """Obtiene una variable de entorno y valida su existencia."""
