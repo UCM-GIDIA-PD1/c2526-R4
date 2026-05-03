@@ -118,7 +118,7 @@ def process_game_youtube_data(app_data, service):
     Returns:
         dict: Diccionario con el appid, nombre y la lista de estadísticas obtenidas.
     """
-    
+
     video_ids = app_data.get('video_statistics', [])
     
     result = {
@@ -129,7 +129,7 @@ def process_game_youtube_data(app_data, service):
 
     if video_ids:
         result['video_statistics'] = request_youtube_stats(service, video_ids)
-
+        
     return result
 
 if __name__ == "__main__":
