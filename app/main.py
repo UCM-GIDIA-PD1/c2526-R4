@@ -21,6 +21,7 @@ from fastapi import Request
 from pydantic import BaseModel
 import pandas as pd
 import nltk
+from typing import Any
 
 from app.extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
 from app.extraction.youtube import get_video_data
@@ -88,7 +89,9 @@ class YouTubeSearchRequest(BaseModel):
 
 class PredictionResponse(BaseModel):
     """Resultado de una predicción."""
-    details : dict
+    value: Any
+    model_used: str
+    details: dict
 
 # endregion
 
@@ -448,20 +451,16 @@ def predict_reviews(req: PredictionRequest):
 @app.post("/api/predict/reviews", response_model=PredictionResponse)
 def predict_review_value(req : PredictionReviewsRequest):
     """Predice si una reseña es positiva (True) o negativa (False)"""
-    print('Predicting review value')
-    
-    # Limpieza del texto
+    print('Predicting single review sentiment')
     text = clean_text(req.review)
-
-    # Transformación para input del modelo
-    row = pd.DataFrame(
-        {
-            'is_positive' : 'dummy',
-            'text' : [text] # Aseguramos que sea una lista para evitar errores de longitud
-        })
+    row = pd.DataFrame({'is_positive' : 'dummy', 'text' : [text]})
     prediction = predict_logistic_regression(app.state.model_reviews, row, None )
     
-    return PredictionResponse(details = { 'model' : 'Logistic Regression', 'prediction' : prediction })
+    # Convertir numpy bool a python bool para serialización
+    is_positive = bool(prediction[0])
+    
+    return PredictionResponse(value=is_positive, model_used="Logistic Regression",
+                            details = {'model':'Logistic Regression','prediction':is_positive })
 
 @app.post("/api/predict/custom")
 async def predict_custom_game(req: CustomGameRequest):
