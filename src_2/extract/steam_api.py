@@ -9,6 +9,38 @@ import time
 import requests
 from requests.exceptions import RequestException, JSONDecodeError
 
+from datetime import datetime
+
+def _parse_steam_date(date_str: str):
+    """
+    Convierte la fecha de texto de Steam a Unix timestamp.
+    Maneja el formato '10 Oct, 2007'.
+    """
+    if not date_str or "Coming Soon" in date_str:
+        return None
+        
+    months = {
+        "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
+        "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12
+    }
+    
+    try:
+        parts = date_str.replace(",", "").split()
+        if len(parts) != 3:
+            return None
+            
+        day = int(parts[0])
+        month = months.get(parts[1])
+        year = int(parts[2])
+        
+        if not month:
+            return None
+            
+        dt = datetime(year, month, day)
+        return int(dt.timestamp())
+    except (ValueError, IndexError):
+        return None
+
 def _request(session: requests.Session, url : str, params : dict | None, retries=3):
     for i in range(retries):
         try:
@@ -269,7 +301,9 @@ def test_get_reviews():
         session.close()
 
 if __name__ == "__main__":
-    test_get_appid_list()
-    test_get_appdetails()
-    test_get_reviews_first_month()
-    test_get_reviews()
+    # test_get_appid_list()
+    # test_get_appdetails()
+    # test_get_reviews_first_month()
+    # test_get_reviews()
+
+    print(_parse_steam_date("10 Oct, 2007"))

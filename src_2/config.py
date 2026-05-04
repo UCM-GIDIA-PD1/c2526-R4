@@ -93,6 +93,10 @@ def get_minio_secret_key():
     """Obtiene la clave secreta de Minio desde las variables de entorno."""
     return get_env_var("MINIO_SECRET_KEY")
 
+def get_extraction_id():
+    """Obtiene el identificador de extracción de YouTube desde las variables de entorno."""
+    return get_env_var("PD1_ID")
+
 # ------- Configuración de TOR --------
 TOR_CONTROL_PORT = 9051
 TORRC_PATH = config_files_folder() / "torrc"
@@ -123,5 +127,6 @@ steam_images_path = raw_data_folder() / "steam_images.jsonl.gz"
 youtube_video_ids_path = raw_data_folder() / "youtube_video_ids.jsonl.gz"
 youtube_stats_path = raw_data_folder() / "youtube_stats.jsonl.gz"
 
+TOTAL_MEMBERS = 6
 if __name__ == "__main__":
     print(full_appid_list_path.relative_to(project_root()))
