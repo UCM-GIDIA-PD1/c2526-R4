@@ -193,6 +193,13 @@ def read_file(filepath: Path, default_return=None):
     
     return default_return
 
+def read_first_file_found(files: list[Path], default_return=None):
+    """Intenta leer de todos los archivos posibles y devuelve el primero que da exito"""
+    for file in files:
+        data = read_file(file, default_return)
+        if data:
+            return data, file
+    return default_return, files[0]
 def file_exists_minio(filename):
     """
     Comprueba si existe un fichero en el servidor de MinIO.
