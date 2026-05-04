@@ -245,3 +245,14 @@ main_modelos_info = {
            "dependences": [dep.reviews_dependence, dep.wandb_dependence]
     }
 }
+
+main_pipeline_info = {
+    "A": {"fichero": "E_pipeline.extract_new_data",
+          "mensaje": "Pipeline extracción de nuevos datos",
+          "salida": [popularity.name, prices.name, steam_reviews_parquet_file.name], 
+          "path": [popularity, prices, steam_reviews_parquet_file], 
+          "ejecutable": "main", 
+          "usar": False, 
+          "dependences" : [dep.reviews_dependence, dep.prices_dependence, dep.popularity_dependence, dep.appidlist_file_dependence]
+    }
+}

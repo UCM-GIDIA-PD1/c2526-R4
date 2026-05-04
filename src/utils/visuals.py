@@ -121,22 +121,23 @@ def draw_files_section(scripts_info, keys, minio_info):
     show_footer()
 
 def draw_pagination(current_page):
-    nombres = {0: "menú", 1: "extracción", 2: "transformacion", 3: "modelos"}
+    nombres = {0: "menú", 1: "extracción", 2: "transformacion", 3: "modelos", 4: "pipeline"}
     izq = f"<< {current_page - 1} [{nombres[current_page - 1]}]" if current_page > 0 else ""
-    der = f"[{nombres[current_page + 1]}] {current_page + 1} >>" if current_page < 3 else ""
+    der = f"[{nombres[current_page + 1]}] {current_page + 1} >>" if current_page < 4 else ""
     print(f"{izq.ljust(48)}{der.rjust(48)}")
 
 def draw_main_menu():
     draw_ascii_title()
     show_header(" Selecciona página ")
 
-    third = (settings["total_lenght"] - 2) // 3
-    col1 = "[1] Extracción".center(third)
-    col2 = "[2] Transformación".center(third)
-    col3 = "[3] Modelos".center(third)
+    quarter = (settings["total_lenght"] - 2) // 4
+    col1 = "[1] Extracción".center(quarter)
+    col2 = "[2] Transformación".center(quarter)
+    col3 = "[3] Modelos".center(quarter)
+    col4 = "[4] Pipeline".center(quarter)
     
     print(format_line_two_columns("", ""))
-    print(f"║ {col1}{col2}{col3} ║")
+    print(f"║ {col1}{col2}{col3}{col4} ║")
     print(format_line_two_columns("", ""))
     show_footer()
 
@@ -159,7 +160,7 @@ def show_menu(scripts_info, page, minio_info):
         draw_main_menu()
     else:
         keys = sorted(scripts_info.keys())
-        title = ["Extracción", "Transformación", "Modelos"]
+        title = ["Extracción", "Transformación", "Modelos", "Pipeline"]
         draw_scripts_section(scripts_info, keys, title[page-1])
         draw_files_section(scripts_info, keys, minio_info)
         draw_pagination(page)
