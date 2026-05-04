@@ -9,30 +9,27 @@ import time
 from src_2.extract.steam_api import get_appdetails, get_reviews_first_month, _parse_steam_date
 from src_2.io_manager import write_to_file, read_file
 from src_2.config import sample_appid_list_path, steam_details_path, project_root
-from src_2.session import configure_extraction_session
+from src_2.session import get_pending_work
 
 
 def main():
     print("--- Ejecutando s03_steam_details.py ---")
     
     sample_appid_list = read_file(sample_appid_list_path)
-    appids_to_extract, current_output_path = configure_extraction_session(sample_appid_list, steam_details_path)
+    if not sample_appid_list:
+        print("Error: No se pudo cargar la muestra de AppIDs.")
+        return
     
-    existing_data = read_file(current_output_path, default_return=[])
-    processed_ids = {str(item.get("appid")) for item in existing_data}
+    appids_to_extract, current_output_path = get_pending_work(sample_appid_list, steam_details_path, id_key="appid")
     
-    pending_appids = [str(appid) for appid in appids_to_extract if str(appid) not in processed_ids]
-    
-    if not pending_appids:
+    if not appids_to_extract:
         print("No hay AppIDs pendientes por procesar en esta selección.")
         return
-
-    print(f"Pendientes: {len(pending_appids)} | Ya procesados: {len(processed_ids)}")
     
     session = requests.Session()
     
     try:
-        for appid in tqdm(pending_appids, desc="Extrayendo datos de Steam", unit="juego"):
+        for appid in tqdm(appids_to_extract, desc="Extrayendo datos de Steam", unit="juego"):
             details = get_appdetails(session, appid)
             
             if not details:

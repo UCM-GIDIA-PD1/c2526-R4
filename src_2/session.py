@@ -5,6 +5,7 @@ Módulo para gestionar la configuración de las sesiones de extracción y el par
 from src_2.interface import handle_input
 from src_2.config import TOTAL_MEMBERS, get_extraction_id
 from src_2.extract.sampler import get_my_partition
+from src_2.io_manager import read_file
 from pathlib import Path
 
 def _get_custom_range(max_len):
@@ -63,3 +64,35 @@ def configure_extraction_session(data_list : list, base_path : Path):
         output_path = base_path.parent / f"{file_base_name}_{start_idx}_{end_idx}{file_extension}"
 
     return items_to_extract, output_path
+
+def get_pending_work(sample_list, base_path, id_key="appid"):
+    """
+    Configura la sesión de extracción y filtra los elementos que ya han sido procesados.
+
+    Args:
+        sample_list: Lista de elementos a procesar (IDs o diccionarios).
+        base_path: Objeto Path con la ruta base del archivo de salida.
+        id_key: Clave del diccionario que identifica al elemento (por defecto "appid").
+
+    Returns:
+        tuple: (lista_elementos_pendientes, ruta_salida_final)
+    """
+
+    to_extract, output_path = configure_extraction_session(sample_list, base_path)
+    
+    existing_data = read_file(output_path, default_return=[])
+    
+    processed_ids = {str(item.get(id_key)) for item in existing_data}
+    
+    pending = []
+    for item in to_extract:
+        current_id = str(item.get(id_key) if isinstance(item, dict) else item)
+        if current_id not in processed_ids:
+            pending.append(item)
+            
+    if not pending:
+        print("No hay elementos pendientes por procesar en esta selección.")
+    else:
+        print(f"Pendientes: {len(pending)} | Ya procesados: {len(processed_ids)}")
+        
+    return pending, output_path
