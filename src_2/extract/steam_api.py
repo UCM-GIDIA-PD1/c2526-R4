@@ -231,29 +231,34 @@ def test_get_reviews_first_month():
     finally:
         session.close()
 
-def get_reviews(session: requests.Session, appid: str, reviews_to_extract: int):
+def get_reviews(session: requests.Session, appid: str, reviews_to_extract: int, 
+                filter_type="recent", language="english", review_type="all"):
     """
-    Extrae un número determinado de reseñas de Steam.
-
+    Extrae un número determinado de reseñas de Steam con filtros personalizables.
+    Para más información sobre el comportamiento de los filtros, ver:
+    https://github.com/Revadike/InternalSteamWebAPI/wiki/Get-App-Reviews
     Args:
         session: Sesión de requests.
         appid: ID de la aplicación.
         reviews_to_extract: Cantidad máxima de reseñas a obtener.
+        filter_type: Criterio de ordenación ("all", "recent", "updated").
+        language: Idioma de las reseñas (ej. "english", "spanish").
+        review_type: Tipo de reseñas a filtrar ("all", "positive", "negative").
 
     Returns:
         list[dict]: Lista de diccionarios con los datos de las reseñas.
     """
-
-    url = f"https://store.steampowered.com/appreviews/" + appid
+    url = f"https://store.steampowered.com/appreviews/{appid}"
     extracted_reviews = []
     cursor = "*"
     
-    with tqdm(total=reviews_to_extract, desc=f"Reviews {appid}", unit="reviews") as pbar:
+    with tqdm(total=reviews_to_extract, desc=f"Reviews {appid}", unit="reviews", leave=False) as pbar:
         while len(extracted_reviews) < reviews_to_extract:
             params = {
                 "json": 1,
-                "filter": "recent",
-                "language": "english",
+                "filter": filter_type,
+                "language": language,
+                "review_type": review_type,
                 "num_per_page": 100,
                 "cursor": cursor,
                 "purchase_type": "all",
@@ -273,7 +278,6 @@ def get_reviews(session: requests.Session, appid: str, reviews_to_extract: int):
             pbar.update(len(batch))
             
             new_cursor = data.get("cursor")
-  
             if not new_cursor or new_cursor == cursor:
                 break   
             
@@ -304,6 +308,4 @@ if __name__ == "__main__":
     # test_get_appid_list()
     # test_get_appdetails()
     # test_get_reviews_first_month()
-    # test_get_reviews()
-
-    print(_parse_steam_date("10 Oct, 2007"))
+    test_get_reviews()
