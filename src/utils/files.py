@@ -197,6 +197,9 @@ def read_file(filepath, minio = {"minio_write": False, "minio_read": False}, def
     except gzip.BadGzipFile:
         print("Error: invalid gzip.JSON format.")
         return default_return
+    except ModuleNotFoundError as e:
+        print(f"Unexpected error occurred while reading {filepath.name}: {e}")
+        return default_return
     except Exception as e:
         print(f"Unexpected error occurred while reading {filepath.name}: {e}")
         return default_return

@@ -57,7 +57,7 @@ def main():
     finally:
         session.close()
 
-    relative_path = current_output_path.relative_to(project_root)
+    relative_path = current_output_path.relative_to(project_root())
     print(f"Proceso finalizado. Datos guardados en: {relative_path}")
     
 if __name__ == "__main__":

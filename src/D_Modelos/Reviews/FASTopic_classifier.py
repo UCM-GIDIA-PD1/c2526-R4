@@ -40,24 +40,31 @@ def spacy_tokenizer(text):
     ]
 
 def load_topic_model(minio={"minio_write": False, "minio_read": False}):
-    if minio.get("minio_read"):
-        download_from_minio(reviews_fastopic_file)
-    # Pickle needs to find 'spacy_tokenizer' in the module it was saved from.
-    # When running under uvicorn/fastapi workers, __main__ is the worker entry point,
-    # not your script — so we inject the function there manually before loading.
-    for mod_name in ("__main__", "__mp_main__"):
-        mod = sys.modules.get(mod_name)
-        if mod is not None and not hasattr(mod, "spacy_tokenizer"):
-            mod.spacy_tokenizer = spacy_tokenizer
+    try:
+        if minio.get("minio_read"):
+            download_from_minio(reviews_fastopic_file)
+        # Pickle needs to find 'spacy_tokenizer' in the module it was saved from.
+        # When running under uvicorn/fastapi workers, __main__ is the worker entry point,
+        # not your script — so we inject the function there manually before loading.
+        for mod_name in ("__main__", "__mp_main__"):
+            mod = sys.modules.get(mod_name)
+            if mod is not None and not hasattr(mod, "spacy_tokenizer"):
+                mod.spacy_tokenizer = spacy_tokenizer
 
-    topic_model = FASTopic.from_pretrained(reviews_fastopic_file)
+        topic_model = FASTopic.from_pretrained(reviews_fastopic_file)
 
-    topic_model.model.to("cpu")
-    topic_model.train_doc_embeddings = topic_model.train_doc_embeddings.to("cpu")
-    if hasattr(topic_model.model, 'topic_embeddings'):
-        topic_model.model.topic_embeddings = topic_model.model.topic_embeddings.to("cpu")
+        topic_model.model.to("cpu")
+        topic_model.train_doc_embeddings = topic_model.train_doc_embeddings.to("cpu")
+        if hasattr(topic_model.model, 'topic_embeddings'):
+            topic_model.model.topic_embeddings = topic_model.model.topic_embeddings.to("cpu")
 
-    return topic_model
+        return topic_model
+    except FileNotFoundError as e:
+        print(f"Advertencia: No se pudo cargar el modelo FASTopic ({e}). El endpoint /api/predict/reviews/topics no estará disponible.")
+        return None
+    except Exception as e:
+        print(f"Advertencia: Error inesperado al cargar el modelo FASTopic ({e}). El endpoint /api/predict/reviews/topics no estará disponible.")
+        return None
 
 def remove_hearts(text):
     text = re.sub(r'(hearts){2,}', '', text)
