@@ -53,7 +53,7 @@ def clean_text_stem(text, stemmer=None, stop_words=None):
     if stop_words is None:
         stop_words = _get_stopwords()
 
-    text = re.sub(r"[^a-z\s]", "", text.lower()) # Añadido .lower() por seguridad
+    text = re.sub(r"[^a-z\s]", "", text.lower())
     return " ".join(stemmer.stem(word) for word in text.split() if word not in stop_words)
 
 def clean_text_lemma(text, lemmatizer=None, stop_words=None):
