@@ -21,7 +21,6 @@ from fastapi import Request
 from pydantic import BaseModel
 import pandas as pd
 import nltk
-from typing import Any
 
 from app.extraction.steam import get_appdetails, get_image_metadata, get_appreviewshistogram, get_reviews_text
 from app.extraction.youtube import get_video_data
@@ -29,7 +28,7 @@ from app.transformation.prices import transform_for_prices, HISTORY_COLS as PRIC
 from app.transformation.popularity import transform_for_popularity, HISTORY_COLS as POP_HISTORY_COLS
 from app.transformation.reviews import clean_text, to_dataframe
 from src.D_Modelos.Popularidad.mlp import MLPPopularity
-from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_file, app_dir, popularidad_mlp_file, reviews_logistic_regression_optuna_file
+from src.utils.config import GAME_FETCH_DATA_PATH, HISTORIC_GAMES_DATA_PATH, precios_knncompleteclusters_retrained_file, app_dir, popularidad_mlp_retrained_file, reviews_logistic_regression_optuna_retrained_file
 from src.utils.files import read_file
 from src.D_Modelos.Reviews.logistic_regression import predict_logistic_regression
 from src.D_Modelos.Reviews.FASTopic_classifier import load_topic_model,pipeline
@@ -101,11 +100,11 @@ async def lifespan(app: FastAPI):
 
     # Cargar modelos 
     print("Cargando modelo de popularidad")
-    app.state.model_popularity = read_file(popularidad_mlp_file, minio)
+    app.state.model_popularity = read_file(popularidad_mlp_retrained_file, minio)
     print("Cargando modelo de precios")
-    app.state.model_price = read_file(precios_knncompleteclusters_file, minio)
+    app.state.model_price = read_file(precios_knncompleteclusters_retrained_file, minio)
     print("Cargando modelo de reviews (Simple)")
-    app.state.model_reviews = read_file(reviews_logistic_regression_optuna_file, minio)
+    app.state.model_reviews = read_file(reviews_logistic_regression_optuna_retrained_file, minio)
     print("Cargando modelo de reviews (Complejo)")
     app.state.model_topics = load_topic_model(minio) 
 
