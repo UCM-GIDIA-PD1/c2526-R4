@@ -41,10 +41,8 @@ def read_prices(minio = {"minio_write": False, "minio_read": False}):
     return df
 
 def read_new_data(minio={"minio_write": False, "minio_read": False}):
-    
-    
     df = read_file(filepath=new_data_prices, minio=minio)
-    assert df is not None, 'Error archivo reviews.parquet no encontrado'
+    assert df is not None, f'Error archivo {new_data_prices.name} no encontrado'
 
     return df
 
