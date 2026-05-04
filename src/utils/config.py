@@ -235,10 +235,9 @@ prices = processed_data_path() / "precios.parquet"
 reviews =  processed_data_path() / "resenyas.parquet"
 
 # Nuevos datos
-
-new_data_popularity = processed_new_data_path() / "final_dataset_popularity.parquet"
-new_data_prices = processed_new_data_path() / "final_dataset_prices.parquet"
-new_data_reviews =  processed_new_data_path() / "new_steam_reviews_processed.parquet"
+new_data_popularity = processed_data_path() / "final_dataset_popularity.parquet"
+new_data_prices = processed_data_path() / "final_dataset_prices.parquet"
+new_data_reviews =  processed_data_path() / "new_steam_reviews_processed.parquet"
 
 # Reducción en modelo de precios
 reduced_prices = processed_data_path() / "precios_reducido.parquet"

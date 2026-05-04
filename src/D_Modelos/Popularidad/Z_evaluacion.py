@@ -4,8 +4,6 @@ Calcula métricas para Baseline, Regresión Lineal y XGBoost en el test_df aisla
 y las registra en W&B en un único run y en una tabla comparativa.
 """
 import wandb
-import pandas as pd
-import numpy as np
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error, median_absolute_error

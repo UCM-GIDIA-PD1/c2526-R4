@@ -142,6 +142,13 @@ uv run uvicorn app.main:app --reload --port 8000
 ---
 
 ## Desplegar la web mediante el contenedor de Podman
+Antes de nada, debes colocar tus credenciales en un .env con esta forma:
+
+```
+API_KEY_YT=clave_api
+MINIO_ACCESS_KEY=clave_de_acceso
+MINIO_SECRET_KEY=clave_secreta
+```
 
 Para poder desplegar la web es necesario tener instalado [podman](https://podman.io/) y tener el fichero .env con tus credenciales. Además de estar conectado a la VPN de la UCM.
 1. **Iniciar Podman**:
