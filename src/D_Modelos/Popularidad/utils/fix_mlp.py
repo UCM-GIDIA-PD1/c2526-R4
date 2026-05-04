@@ -3,7 +3,7 @@
 import sys
 from joblib import load, dump
 from src.utils.files import file_exists
-from src.utils.config import popularidad_mlp_file
+from src.utils.config import popularidad_mlp_retrained_file
 
 # Importamos los módulos con su ruta correcta para que existan en sys.modules
 import src.D_Modelos.Popularidad.mlp as mlp
@@ -16,9 +16,9 @@ sys.modules['Popularidad.popularity_model'] = popularity_model
 
 print("Cambiando el path del modelo MLP...")
 
-if file_exists(popularidad_mlp_file):
-    modelo = load(popularidad_mlp_file)
-    dump(modelo, popularidad_mlp_file)
-    print(f"Modelo {popularidad_mlp_file} arreglado y guardado.")
+if file_exists(popularidad_mlp_retrained_file):
+    modelo = load(popularidad_mlp_retrained_file)
+    dump(modelo, popularidad_mlp_retrained_file)
+    print(f"Modelo {popularidad_mlp_retrained_file} arreglado y guardado.")
 else:
-    print(f"Error: No se encontró el archivo {popularidad_mlp_file}")
+    print(f"Error: No se encontró el archivo {popularidad_mlp_retrained_file}")
