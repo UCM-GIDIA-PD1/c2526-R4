@@ -1,6 +1,6 @@
 import random
 
-def get_my_partition(data_list, member_id, total_members=6):
+def get_my_partition(data_list: list, member_id: int, total_members=6):
     """
     Obtiene la parte de una lista que corresponde a un miembro específico del equipo.
 
