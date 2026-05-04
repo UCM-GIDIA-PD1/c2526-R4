@@ -4,7 +4,39 @@ from googleapiclient.discovery import build
 from random import choice, randint
 from src_2.config import BROWSER_PATH, USER_AGENTS, COMMON_RESOLUTIONS, TOR_SOCKS_PROXY, get_youtube_api_key
 from src_2.network.tor_manager import start_tor
-
+import datetime
+def _parse_steam_date(date_str: str):
+    """
+    Convierte la fecha de texto de Steam al formato 'YYYY-MM-DD'.
+    Maneja el formato '10 Oct, 2007'.
+    """
+    if not date_str or "Coming Soon" in date_str:
+        return None
+        
+    months = {
+        "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
+        "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12
+    }
+    
+    try:
+        parts = date_str.replace(",", "").split()
+        if len(parts) != 3:
+            return None
+            
+        day = int(parts[0])
+        month = months.get(parts[1])
+        year = int(parts[2])
+        
+        if not month:
+            return None
+            
+        dt = datetime(year, month, day)
+        
+        return dt.strftime("%Y-%m-%d")
+        
+    except (ValueError, IndexError):
+        return None
+    
 # --- SECCIÓN 1: SCRAPING (DrissionPage + TOR) ---
 def new_configured_chromium_page():
     """
