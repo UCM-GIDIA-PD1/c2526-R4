@@ -115,6 +115,22 @@ else:
 COMMON_RESOLUTIONS = [(1920, 1080), (1366, 768), (1536, 864), (1440, 900)]
 
 # ------- Rutas de ficheros --------
+def get_files_by_pattern(filepath: Path):
+    """
+    Busca archivos que comiencen con el nombre base del fichero proporcionado.
+    
+    Args:
+        filepath: Objeto Path de referencia.
+        
+    Returns:
+        list[Path]: Lista de archivos que coinciden con el patrón.
+    """
+    # "steam_details.jsonl.gz" -> "steam_details"
+    base_name = filepath.name.split(".")[0]
+    folder = filepath.parent
+    
+    return list(folder.glob(f"{base_name}*"))
+
 # Steam
 full_appid_list_path = raw_data_folder() / "appid_list_full.json.gz"
 sample_appid_list_path = raw_data_folder() / "appid_list_sample.json.gz"
