@@ -9,6 +9,12 @@ from src.D_Modelos.Precios.utils.utils import read_prices, read_new_data, get_me
 from src.utils.files import read_file
 from src.D_Modelos.model_list import models_precios, best_prices_model_retrained
 from src.D_Modelos.Precios.xgboost_model import unpack_embeddings
+import sys
+
+# Como XGBoost se entrenó con unpack_embeddings es necesario que __main__ sea capaz de 
+# acceder a ella (de esto se encarga este fragmento de código)
+if '__main__' in sys.modules:
+    setattr(sys.modules['__main__'], 'unpack_embeddings', unpack_embeddings)
 
 def evaluate_models(minio):
     run = wandb.init(
@@ -45,27 +51,33 @@ def evaluate_models(minio):
             metrics_dict['precision'],
             metrics_dict['recall']
         )
-    
-    df_raw_new = read_new_data(minio)
-    df = best_prices_model_retrained["transform_function"](df_raw_new)
-    
-    train_df = None
-    test_df = df
-    
-    model_data = read_file(best_prices_model_retrained["model_path"], minio)
-    
-    y_real = df[y_variable]
-    y_pred = best_prices_model_retrained["prediction_function"](model_data, test_df, train_df)
-    
-    metrics_dict = get_metrics(y_real, y_pred)
 
-    table.add_data(
-        "K-NN Complete Clusters Retrained",
-        metrics_dict['accuracy'],
-        metrics_dict['f1-score'],
-        metrics_dict['precision'],
-        metrics_dict['recall']
-    )
+    try:
+        df_raw_new = read_new_data(minio)
+        df = best_prices_model_retrained["transform_function"](df_raw_new)
+        
+        train_df = None
+        test_df = df
+        
+        model_data = read_file(best_prices_model_retrained["model_path"], minio)
+        
+        if model_data is None:
+            print(f"Saltando K-NN Complete Clusters Retrained porque no se pudo cargar el modelo.")
+        else:
+            y_real = df[y_variable]
+            y_pred = best_prices_model_retrained["prediction_function"](model_data, test_df, train_df)
+            
+            metrics_dict = get_metrics(y_real, y_pred)
+
+            table.add_data(
+                "K-NN Complete Clusters Retrained",
+                metrics_dict['accuracy'],
+                metrics_dict['f1-score'],
+                metrics_dict['precision'],
+                metrics_dict['recall']
+            )
+    except Exception as e:
+        print(f"Saltando evaluación del modelo reentrenado por error: {e}")
 
     wandb.log({"comparative_table": table})
     print("Evaluación completada. Resultados en W&B.")

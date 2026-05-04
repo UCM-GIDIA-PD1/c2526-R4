@@ -52,6 +52,11 @@ def _preprocess(df):
     No escala ni aplica PCA aquí para evitar el Data Leakage.
     """
     df_clean = df.copy()
+    # Rename to match names seen at fit time
+    df_clean = df_clean.rename(columns={
+        'num_juegos_previos_publishers': 'total_games_by_publisher',
+        'num_juegos_previos_developers': 'total_games_by_developer'
+    })
 
     target_col = df_clean['price_range']
     y = target_col.map(orden_precios)

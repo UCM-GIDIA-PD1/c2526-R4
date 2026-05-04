@@ -43,6 +43,25 @@ def predict_mlp(model_data, test_df, train_df):
         
     X_test_mlp = X_test_mlp.drop(columns=['v_clip'])
     
+    # Lista de características en el orden en que fue entrenado
+    expected_cols = [
+        'num_languages', 'total_games_by_publisher', 'total_games_by_developer', 
+        'description_len', 'brillo', 'Action', 'Adventure', 'Casual', 'Early Access', 
+        'Indie', 'RPG', 'Simulation', 'Strategy', 'Co-op', 'Full controller support', 
+        'Multi-player', 'Online PvP', 'Partial Controller Support', 
+        'Playable without Timed Input', 'PvP', 'Remote Play Together', 
+        'Shared/Split Screen', 'Single-player', 'Steam Achievements', 
+        'Steam Cloud', 'Steam Leaderboards', 'Steam Trading Cards', 'release_year'
+    ] + [f'clip_umap_{i}' for i in range(19)]
+    
+    # Asegurar que todas las columnas esperadas existan (si no poner 0)
+    for col in expected_cols:
+        if col not in X_test_mlp.columns:
+            X_test_mlp[col] = 0
+            
+    # Filtrar y reordenar
+    X_test_mlp = X_test_mlp[expected_cols]
+    
     y_pred_mlp = mlp_model.predict(X_test_mlp)
 
     ohe = transformers_dict['ohe']
@@ -103,6 +122,11 @@ def _preprocess_test(df_X, df_y, transformers):
     df_y = df_y.reset_index(drop=True)
 
     X_num_log = df_X[['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers']]
+    # Renombramos columnas para que coincidan con los nombres que se usan en el entrenamiento
+    X_num_log = X_num_log.rename(columns={
+        'num_juegos_previos_publishers': 'total_games_by_publisher',
+        'num_juegos_previos_developers': 'total_games_by_developer'
+    })
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
     X_trans = df_X.drop(columns=['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'description_len', 'release_year', 'brillo'])

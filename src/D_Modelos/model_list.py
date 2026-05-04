@@ -128,7 +128,6 @@ best_popularity_model_retrained = {
     "config": {"avoid_multicol": False, "use_log": False, "full_train": True}
 }
 
-
 best_reviews_model_retrained = {
     "transform_function": transform_logistic_regression_reviews,
     "model_path": reviews_logistic_regression_optuna_retrained_file ,
@@ -136,9 +135,7 @@ best_reviews_model_retrained = {
 }
 
 best_prices_model_retrained = {
-    "K-NN Complete Clusters": {
-            "transform_function": transform_knn_precios,
-            "model_path": precios_knncompleteclusters_retrained_file,
-            "prediction_function": predict_knn_precios,
-        }
+    "transform_function": transform_knn_precios,
+    "model_path": precios_knncompleteclusters_retrained_file,
+    "prediction_function": predict_knn_precios,
 }

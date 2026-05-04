@@ -52,8 +52,7 @@ def transform_knn(df):
 
 def predict_knn(model_data, test_df, train_df):
     from src.D_Modelos.Precios.utils.utils import cluster_embedings
-    X_train = train_df.drop(columns=['price_range']).fillna(0)
-    X_test = test_df.drop(columns=['price_range']).fillna(0)
+    X_test = test_df.drop(columns=['price_range'], errors='ignore').fillna(0)
     
     y_pred = model_data.predict(X_test)
     
