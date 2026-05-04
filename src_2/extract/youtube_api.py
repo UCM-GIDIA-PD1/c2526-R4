@@ -153,11 +153,10 @@ def process_game_youtube_data(app_data, service):
         dict: Diccionario con el appid, nombre y la lista de estadísticas obtenidas.
     """
 
-    video_ids = app_data.get('video_statistics', [])
+    video_ids = app_data.get("video_ids", [])
     
     result = {
         'appid': app_data.get('appid'),
-        'name': app_data.get('name'),
         'video_statistics': []
     }
 
