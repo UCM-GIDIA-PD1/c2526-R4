@@ -115,17 +115,6 @@ else:
 COMMON_RESOLUTIONS = [(1920, 1080), (1366, 768), (1536, 864), (1440, 900)]
 
 # ------- Rutas de ficheros --------
-def get_filename(filepath: Path):
-    """
-    Obtiene el nombre de un archivo, sin extensiones.
-
-    Args:
-        filepath: Objeto Path de referencia.
-
-    Returns:
-        str: Nombre del archivo.
-    """
-    return filepath.name.split(".")[0]
 def get_files_by_pattern(filepath: Path):
     """
     Busca archivos que comiencen con el nombre base del fichero proporcionado.

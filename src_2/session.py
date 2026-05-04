@@ -48,12 +48,12 @@ def configure_extraction_session(data_list : list, base_path : Path):
     file_extension = "".join(base_path.suffixes)
     file_base_name = base_path.name.replace(file_extension, "")
     
-    if choice == "1":
+    if choice == "1": # Datos correpsondientes a identificador
         extraction_id = int(get_extraction_id())
         items_to_extract = get_my_partition(data_list, extraction_id, TOTAL_MEMBERS)
         output_path = base_path.parent / f"{file_base_name}_{extraction_id}{file_extension}"
         
-    elif choice == "2":
+    elif choice == "2": # Todos los datos
         items_to_extract = data_list
         output_path = base_path
         

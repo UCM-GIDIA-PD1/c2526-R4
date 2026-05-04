@@ -8,9 +8,7 @@ import random
 import time
 from src_2.extract.steam_api import get_appdetails, get_reviews_first_month, _parse_steam_date
 from src_2.io_manager import write_to_file, read_file
-from src_2.interface import handle_input
-from src_2.config import sample_appid_list_path, steam_details_path, TOTAL_MEMBERS, project_root, get_extraction_id, get_filename
-from src_2.extract.sampler import get_my_partition
+from src_2.config import sample_appid_list_path, steam_details_path, project_root
 from src_2.session import configure_extraction_session
 
 
