@@ -308,9 +308,12 @@ def integrar_datos():
         
 
 
-if __name__ == "__main__":
+def main(minio):
     """
     Para ejecutar este sript es necesario tener en el directorio la lista de appids antigua, y los parquets definitivos anteriores
+
+    Args:
+        minio (dict): Diccionario con las claves 'minio_write' y 'minio_read' (no utilizado en este pipeline).
     """
     session = Session()
     print("----FASE 1--------")
@@ -345,4 +348,8 @@ if __name__ == "__main__":
     )
     print("----FASE 12--------")
     integrar_datos()
+
+
+if __name__ == "__main__":
+    main({"minio_write": False, "minio_read": False})
    
