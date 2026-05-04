@@ -33,6 +33,12 @@ def raw_data_folder():
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def images_folder():
+    """Devuelve un objeto Path con el directorio de la carpeta images."""
+    path = raw_data_folder() / "images"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
 def processed_data_path():
     """Devuelve un objecto Path con el directorio processed."""
     path = data_folder() / "processed"
@@ -106,9 +112,16 @@ COMMON_RESOLUTIONS = [(1920, 1080), (1366, 768), (1536, 864), (1440, 900)]
 
 # ------- Rutas de ficheros --------
 # Steam
-appid_list_path = raw_data_folder() / "appid_list.json.gz"
+full_appid_list_path = raw_data_folder() / "appid_list_full.json.gz"
+sample_appid_list_path = raw_data_folder() / "appid_list_sample.json.gz"
+
+steam_details_path = raw_data_folder() / "steam_details.jsonl.gz"   # tiene appdetails y review_stats (appreviewhistogram)
+steam_reviews_path = raw_data_folder() / "steam_reviews.jsonl.gz"
+steam_images_path = raw_data_folder() / "steam_images.jsonl.gz"
 
 # YouTube
+youtube_video_ids_path = raw_data_folder() / "youtube_video_ids.jsonl.gz"
+youtube_stats_path = raw_data_folder() / "youtube_stats.jsonl.gz"
 
 if __name__ == "__main__":
-    print(appid_list_path.relative_to(project_root()))
+    print(full_appid_list_path.relative_to(project_root()))
