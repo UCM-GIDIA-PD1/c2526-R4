@@ -96,8 +96,8 @@ API_KEY_YT=clave_api
 MINIO_ACCESS_KEY=clave_de_acceso
 MINIO_SECRET_KEY=clave_secreta
 ```
-[!CAUTION]
-Si en vez de usar este formato en el `.env` lo escribes con `export ` el contenedor no funcionará. Puedes ponerlo de ambas formas en el mismo fichero para que funcione siempre.
+> [!CAUTION]
+> Si en vez de usar este formato en el `.env` lo escribes con `export ` el contenedor no funcionará. Puedes ponerlo de ambas formas en el mismo fichero para que funcione siempre.
 
 Descripción de variables:
 - La ``STEAM_API_KEY`` de [Steam](https://steamcommunity.com/dev/apikey) para extraer información de Steam.
@@ -153,8 +153,8 @@ uv run src/main.py
 Desde el menú prodrás seleccionar cualquier fichero del proyecto para ejecutarlo: los de extracción de datos, transformación, entrenamiento de modelos y extracción de nuevos datos.
 Además se puede seleccionar si usar los datos en local o los del servidor de [MinIO](https://minio.fdi.ucm.es/minio-console/login).
 
-[!IMPORTANT]
-El apartado de análisis no se puede ejecutar desde el menú ya que no son ficheros, son notebooks. Se pueden encontrar en la carpeta de análisis y no necesitan configuraciones extra para poder ejecutarse.
+> [!IMPORTANT]
+> El apartado de análisis no se puede ejecutar desde el menú ya que no son ficheros, son notebooks. Se pueden encontrar en la carpeta de análisis y no necesitan configuraciones extra para poder ejecutarse.
 
 ### Instrucciones de uso del menú
 Al ejecutar el menú aparecerá una pestaña donde podrás elegir que acción querrás realizar, solo tendrás que escribir el número correspondiente para llegar al menú de selección de ese apartado:
@@ -211,11 +211,11 @@ podman run -d -p 8000:8000 --name container --env-file .env steam-predictor
 
 Accede a la web desde `http://localhost:8000`. 
 
-[!WARNING]
-Si estás en Windows puede que tu máquina Podman intente usar una IP interna aislada, para encontrarla:
-```shell
-wsl -d podman-machine-default ip -4 a
-```
+> [!WARNING]
+> Si estás en Windows puede que tu máquina Podman intente usar una IP interna aislada, para encontrarla:
+> ```shell
+> wsl -d podman-machine-default ip -4 a
+> ```
 Busca el bloque de red llamado eth0 y fíjate en la dirección que aparece al lado de inet. Podrás acceder a la web desde `http://<TU_IP>:8000`
 
 ---
