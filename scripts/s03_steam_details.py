@@ -15,7 +15,8 @@ from src_2.session import configure_extraction_session
 def main():
     print("--- Ejecutando s03_steam_details.py ---")
     
-    appids_to_extract, current_output_path = configure_extraction_session(sample_appid_list_path, steam_details_path)
+    sample_appid_list = read_file(sample_appid_list_path)
+    appids_to_extract, current_output_path = configure_extraction_session(sample_appid_list, steam_details_path)
     
     existing_data = read_file(current_output_path, default_return=[])
     processed_ids = {str(item.get("appid")) for item in existing_data}
