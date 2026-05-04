@@ -16,7 +16,7 @@ def _parse_steam_date(date_str: str):
     Convierte la fecha de texto de Steam a Unix timestamp.
     Maneja el formato '10 Oct, 2007'.
     """
-    if not date_str or "Coming Soon" in date_str:
+    if not date_str or "Coming Soon" in date_str or "To be announced" in date_str:
         return None
         
     months = {
