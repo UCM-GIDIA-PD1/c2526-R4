@@ -20,8 +20,6 @@ from src.D_Modelos.Popularidad.popularity_model import PopularityModel
 
 warnings.filterwarnings('ignore')
 
-
-
 class LinearRegressionPopularity(PopularityModel):
     def select_features(self, X, indices=None):
         return X[:, indices]

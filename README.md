@@ -74,12 +74,18 @@ setx PD1_ID identificador_grupo
 
 En Linux, MacOS o si vas a querer ejecutar el contenedor, hay que crear un archivo `.env` y añadir:
 ```bash
-STEAM_API_KEY=clave_api
+# Para la carga normal del .env
+export PD1_ID=identificador_grupo
+export STEAM_API_KEY=clave_api
+export API_KEY_YT=clave_api
+export WANDB_API_KEY=clave_api
+export MINIO_ACCESS_KEY=clave_de_acceso
+export MINIO_SECRET_KEY=clave_secreta
+
+# Para que podman pueda cargar las variables
 API_KEY_YT=clave_api
-WANDB_API_KEY=clave_api
 MINIO_ACCESS_KEY=clave_de_acceso
 MINIO_SECRET_KEY=clave_secreta
-PD1_ID=identificador_grupo
 ```
 
 Definición de variables:
@@ -125,7 +131,18 @@ sudo systemctl disable tor
 ```
 
 ---
+
+## Desplegar la web con uv run
+Para desplegar la web solo necesitamos ejecutar este comando situados en la raíz del proyecto mientras estamos conectados a la VPN de la UCM para la descarga de los datos y los modelos:
+
+```
+uv run uvicorn app.main:app --reload --port 8000
+```
+
+---
+
 ## Desplegar la web mediante el contenedor de Podman
+
 Para poder desplegar la web es necesario tener instalado [podman](https://podman.io/) y tener el fichero .env con tus credenciales. Además de estar conectado a la VPN de la UCM.
 1. **Iniciar Podman**:
 ``` shell
