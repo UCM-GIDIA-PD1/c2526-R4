@@ -34,7 +34,7 @@ def _parse_steam_date(date_str: str):
         
         return dt.strftime("%Y-%m-%d")
         
-    except (ValueError, IndexError):
+    except Exception:
         return None
     
 # --- SECCIÓN 1: SCRAPING (DrissionPage + TOR) ---

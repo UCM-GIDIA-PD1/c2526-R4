@@ -38,7 +38,7 @@ def _parse_steam_date(date_str: str):
             
         dt = datetime(year, month, day)
         return int(dt.timestamp())
-    except (ValueError, IndexError):
+    except Exception:
         return None
 
 def _request(session: requests.Session, url : str, params : dict | None, retries=3):
