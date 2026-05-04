@@ -417,6 +417,9 @@ def predict_reviews(req: PredictionRequest):
     """Predicción de sentimiento de reseñas (stub)."""
     print("Predicting reviews topics")
 
+    if app.state.model_topics is None:
+        return JSONResponse(status_code=503, content={"error": "Modelo FASTopic no disponible (no se pudo cargar al iniciar)"})
+
     # Temas de FASTopic
     TOPIC_TAGS = {
         0: "Updates & Bugs",
