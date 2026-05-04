@@ -6,7 +6,7 @@ import src.utils.dependences as dep
 from src.utils.config import appidlist_file, gamelist_file, youtube_scraping_file, yt_statslist_file, P_banners_file
 from src.utils.config import steam_reviews_file, banners_file, steam_reviews_top100_file, steam_reviews_rest_file
 from src.utils.config import steam_games_parquet_file, yt_stats_parquet_file
-from src.utils.config import steam_reviews_parquet_file, popularity, prices
+from src.utils.config import steam_reviews_parquet_file, popularity, prices, reviews
 from src.utils.config import popularidad_xgboost_file, popularidad_xgboost_log_file, popularidad_mlp_file
 from src.utils.config import popularidad_xgboost_nomulti_file, popularidad_xgboost_log_nomulti_file
 from src.utils.config import popularidad_linear_regression_file, popularidad_linear_regression_log_file, popularidad_knn_log_file
@@ -249,8 +249,8 @@ main_modelos_info = {
 main_pipeline_info = {
     "A": {"fichero": "E_pipeline.extract_new_data",
           "mensaje": "Pipeline extracción de nuevos datos",
-          "salida": [popularity.name, prices.name, steam_reviews_parquet_file.name], 
-          "path": [popularity, prices, steam_reviews_parquet_file], 
+          "salida": [popularity.name, prices.name, reviews.name], 
+          "path": [popularity, prices, reviews], 
           "ejecutable": "main", 
           "usar": False, 
           "dependences" : [dep.reviews_dependence, dep.prices_dependence, dep.popularity_dependence, dep.appidlist_file_dependence]
