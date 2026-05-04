@@ -5,6 +5,7 @@ from random import choice, randint
 from src_2.config import BROWSER_PATH, USER_AGENTS, COMMON_RESOLUTIONS, TOR_SOCKS_PROXY, get_youtube_api_key
 from src_2.network.tor_manager import start_tor
 import datetime
+
 def _parse_steam_date(date_str: str):
     """
     Convierte la fecha de texto de Steam al formato 'YYYY-MM-DD'.
@@ -182,6 +183,9 @@ def test_process_game_youtube_data():
     finally:
         session.quit()
         service.close()
+
+# Límite de requests api de Steam
+REQUEST_LIMIT = 10000
 
 if __name__ == "__main__":
     test_get_video_ids()
