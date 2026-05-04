@@ -1,3 +1,9 @@
+"""
+Módulo de lectura y escritura de ficheros.
+- Lectura de ficheros: primero se intenta leer el fichero local, si no se encuentra se lee del MinIO
+- Escritura de ficheros: se escribe en local. Se puede escribir en MinIO llamando a upload_file_to_minio
+"""
+
 import io
 import json
 import gzip
@@ -19,6 +25,17 @@ def get_minio_client():
 def get_minio_path(filename: Path):
     relative_path = filename.relative_to(project_root())
     return f"grupo4/{relative_path.as_posix()}"
+
+def check_minio_connection():
+    """
+    Verifica si se ha conseguido conectar con el servidor de MinIO.
+    """
+    try:
+        client = get_minio_client()
+        client.list_buckets()
+        return True
+    except:
+        return False
 
 # -------------------- Escritura Local --------------------
 def _save_json(data, filepath: Path, is_gz: bool = False):
@@ -170,5 +187,31 @@ def read_file(filepath: Path, default_return=None):
     if filepath.exists():
         return read_file_local(filepath, default_return)
     
-    print(f"Archivo no encontrado: {filepath.name}, intentando leer desde MinIO")
-    return read_file_minio(filepath, default_return)
+    if check_minio_connection():
+        print(f"Archivo no encontrado: {filepath.name}, intentando leer desde MinIO")
+        return read_file_minio(filepath, default_return)
+    
+    return default_return
+
+def file_exists_minio(filename):
+    """
+    Comprueba si existe un fichero en el servidor de MinIO.
+
+    Args:
+        filename (Path): Nombre del fichero a a comprobar.
+    
+    Returns:
+        boolean: True si existe, False en caso contrario.
+    """
+    client = get_minio_client()
+    minio_path = get_minio_path(filename)
+
+    try:
+        client.stat_object(bucket_name="pd1", object_name=minio_path)
+        return True
+    except:
+        return False
+
+def file_exists(filepath):
+    return filepath.exists() or file_exists_minio(filepath)
+
