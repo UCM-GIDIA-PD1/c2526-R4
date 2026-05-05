@@ -12,8 +12,7 @@ from src.D_Modelos.Precios.xgboost_model import unpack_embeddings
 from src.D_Modelos.Precios.knn import ClusterEmbeddingsTransformer
 import sys
 
-# Como XGBoost se entrenó con unpack_embeddings es necesario que __main__ sea capaz de 
-# acceder a ella (de esto se encarga este fragmento de código)
+# Cambiar path del modulo para que el fichero pkl pueda encontrar dependencias de clases/funciones
 if '__main__' in sys.modules:
     setattr(sys.modules['__main__'], 'unpack_embeddings', unpack_embeddings)
     setattr(sys.modules['__main__'], 'ClusterEmbeddingsTransformer', ClusterEmbeddingsTransformer)

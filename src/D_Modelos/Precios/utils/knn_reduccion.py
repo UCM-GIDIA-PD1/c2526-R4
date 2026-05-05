@@ -68,7 +68,6 @@ def reducir_precios():
     
     df.to_parquet('precios_reducido.parquet')
 
-
 def main():
     reducir_precios()
 
