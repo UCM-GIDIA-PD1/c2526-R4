@@ -52,15 +52,15 @@ def main():
     print("Generando versiones finales")
     
     if popularity_parquet.exists():
-        shutil.copy(popularity_parquet, new_popularity)
+        shutil.move(popularity_parquet, new_popularity)
         merge_and_save(old_popularity, new_popularity, final_popularity, "id")
 
     if prices_parquet.exists():
-        shutil.copy(prices_parquet, new_prices)
+        shutil.move(prices_parquet, new_prices)
         merge_and_save(old_prices, new_prices, final_prices, "id")
 
     if reviews_parquet.exists():
-        shutil.copy(reviews_parquet, new_reviews)
+        shutil.move(reviews_parquet, new_reviews)
         merge_and_save(old_reviews, new_reviews, final_reviews, "appid")
 
     print("Pipeline finalizado")
