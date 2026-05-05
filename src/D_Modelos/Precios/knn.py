@@ -3,7 +3,7 @@ Dado precios.parquet crea un modelo de knn para predecir en que rango de precio 
 según sus características.
 """
 
-from src.D_Modelos.Precios.utils.utils import get_metrics, read_prices, cluster_embedings, get_train_test
+from src.D_Modelos.Precios.utils.utils import get_metrics, read_prices, get_train_test
 from src.utils.config import precios_knncompleteclusters_file,precios_knncompleteclusters_retrained_file, models_precios_path
 from src.utils.files import write_to_file
 
@@ -51,7 +51,6 @@ def transform_knn(df):
     return df.copy()
 
 def predict_knn(model_data, test_df, train_df):
-    from src.D_Modelos.Precios.utils.utils import cluster_embedings
     X_test = test_df.drop(columns=['price_range'], errors='ignore').fillna(0)
     
     y_pred = model_data.predict(X_test)
@@ -117,6 +116,7 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
     """
     print(f'Creando modelo {modelName}...')
     df = df.dropna()
+    print(len(df.index))
 
     # Transformación de variable target
     le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
@@ -182,6 +182,7 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
 def retrain_final_model(df, best_params, minio):
     
     df = df.dropna()
+    print(len(df.index))
     # Transformación de variable target
     le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
     df['price_range'] = le.fit_transform(df[['price_range']])
@@ -211,6 +212,7 @@ def retrain_final_model(df, best_params, minio):
 
     # Obtenemos los mejores hiperparámetros
     best_params = grid_search_knn_full(X_train_transformed, y)
+    #best_params = {'n_neighbors': 21, 'weights': 'distance', 'metric': 'manhattan'}
 
     # Pipeline completo del modelo
     pipeline = Pipeline([
