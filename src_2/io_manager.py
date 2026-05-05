@@ -12,7 +12,7 @@ import joblib
 from pathlib import Path
 from minio import Minio
 
-from src_2.config import get_minio_access_key, get_minio_secret_key, project_root
+from src_2.config import get_minio_access_key, get_minio_secret_key, project_root, get_files_by_pattern
 
 # -------------------- MinIO --------------------
 def get_minio_client():
@@ -317,3 +317,28 @@ def file_exists(filepath):
     """
     return filepath.exists() or file_exists_minio(filepath)
 
+def consolidate_raw_parts(base_path):
+    """
+    Localiza y combina múltiples fragmentos de datos en un único archivo consolidado.
+
+    Args:
+        base_path: Objeto Path que define la ruta y el nombre del archivo final.
+    """
+    
+    parts = get_files_by_pattern(base_path)
+    
+    parts = [path for path in parts if path != base_path]
+    
+    if not parts:
+        return
+
+    all_data = []
+    for path in parts:
+        data = read_file(path)
+        if isinstance(data, list):
+            all_data.extend(data)
+        elif data is not None:
+            all_data.append(data)
+            
+    if all_data:
+        write_to_file(all_data, base_path)
