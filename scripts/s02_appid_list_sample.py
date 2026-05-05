@@ -38,8 +38,7 @@ def main():
 
     write_to_file(sample, sample_appid_list_path)
     
-    relative_path = sample_appid_list_path.relative_to(project_root())
-    print(f"Muestra generada y guardada en: {relative_path}")
+    print(f"Muestra generada y guardada en: {sample_appid_list_path.relative_to(project_root())}")
     print(f"Número de AppIDs en la lista: {len(sample)}")
 
 if __name__ == "__main__":
