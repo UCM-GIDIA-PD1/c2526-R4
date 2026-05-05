@@ -51,7 +51,6 @@ def main():
         if sessionChromium:
             sessionChromium.quit()
 
-    relative_path = current_output_path.relative_to(project_root())
-    print(f"Proceso finalizado. Datos guardados en: {relative_path}")
+    print(f"Finalizado. Datos en: {current_output_path.relative_to(project_root())}")
 if __name__ == "__main__":
     main()
