@@ -1,8 +1,5 @@
 import pandas as pd
-from src_2.config import (
-    steam_details_path, steam_images_path, prices_parquet, 
-    get_files_by_pattern, project_root
-)
+from src_2.config import steam_details_path, steam_images_path, prices_parquet, get_files_by_pattern, project_root
 from src_2.io_manager import read_first_file_found, write_to_file
 from src_2.transform.schemas import GENRES_SCHEMA, CATEGORIES_SCHEMA
 from src_2.transform.features import calculate_entity_history

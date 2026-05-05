@@ -3,6 +3,7 @@ import pandas as pd
 from src_2.config import popularity_parquet, prices_parquet, reviews_parquet
 from src_2.io_manager import merge_and_save
 
+from src_2.scripts.s00_join_extraction_files import main as join_files
 from src_2.scripts.s01_appid_list_full import main as update_census
 from src_2.scripts.s02_appid_list_sample import main as generate_sample
 from src_2.scripts.s03_steam_details import main as extract_details
@@ -47,7 +48,9 @@ def main():
     youtube_video_ids()
     youtube_video_stats()
     image_features()
-
+    # evita confusión cuando existen a la vez ficheros tipo steam_reviews_1.json y steam_reviews.json.gz
+    join_files()
+    
     print("Ejecutando scripts de transformación")
     transform_reviews()
     transform_popularity()
@@ -57,15 +60,15 @@ def main():
     
     if popularity_parquet.exists():
         shutil.move(popularity_parquet, new_popularity)
-        merge_and_save(old_popularity, new_popularity, final_popularity, "id")
+        merge_and_save(old_popularity, new_popularity, final_popularity)
 
     if prices_parquet.exists():
         shutil.move(prices_parquet, new_prices)
-        merge_and_save(old_prices, new_prices, final_prices, "id")
+        merge_and_save(old_prices, new_prices, final_prices)
 
     if reviews_parquet.exists():
         shutil.move(reviews_parquet, new_reviews)
-        merge_and_save(old_reviews, new_reviews, final_reviews, "appid")
+        merge_and_save(old_reviews, new_reviews, final_reviews)
 
     print("Pipeline finalizado")
 

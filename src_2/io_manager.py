@@ -95,7 +95,7 @@ def write_to_file(data, filepath: Path):
     except Exception as e:
         print(f"Error inesperado escribiendo {filepath.name}: {e}")
 
-def merge_and_save(old_path: Path, new_path: Path, final_path: Path, id_col="id"):
+def merge_and_save(old_path: Path, new_path: Path, final_path: Path):
     """
     Fusiona archivos parquet antiguos y nuevos eliminando duplicados por identificador.
 
@@ -112,7 +112,7 @@ def merge_and_save(old_path: Path, new_path: Path, final_path: Path, id_col="id"
         write_to_file(df_new, final_path)
         return
 
-    df_final = pd.concat([df_new, df_old]).drop_duplicates(subset=[id_col], keep="first")
+    df_final = pd.concat([df_new, df_old]).drop_duplicates()
     write_to_file(df_final, final_path)
 # -------------------- Subida MinIO --------------------
 def upload_file_to_minio(filepath: Path):
