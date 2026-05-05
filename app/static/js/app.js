@@ -825,7 +825,7 @@ function navigateToCustomGame() {
         <div class="custom-game-review-container vision-glass" style="margin-top: 2rem;">
             <h3 class="pred-title">Analizador de Reseñas</h3>
             <p style="color: rgba(255, 255, 255, 0.4); font-size: 1rem; font-weight: 300; margin-bottom: 1.5rem;">Escribe una reseña en INGLÉS y el modelo predecirá si es positiva o negativa.</p>
-            <textarea id="cg-review-text" rows="4" placeholder="Escribe tu reseña aquí..." class="custom-select-style" style="resize: vertical; font-size: 1rem; font-weight: 300;"></textarea>
+            <textarea id="cg-review-text" rows="4" placeholder="Escribe tu reseña aquí..." class="custom-select-style" style="resize: vertical; font-size: 1rem; font-weight: 300;" lang="en" spellcheck="false"></textarea>
             <button id="btn-predict-review" class="btn-predict-custom" style="margin-top: 1rem; margin-bottom: 1rem;">Analizar Sentimiento</button>
             <div id="cg-review-result" style="display: none; font-size: 1.2rem; font-weight: 500; text-align: center; padding: 1rem; border-radius: var(--radius-md);"></div>
         </div>
