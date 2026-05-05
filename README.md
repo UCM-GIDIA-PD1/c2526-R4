@@ -159,12 +159,16 @@ Además se puede seleccionar si usar los datos en local o los del servidor de [M
 ### Instrucciones de uso del menú
 Al ejecutar el menú aparecerá una pestaña donde podrás elegir que acción querrás realizar, solo tendrás que escribir el número correspondiente para llegar al menú de selección de ese apartado:
 - 1 ➜ Extracción
+
     Desde este menú podrás extraer todos los datos necesarios del proyecto. Para ejecutar modelos de los tres problemas del proyecto es necesario ejecutarlos todos.
 - 2 ➜ Transformación
+
     Desde este menú podrás realizar las transformaciones necesarias para convertir los datos en crudo en los parquets necesarios para entrenar los modelos
 - 3 ➜ Modelos
+
     Desde este menú podrás entrenar todos los modelos de nuestros tres problemas, además de ejecutar scripts de evaluación para obtener las métricas de todos ellos
 - 4 ➜ Pipelines
+
     Desde este menú podrás ejecutar el pipeline para obtener nuevos datos, siempre que se hayan sacado inicialmente se podrán actualizar ejecutando el pipeline
 
 Aun así, no es necesario ejecutarlo todo para poder seguir (ya que hay algunos ficheros que tardan varias horas), se pueden usar los datos de MinIO para ejecutar cualquiera de los scripts en todo momento. 
@@ -175,11 +179,11 @@ Desde estos submenús podrás elegir qué ficheros quieres ejecutar escribiendo 
 
 ## Resumen de resultados
 ### Predictor de popularidad
-El mejor modelo es MLP, con un MAE de 130. Esta métrica no es muy buena, siendo este el peor de nuestros modelos.
+El mejor modelo es MLP, con un MAE de 130 y RMSE de 1674. Estas métricas no son muy buena, siendo este el peor de nuestros modelos.
 ### Estimador de precios
-El mejor modelo es el de kNN con un F1 de 0.5092, destacando que los precios mal predichos suelen ser de tan solo una categoría por encima o por debajo.  
+El mejor modelo es el de kNN con un F1 de 0.5092, *accuracy* de 0.65, *precision* de 0.65 y *recall* de 0.66, destacando que los precios mal predichos suelen ser de tan solo una categoría por encima o por debajo.  
 ### Análisis de reseñas
-En este apartado tenemos dos modelos, por una parte para saber si las reseñas son negativas o positivas tenemos un modelo de regresión logística con un balanced accuracy de 0.87. Por otra parte, para clasificar las reseñas por temáticas usamos un modelo de FASTopic al que no le hemos podido sacar métricas al no estar los datos etiquetados. Aun así este modelo parece funcionar bastante bien, dando siempre clasificaciones coherentes.
+En este apartado tenemos dos modelos, por una parte para saber si las reseñas son negativas o positivas tenemos un modelo de regresión logística con un balanced accuracy de 0.87 y F1 de 0.91. Por otra parte, para clasificar las reseñas por temáticas usamos un modelo de FASTopic al que no le hemos podido sacar métricas al no estar los datos etiquetados. Aun así este modelo parece funcionar bastante bien, dando siempre clasificaciones coherentes.
 
 ---
 
