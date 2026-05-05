@@ -11,12 +11,12 @@ def main():
     print("--- Ejecutando s07_image_features.py ---")
 
     files = get_files_by_pattern(steam_details_path)
-    games_info, file = read_first_file_found(files, [])
+    games_info, source_file = read_first_file_found(files, [])
 
     if not games_info:
         print("Error: No se pudo cargar la información de los juegos.")
         return
-    print(f"Juegos leídos de fichero: {file.name}")
+    print(f"Juegos leídos de fichero: {source_file.name}")
 
     pending_games, current_output_path = get_pending_work(games_info, steam_images_path)
 

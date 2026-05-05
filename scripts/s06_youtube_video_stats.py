@@ -7,11 +7,11 @@ from src_2.extract.youtube_api import process_game_youtube_data, get_youtube_ser
 def main():
     print("--- Ejecutando s06_youtube_video_stats.py ---")
     possible_paths = get_files_by_pattern(youtube_video_ids_path)
-    youtube_video_ids, file = read_first_file_found(possible_paths, [])
+    youtube_video_ids, source_file = read_first_file_found(possible_paths, [])
     if not youtube_video_ids:
         print("Error: No se pudo cargar la información de los juegos.")
         return
-    print(f"Juegos leidos de fichero: {file.name}")
+    print(f"Juegos leidos de fichero: {source_file.name}")
     
     pending_games, current_output_path = get_pending_work(youtube_video_ids, youtube_stats_path)
 

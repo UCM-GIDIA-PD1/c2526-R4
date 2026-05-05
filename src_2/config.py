@@ -39,7 +39,7 @@ def images_folder():
     path.mkdir(parents=True, exist_ok=True)
     return path
 
-def processed_data_path():
+def processed_data_folder():
     """Devuelve un objecto Path con el directorio processed."""
     path = data_folder() / "processed"
     path.mkdir(parents=True, exist_ok=True)
@@ -142,6 +142,11 @@ steam_images_path = raw_data_folder() / "steam_images.jsonl.gz"
 # YouTube
 youtube_video_ids_path = raw_data_folder() / "youtube_video_ids.jsonl.gz"
 youtube_stats_path = raw_data_folder() / "youtube_stats.jsonl.gz"
+
+# Parquets
+reviews_parquet = processed_data_folder() / "reviews.parquet"
+prices_parquet = processed_data_folder() / "prices.parquet"
+popularity_parquet = processed_data_folder() / "popularity.parquet"
 
 TOTAL_MEMBERS = 6
 if __name__ == "__main__":

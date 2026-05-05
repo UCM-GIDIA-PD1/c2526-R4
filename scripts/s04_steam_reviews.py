@@ -28,7 +28,7 @@ def main():
 
     try:
         for appid in tqdm(pending_appids, desc="Extrayendo reseñas", unit="juego"):
-            reviews = get_reviews(sessionRequest, str(appid), reviews_to_extract=50, filter_type="all")
+            reviews = get_reviews(sessionRequest, str(appid), reviews_to_extract=50, filter_type="recent")
             full_data = {"appid": appid, "reviews": reviews}
             write_to_file(full_data, current_output_path)
     except KeyboardInterrupt:
