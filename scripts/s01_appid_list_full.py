@@ -11,12 +11,12 @@ from src_2.io_manager import write_to_file
 
 def main():
     print("--- Ejecutando s01_appid_list_full.py ---")
-    session = requests.Session()
+    sessionRequest = requests.Session()
     print("Obteniendo lista completa de AppIDs de Steam...")
 
     appids_to_extract = 200000 # por ahora no hay más de 200000 juegos en Steam
     last_appid = 0
-    appid_list = get_appid_list(session, appids_to_extract, last_appid)
+    appid_list = get_appid_list(sessionRequest, appids_to_extract, last_appid)
 
     if not appid_list:
         print("No se pudo obtener la lista de AppIDs de Steam.")

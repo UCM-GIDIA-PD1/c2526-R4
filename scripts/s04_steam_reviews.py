@@ -24,17 +24,17 @@ def main():
         print("No hay AppIDs pendientes por procesar en esta selección.")
         return
 
-    session = requests.Session()
+    sessionRequest = requests.Session()
 
     try:
         for appid in tqdm(pending_appids, desc="Extrayendo reseñas", unit="juego"):
-            reviews = get_reviews(session, str(appid), reviews_to_extract=50, filter_type="all")
+            reviews = get_reviews(sessionRequest, str(appid), reviews_to_extract=50, filter_type="all")
             full_data = {"appid": appid, "reviews": reviews}
             write_to_file(full_data, current_output_path)
     except KeyboardInterrupt:
         print("\nProceso interrumpido por el usuario. Progreso guardado.")
     finally:
-        session.close()
+        sessionRequest.close()
 
     relative_path = current_output_path.relative_to(project_root())
     print(f"Proceso finalizado. Datos guardados en: {relative_path}")
