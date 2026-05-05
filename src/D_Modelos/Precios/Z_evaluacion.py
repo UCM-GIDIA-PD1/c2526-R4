@@ -9,12 +9,14 @@ from src.D_Modelos.Precios.utils.utils import read_prices, read_new_data, get_me
 from src.utils.files import read_file
 from src.D_Modelos.model_list import models_precios, best_prices_model_retrained
 from src.D_Modelos.Precios.xgboost_model import unpack_embeddings
+from src.D_Modelos.Precios.knn import ClusterEmbeddingsTransformer
 import sys
 
 # Como XGBoost se entrenó con unpack_embeddings es necesario que __main__ sea capaz de 
 # acceder a ella (de esto se encarga este fragmento de código)
 if '__main__' in sys.modules:
     setattr(sys.modules['__main__'], 'unpack_embeddings', unpack_embeddings)
+    setattr(sys.modules['__main__'], 'ClusterEmbeddingsTransformer', ClusterEmbeddingsTransformer)
 
 def evaluate_models(minio):
     run = wandb.init(
