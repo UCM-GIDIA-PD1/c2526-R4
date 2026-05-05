@@ -15,11 +15,12 @@ from sklearn.model_selection import cross_validate
 from sklearn.pipeline import Pipeline
 
 import os
-
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.cluster import KMeans
 import numpy as np
 import pandas as pd
+import wandb
+
 
 class ClusterEmbeddingsTransformer(BaseEstimator, TransformerMixin):
     """
@@ -50,7 +51,7 @@ class ClusterEmbeddingsTransformer(BaseEstimator, TransformerMixin):
 def transform_knn(df):
     return df.copy()
 
-def predict_knn(model_data, test_df, train_df):
+def predict_knn(model_data, test_df, train_df = None):
     X_test = test_df.drop(columns=['price_range'], errors='ignore').fillna(0)
     
     y_pred = model_data.predict(X_test)
@@ -119,7 +120,6 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
     ]
     preprocessor = ColumnTransformer(transformers=final_transformers, remainder='passthrough')
 
-    import wandb
     run = wandb.init(entity="pd1-c2526-team4", project="Precios", name=modelName, job_type='knn')
     print(X_train.columns)
 
@@ -144,7 +144,7 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
         y_test_labels, y_pred_labels,
         classes=le.categories_[0],
         img_path='models/precios/graficos/confusionMatrix/knn_complete_clusters.png',
-        download_images=False
+        download_images=True
     )
     os.makedirs(models_precios_path(), exist_ok=True)
     write_to_file(pipeline, precios_knncompleteclusters_file, minio)
@@ -155,6 +155,8 @@ def _complete_model(df, minio, modelName='K-NN Complete Clusters'):
     return best_params  # ← también faltaba el return
 
 def retrain_final_model(df, best_params, minio):
+    """Reentrenamiento de KNN con todos los datos de train y test juntos (Dataset completo)
+    """
     df = df.dropna()
     print(len(df.index))
 

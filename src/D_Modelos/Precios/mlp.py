@@ -256,7 +256,7 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers
     best_mlp.fit(X_train, Y_train.values.flatten())
 
     Y_pred = best_mlp.predict(X_test)
-    cm_path = 'models/precios/graficos/confusionMatrix/mlp.png'
+    cm_path = 'models/precios/graficos/confusionMatrix/mlp_precios.png'
 
     ohe = transformers['ohe']
     Y_test_labels = ohe.inverse_transform(Y_test.values.reshape(-1, 1)).flatten()
@@ -265,7 +265,8 @@ def _mlp(X_train, X_test, Y_train, Y_test, best_params, model_name, transformers
     metricas = get_metrics(
         Y_test_labels, Y_pred_labels,
         classes=['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40'],
-        img_path=cm_path, download_images=True
+        img_path=cm_path, 
+        download_images=True
     )
     run.log(metricas)
 

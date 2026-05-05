@@ -21,6 +21,8 @@ import xgboost as xgb
 import os
 import pandas as pd
 import numpy as np
+from umap import UMAP
+import wandb
 
 def unpack_embeddings(X):
     """Dada una lista de vectores o una columna de dataFrame realiza un vstack. Esta función es usada
@@ -99,8 +101,7 @@ def model_umap(df, modelName='XGBoost Umap'):
         df (pd.DataFrame): Dataframe de entrada con los datos del modelo
         modelName (str, optional): Nombre del modelo para subir a WnB. Defaults to None..
     """
-    from umap import UMAP
-    import wandb
+
     print(f'Creando modelo {modelName}...')
     
     le = OrdinalEncoder(categories=[['[0.01,4.99]', '[5.00,9.99]', '[10.00,14.99]', '[15.00,19.99]', '[20.00,29.99]', '[30.00,39.99]', '>40']])
@@ -118,7 +119,6 @@ def model_umap(df, modelName='XGBoost Umap'):
     ], remainder='passthrough')
 
     X_train_transformed = preprocessor.fit_transform(X_train)
-    X_test_transformed = preprocessor.transform(X_test)
 
     run = wandb.init(entity="pd1-c2526-team4",
                 project="Precios",
@@ -150,7 +150,7 @@ def model_umap(df, modelName='XGBoost Umap'):
     metrics_dict = get_metrics(
         y_test_labels, y_pred_labels,
         classes=le.categories_[0],
-        img_path='models/precios/graficos/confusionMatrix/knn_reduced.png',
+        img_path='models/precios/graficos/confusionMatrix/xgboost_precios.png',
         download_images=True
     )
 
