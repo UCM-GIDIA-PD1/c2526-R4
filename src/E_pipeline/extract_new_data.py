@@ -11,7 +11,7 @@ from torch import nn
 from sentence_transformers import SentenceTransformer
 import torchvision.models as models
 import torchvision.transforms as transforms
-from src.A_Extraccion.E_metadatos_imagenes import _analiza_imagen
+from src.A_Extraccion.E_metadatos_imagenes import analiza_imagen
 from src.A_Extraccion.utils_extraccion.steam_requests import get_resenyas
 from src.A_Extraccion.C1_informacion_youtube_busquedas import _IP_interval_rotation
 from src.A_Extraccion.utils_extraccion.webscraping import start_tor, renew_tor_ip, new_configured_chromium_page, search_youtube
@@ -22,13 +22,12 @@ from src.B_Transformacion.B_games_info_transformacion import trans_prices, trans
 from src.B_Transformacion.C_estadisticas_youtube import _transform_to_dataframe, procesar_impacto_youtube
 from src.B_Transformacion.filtrado_youtube_llm import descargar_modelo, clasificacion_ollama
 from src.utils.config import appidlist_file, gamelist_file, pipelines_path
-from src.B_Transformacion.E_info_imagenes_transformacion import reduct_dataframes_from_models
 from src.B_Transformacion.D2_limpieza_reviews import limpieza_inicial, detect_language, limpieza_final, to_dataframe
 
 def extract_new_appids():
     appid_list = read_file(appidlist_file)        
     last_appid = appid_list[-1]
-    new_appids = get_appids(50,last_appid=last_appid)
+    new_appids = get_appids(2000000,last_appid=last_appid) # Steam tiene menos de 200000 juegos
     write_to_file(new_appids, Path(pipelines_path() / "new_appid_list.json.gz"))
     return new_appids
 
@@ -84,7 +83,7 @@ def extract_steam_images(apps_info, session):
             url = juego.get("appdetails", {}).get("header_url")
             if not url: continue
             try:
-                caracteristicas = _analiza_imagen(ruta_imagenes, url, trans, appid, True, model_resnet, model_clip, model_convnext, session)
+                caracteristicas = analiza_imagen(ruta_imagenes, url, trans, appid, True, model_resnet, model_clip, model_convnext, session)
                 resultado_juego = {
                     "id": appid,
                     "brillo": caracteristicas["brillo_medio"],
@@ -121,7 +120,7 @@ def extract_youtube_info_1(apps_info):
     last_timestamp = time()
     interval = _IP_interval_rotation()
     output_file = Path(pipelines_path() / "new_info_steam_youtube.jsonl.gz")
-    with tqdm(apps_info, unit="juegos") as pbar:
+    with tqdm(apps_info, desc="Extrayendo ids de youtube",unit="juegos") as pbar:
         for game in pbar:
             appid = game.get('id')
             name = game.get('appdetails').get("name")
@@ -144,7 +143,7 @@ def extract_youtube_info_2(yt_search_data):
     API_KEY = _get_apikey()
     youtube = build('youtube', 'v3', developerKey=API_KEY)
     output_file = Path(pipelines_path() / "new_youtube_statistics.jsonl.gz")
-    with tqdm(yt_search_data, unit="juegos") as pbar:
+    with tqdm(yt_search_data,desc="Extrayendo estadisticas de youtube",unit="juegos") as pbar:
         for app in pbar:
             appid = app.get('id')
             name = app.get('name')
@@ -202,18 +201,13 @@ def filtrado_por_clasificacion(data, minio):
         print(f"Error: {str(e)}")
     finally:
         return data_filtrado
+
 def c_transformacion_youtube(youtube_stats_path):
     data = read_file(youtube_stats_path)
     data_filtrado = filtrado_por_clasificacion(data, {"minio_write": False, "minio_read": False})
     df = _transform_to_dataframe(data_filtrado)
     df_metrica = procesar_impacto_youtube(df)
     df_metrica.to_parquet(Path(pipelines_path() / "new_yt_stats.parquet"))
-
-def e_transformacion_imagenes(banners_raw_path):
-    data = read_file(banners_raw_path)
-    df = pd.DataFrame(data)
-    reduct_dataframes_from_models(df)
-    df.to_parquet(Path(pipelines_path() / "new_P_info_imagenes.parquet"))
 
 def d_transformacion_reviews(reviews_raw_path):
     raw_data = read_file(reviews_raw_path)
@@ -229,44 +223,41 @@ def d_transformacion_reviews(reviews_raw_path):
     df_en.to_parquet(Path(pipelines_path() / "new_steam_reviews_processed.parquet"))
 
 def crear_parquets_definitivos(pop_path, prices_path, images_path, youtube_path):
-    print("Consolidando parquets definitivos...")
-    df_B_pop = pd.read_parquet(pop_path)
-    df_B_prices = pd.read_parquet(prices_path)
-    df_E = pd.read_parquet(images_path)
-    df_C = pd.read_parquet(youtube_path)
+    """
+    Combina los archivos de Steam, imágenes y YouTube para generar los datasets finales.
 
-    for df in [df_B_pop, df_B_prices, df_E, df_C]:
-        df["id"] = df["id"].astype(str)
+    Args:
+        pop_path: Ruta del parquet de popularidad base.
+        prices_path: Ruta del parquet de precios base.
+        images_path: Ruta del archivo de imágenes (jsonl.gz).
+        youtube_path: Ruta del parquet de estadísticas de YouTube.
+    """
+    print("Iniciando consolidación de parquets definitivos")
 
-    df_final_prices = pd.merge(df_B_prices, df_E, on="id").dropna()
-    df_final_pop = pd.merge(df_B_pop, df_E, on="id")
-    df_final_pop = pd.merge(df_final_pop, df_C, on="id").dropna()
-
-    cols_faltantes = ['Shared/Split Screen', 'Steam Trading Cards', 'Remote Play Together']
-    cols_sobrantes = ['pca_v_resnet_1', 'tsne_v_clip_1', 'Adjustable Difficulty', 'pca_v_resnet_2', 'Color Alternatives', 
-                      'pca_v_clip_2', 'Mouse Only Option', 'tsne_v_convnext_2', 'Save Anytime', 'pca_v_convnext_2', 
-                      'pca_v_convnext_1', 'tsne_v_clip_2', 'tsne_v_resnet_2', 'Keyboard Only Option', 'pca_v_clip_1', 
-                      'tsne_v_resnet_1', 'Touch Only Option', 'tsne_v_convnext_1', 'Camera Comfort', 'Stereo Sound']
+    df_popularidad_base = pd.read_parquet(pop_path)
+    df_precios_base = pd.read_parquet(prices_path)
+    df_youtube = pd.read_parquet(youtube_path)
     
-    for df_final in [df_final_prices, df_final_pop]:
-        for col in cols_faltantes:
-            if col not in df_final.columns:
-                df_final[col] = 0
-        
-        cols_historial = [
-            'num_juegos_previos_developers', 'num_juegos_previos_publishers',
-            'ema_precio_developers', 'max_historico_precio_developers',
-            'ema_reviews_developers', 'max_historico_reviews_developers'
-        ]
-        for col in cols_historial:
-            if col in df_final.columns:
-                df_final[col] = df_final[col].astype('float64')
 
-        df_final.drop(columns=cols_sobrantes, inplace=True, errors="ignore")
+    datos_imagenes = read_file(images_path)
+    df_imagenes = pd.DataFrame(datos_imagenes)
 
-    df_final_prices.to_parquet(Path(pipelines_path() / "final_dataset_prices.parquet"))
-    df_final_pop.to_parquet(Path(pipelines_path() / "final_dataset_popularity.parquet"))
 
+    for dataframe in [df_popularidad_base, df_precios_base, df_imagenes, df_youtube]:
+        dataframe["id"] = dataframe["id"].astype(str)
+
+    df_final_popularidad = pd.merge(df_popularidad_base, df_imagenes, on="id", how="inner")
+    df_final_popularidad = pd.merge(df_final_popularidad, df_youtube, on="id", how="inner")
+    df_final_popularidad = df_final_popularidad.dropna().copy()
+
+    df_final_precios = pd.merge(df_precios_base, df_imagenes, on="id", how="inner")
+    df_final_precios = df_final_precios.dropna().copy()
+
+    df_final_popularidad.to_parquet(pipelines_path() / "final_dataset_popularity.parquet")
+    df_final_precios.to_parquet(pipelines_path() / "final_dataset_prices.parquet")
+
+    print(f"Dataset de popularidad generado con {len(df_final_popularidad)} filas")
+    print(f"Dataset de precios generado con {len(df_final_precios)} filas")
 
 def integrar_datos():
     config_fusion = [
@@ -336,17 +327,15 @@ def main(minio):
     print("----FASE 8--------")
     c_transformacion_youtube(new_yt_stats_file)
     print("----FASE 9--------")
-    e_transformacion_imagenes(new_images_file)
-    print("----FASE 10--------")
     d_transformacion_reviews(new_reviews_file)
-    print("----FASE 11--------")
+    print("----FASE 10--------")
     crear_parquets_definitivos(
         pop_path=Path(pipelines_path() / "new_games_info_popularity.parquet"),
         prices_path=Path(pipelines_path() / "new_games_info_prices.parquet"),
-        images_path=Path(pipelines_path() / "new_P_info_imagenes.parquet"),
+        images_path=Path(pipelines_path() / new_images_file),
         youtube_path=Path(pipelines_path() / "new_yt_stats.parquet")
     )
-    print("----FASE 12--------")
+    print("----FASE 11--------")
     integrar_datos()
 
 
