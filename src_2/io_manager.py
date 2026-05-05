@@ -16,6 +16,12 @@ from src_2.config import get_minio_access_key, get_minio_secret_key, project_roo
 
 # -------------------- MinIO --------------------
 def get_minio_client():
+    """
+    Inicializa y devuelve un cliente de MinIO configurado con las credenciales del sistema.
+
+    Returns:
+        Minio: Instancia del cliente de MinIO lista para su uso.
+    """
     return Minio(
         endpoint="minio.fdi.ucm.es",
         access_key=get_minio_access_key(),
@@ -23,12 +29,25 @@ def get_minio_client():
     )
 
 def get_minio_path(filename: Path):
+    """
+    Calcula la ruta de destino en el servidor MinIO basándose en la ubicación del archivo dentro del proyecto.
+
+    Args:
+        filename: Objeto Path que indica la ubicación del archivo local.
+
+    Returns:
+        str: Cadena de texto con la ruta relativa formateada para el almacenamiento en la nube.
+    """
+
     relative_path = filename.relative_to(project_root())
     return f"grupo4/{relative_path.as_posix()}"
 
 def check_minio_connection():
     """
-    Verifica si se ha conseguido conectar con el servidor de MinIO.
+    Verifica la disponibilidad de la conexión con el servidor de MinIO.
+
+    Returns:
+        bool: True si la conexión es exitosa y las credenciales son válidas, False en caso contrario.
     """
     try:
         client = get_minio_client()
@@ -76,10 +95,35 @@ def write_to_file(data, filepath: Path):
     except Exception as e:
         print(f"Error inesperado escribiendo {filepath.name}: {e}")
 
+def merge_and_save(old_path: Path, new_path: Path, final_path: Path, id_col="id"):
+    """
+    Fusiona archivos parquet antiguos y nuevos eliminando duplicados por identificador.
+
+    Args:
+        old_path: Ruta del archivo previo.
+        new_path: Ruta del archivo recién generado.
+        final_path: Ruta de destino para el archivo unificado.
+        id_col: Columna utilizada para identificar duplicados.
+    """
+    df_old = read_file(old_path, default_return=pd.DataFrame())
+    df_new = read_file(new_path, default_return=pd.DataFrame())
+    
+    if df_old.empty:
+        write_to_file(df_new, final_path)
+        return
+
+    df_final = pd.concat([df_new, df_old]).drop_duplicates(subset=[id_col], keep="first")
+    write_to_file(df_final, final_path)
 # -------------------- Subida MinIO --------------------
 def upload_file_to_minio(filepath: Path):
     """
-    Sube un archivo local al servidor MinIO manteniendo la estructura del proyecto.
+    Sube un archivo local al servidor MinIO manteniendo la estructura de carpetas del proyecto.
+
+    Args:
+        filepath: Objeto Path que indica la ubicación del archivo en el sistema local.
+
+    Returns:
+        bool: True si el archivo se subió correctamente, False si ocurrió un error o el archivo no existe.
     """
     if not filepath.exists():
         print(f"Error: El archivo {filepath.name} no existe localmente.")
@@ -113,6 +157,17 @@ def _read_jsonl(filepath: Path, is_gz: bool = False):
         return [json.loads(line) for line in f if line.strip()]
 
 def read_file_local(filepath: Path, default_return=None):
+    """
+    Lee un archivo local detectando automáticamente su formato basándose en la extensión.
+
+    Args:
+        filepath: Objeto Path con la ubicación del archivo.
+        default_return: Valor devuelto en caso de error o archivo inexistente.
+
+    Returns:
+        Contenido del archivo parseado o el valor por defecto.
+    """
+
     if not filepath.exists():
         print(f"Archivo no encontrado: {filepath.name}")
         return default_return
@@ -146,7 +201,17 @@ def read_file_local(filepath: Path, default_return=None):
 
 # -------------------- Lectura MinIO --------------------
 def read_file_minio(filepath: Path, default_return=None):
-    """Descarga y parsea un archivo desde MinIO directamente a memoria RAM."""
+    """
+    Descarga y parsea un archivo desde MinIO directamente a la memoria RAM.
+
+    Args:
+        filepath: Objeto Path que indica la ruta del archivo.
+        default_return: Valor devuelto si ocurre un error o el archivo no existe.
+
+    Returns:
+        Contenido del archivo procesado en el formato correspondiente o el valor por defecto.
+    """
+
     ext = "".join(filepath.suffixes)
     response = None
     try:
@@ -184,6 +249,17 @@ def read_file_minio(filepath: Path, default_return=None):
 
 # -------------------- Lectura General --------------------
 def read_file(filepath: Path, default_return=None):
+    """
+    Lee un archivo buscando primero en el sistema local y, si no existe, en el servidor MinIO.
+
+    Args:
+        filepath: Objeto Path con la ubicación del archivo.
+        default_return: Valor devuelto si el archivo no se encuentra en ninguna de las fuentes.
+
+    Returns:
+        Contenido del archivo procesado o el valor por defecto.
+    """
+
     if filepath.exists():
         return read_file_local(filepath, default_return)
     
@@ -194,12 +270,22 @@ def read_file(filepath: Path, default_return=None):
     return default_return
 
 def read_first_file_found(files: list[Path], default_return=None):
-    """Intenta leer de todos los archivos posibles y devuelve el primero que da exito"""
+    """
+    Busca y lee el primer archivo disponible de una lista de rutas proporcionada.
+
+    Args:
+        files: Lista de objetos Path para verificar secuencialmente.
+        default_return: Valor devuelto si no se encuentra ningún archivo válido.
+
+    Returns:
+        tuple: Una tupla con el contenido del primer archivo leído y su objeto Path correspondiente.
+    """
     for file in files:
         data = read_file(file, default_return)
         if data:
             return data, file
     return default_return, files[0]
+
 def file_exists_minio(filename):
     """
     Comprueba si existe un fichero en el servidor de MinIO.
@@ -220,5 +306,14 @@ def file_exists_minio(filename):
         return False
 
 def file_exists(filepath):
+    """
+    Comprueba si un archivo existe en el sistema local o en el servidor MinIO.
+
+    Args:
+        filepath: Objeto Path con la ruta del archivo a verificar.
+
+    Returns:
+        bool: True si el archivo se encuentra en alguna de las fuentes, False en caso contrario.
+    """
     return filepath.exists() or file_exists_minio(filepath)
 

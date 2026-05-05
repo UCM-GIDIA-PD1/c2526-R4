@@ -96,7 +96,5 @@ def main():
 
     write_to_file(df_final, popularity_parquet)
     print(f"Finalizado. Parquet guardado con {len(df_final)} filas. En: {popularity_parquet.relative_to(project_root())}")
-    print(df_final.isna().sum().to_string())
-
 if __name__ == "__main__":
     main()

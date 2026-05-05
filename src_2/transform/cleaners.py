@@ -5,7 +5,16 @@ from unidecode import unidecode
 from langdetect import detect
 from datetime import datetime
 def clean_price(appdetails):
-    """Extrae el precio inicial en euros."""
+    """
+    Extrae el precio inicial en euros a partir de los detalles de la aplicación.
+
+    Args:
+        appdetails: Diccionario con la información de la aplicación.
+
+    Returns:
+        float: Precio inicial convertido a euros.
+    """
+
     if not appdetails or appdetails.get("is_free"):
         return 0.0
     price_info = appdetails.get("price_overview", {})
@@ -13,7 +22,15 @@ def clean_price(appdetails):
     return price_info.get("initial", 0) / 100.0
 
 def get_price_range(price):
-    """Devuelve el rango de precio como una categoría de texto."""
+    """
+    Categoriza un precio numérico en un rango de texto predefinido.
+
+    Args:
+        price: Valor numérico del precio.
+
+    Returns:
+        str: Etiqueta del rango de precio correspondiente.
+    """
     if price == 0:
         return "Free"
     elif 0 < price < 5:
@@ -32,12 +49,30 @@ def get_price_range(price):
         return ">40"
     
 def clean_genres(genres_list):
-    """Devuelve lista de nombres de géneros."""
+    """
+    Extrae los nombres de los géneros a partir de una lista de diccionarios.
+
+    Args:
+        genres_list: Lista de diccionarios con la información de los géneros.
+
+    Returns:
+        list[str]: Lista con las descripciones de los géneros.
+    """
+
     if not genres_list: return []
     return [g.get("description") for g in genres_list if "description" in g]
 
 def parse_supported_languages(raw_html):
-    """Parsea los idiomas del campo supported_languages de la API de Steam."""
+    """
+    Parsea los idiomas soportados a partir de una cadena de texto HTML de Steam.
+
+    Args:
+        raw_html: Cadena de texto con el HTML original de la API.
+
+    Returns:
+        list[str]: Lista de idiomas extraídos.
+    """
+
     if not raw_html or not isinstance(raw_html, str):
         return []
     
@@ -49,9 +84,15 @@ def parse_supported_languages(raw_html):
 
 def parse_steam_date(date_str: str):
     """
-    Convierte la fecha de texto de Steam al formato 'YYYY-MM-DD'.
-    Maneja el formato '10 Oct, 2007'.
+    Convierte una fecha de texto de Steam al formato "YYYY-MM-DD".
+
+    Args:
+        date_str: Cadena de texto con la fecha original de Steam.
+
+    Returns:
+        str | None: Fecha formateada o None si el formato es inválido o el juego no se ha lanzado.
     """
+
     if not date_str or "Coming Soon" in date_str or "To be announced" in date_str:
         return None
         
@@ -80,13 +121,31 @@ def parse_steam_date(date_str: str):
         return None
     
 def clean_entity_name(entity_list):
-    """Devuelve el primer nombre de una lista de desarrolladores/editores."""
+    """
+    Extrae el nombre principal de una lista de desarrolladores o editores.
+
+    Args:
+        entity_list: Lista de nombres de entidades.
+
+    Returns:
+        str: El primer nombre de la lista o "Unknown" si no está disponible.
+    """
     if not entity_list or not isinstance(entity_list, list):
         return "Unknown"
     return entity_list[0]
+
 # ------ NLP ------
 def detect_language(text):
-    """Detecta el idioma del texto. Retorna 'unknown' si falla."""
+    """
+    Detecta el idioma de un texto utilizando la librería langdetect.
+
+    Args:
+        text: Cadena de texto a analizar.
+
+    Returns:
+        str: Código del idioma detectado o "unknown" en caso de error.
+    """
+
     try:
         return detect(text)
     except Exception:
@@ -94,11 +153,15 @@ def detect_language(text):
 
 def clean_review_text(text):
     """
-    Realiza la limpieza completa del texto:
-    1. Elimina URLs y etiquetas de Steam [b], [i], etc.
-    2. Normaliza Unicode y quita acentos.
-    3. Elimina caracteres no alfanuméricos (ruido y ASCII art).
+    Realiza una limpieza exhaustiva de texto eliminando URLs, etiquetas y caracteres especiales.
+
+    Args:
+        text: Cadena de texto original.
+
+    Returns:
+        str: Texto normalizado y limpio en minúsculas.
     """
+    
     if not text:
         return ""
     

@@ -4,7 +4,7 @@ Evita seleccionar IDs que ya han sido procesados previamente en el archivo de de
 """
 
 import pandas as pd
-from src_2.config import full_appid_list_path, steam_details_path, sample_appid_list_path, project_root
+from src_2.config import full_appid_list_path, popularity_parquet, sample_appid_list_path, project_root
 from src_2.extract.sampler import get_new_sample
 from src_2.io_manager import read_file, write_to_file
 from src_2.interface import handle_input
@@ -19,11 +19,11 @@ def main():
         return
     
     print("Verificando juegos ya procesados...")
-    processed_data = read_file(steam_details_path, default_return=pd.DataFrame())
+    processed_data = read_file(popularity_parquet, default_return=pd.DataFrame())
     processed_ids = []
 
     if not processed_data.empty:
-        processed_ids = processed_data["appid"].unique().tolist()
+        processed_ids = processed_data["id"].astype(str).unique().tolist()
 
 
     size_input = handle_input("Introduce el tamaño de la muestra deseada: ", lambda x: x.isdigit())

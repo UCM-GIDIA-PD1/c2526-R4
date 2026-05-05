@@ -1,4 +1,4 @@
-# Géneros y categorías que queremos en nuestro modelo
+# Géneros y categorías que queremos en nuestro modelo. 
 GENRES_SCHEMA = [
     "Action", "Adventure", "Casual", "Early Access", "Free To Play", 
     "Indie", "RPG", "Simulation", "Strategy"
