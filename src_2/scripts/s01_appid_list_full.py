@@ -24,8 +24,7 @@ def main():
     
     write_to_file(appid_list, full_appid_list_path)
 
-    relative_path = full_appid_list_path.relative_to(project_root())
-    print(f"Lista completa de AppIDs de Steam obtenida y guardada en: {relative_path}")
+    print(f"Lista completa de AppIDs de Steam obtenida y guardada en: {full_appid_list_path.relative_to(project_root())}")
     print(f"Número de AppIDs en la lista: {len(appid_list)}")
 
 

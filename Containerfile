@@ -1,7 +1,7 @@
 # El Containerfile es una lista de pasos que se ejecutan para crear la imagen del proyecto con la que posteriormente se puede ejecutar un contenedor.
 
 # Pthon base
-FROM python:3.13-slim 
+FROM python:3.12-slim 
 
 # Copiar uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/

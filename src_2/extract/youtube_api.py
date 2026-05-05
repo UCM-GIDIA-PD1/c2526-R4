@@ -8,8 +8,13 @@ from datetime import datetime
 
 def _parse_steam_date(date_str: str):
     """
-    Convierte la fecha de texto de Steam al formato 'YYYY-MM-DD'.
-    Maneja el formato '10 Oct, 2007'.
+    Convierte una fecha de texto de Steam al formato "YYYY-MM-DD".
+
+    Args:
+        date_str: Cadena de texto con la fecha original de Steam.
+
+    Returns:
+        str | None: Fecha formateada o None si el formato es inválido o el juego no ha salido.
     """
     if not date_str or "Coming Soon" in date_str or "To be announced" in date_str:
         return None
@@ -41,7 +46,10 @@ def _parse_steam_date(date_str: str):
 # --- SECCIÓN 1: SCRAPING (DrissionPage + TOR) ---
 def new_configured_chromium_page():
     """
-    Configura y devuelve una nueva instancia de ChromiumPage con proxy TOR.
+    Configura y devuelve una instancia de ChromiumPage con proxy TOR.
+
+    Returns:
+        ChromiumPage: Instancia del navegador configurada para la extracción.
     """
     co = ChromiumOptions()
     
@@ -177,8 +185,9 @@ def test_process_game_youtube_data():
     except Exception as e:
         print(f"Test fallido: {e}")
 
-# Límite de requests api de Steam
+# Límite de requests api de YouTube
 REQUEST_LIMIT = 10000
 
 if __name__ == "__main__":
+    # test_get_video_ids()
     test_process_game_youtube_data()

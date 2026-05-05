@@ -13,11 +13,11 @@ def main():
     # Leer fichero general
     possible_paths = get_files_by_pattern(steam_details_path)
     # Para que se capaz de detectar los fichero steam_details.jsonl.gz y steam_details_1.jsonl.gz, steam_details_custom.jsonl.gz, etc
-    games_info, file = read_first_file_found(possible_paths, [])
+    games_info, source_file = read_first_file_found(possible_paths, [])
     if not games_info:
         print("Error: No se pudo cargar la información de los juegos.")
         return
-    print(f"Juegos leidos de fichero: {file.name}")
+    print(f"Juegos leidos de fichero: {source_file.name}")
     pending_games, current_output_path = get_pending_work(games_info, youtube_video_ids_path)
     if not pending_games:
         print("No hay AppIDs pendientes por procesar en esta selección.")
@@ -51,7 +51,6 @@ def main():
         if sessionChromium:
             sessionChromium.quit()
 
-    relative_path = current_output_path.relative_to(project_root())
-    print(f"Proceso finalizado. Datos guardados en: {relative_path}")
+    print(f"Finalizado. Datos en: {current_output_path.relative_to(project_root())}")
 if __name__ == "__main__":
     main()

@@ -252,37 +252,35 @@ def get_reviews(session: requests.Session, appid: str, reviews_to_extract: int,
     extracted_reviews = []
     cursor = "*"
     
-    with tqdm(total=reviews_to_extract, desc=f"Reviews {appid}", unit="reviews", leave=False) as pbar:
-        while len(extracted_reviews) < reviews_to_extract:
-            params = {
-                "json": 1,
-                "filter": filter_type,
-                "language": language,
-                "review_type": review_type,
-                "num_per_page": 100,
-                "cursor": cursor,
-                "purchase_type": "all",
-                "day_range": "all"
-            }
-            
-            data = _request(session, url, params)
-            
-            if data.get("success") != 1:
-                break
+    while len(extracted_reviews) < reviews_to_extract:
+        params = {
+            "json": 1,
+            "filter": filter_type,
+            "language": language,
+            "review_type": review_type,
+            "num_per_page": 100,
+            "cursor": cursor,
+            "purchase_type": "all",
+            "day_range": "all"
+        }
+        
+        data = _request(session, url, params)
+        
+        if data.get("success") != 1:
+            break
 
-            batch = data.get("reviews", [])
-            if not batch:
-                break
-                
-            extracted_reviews.extend(batch)
-            pbar.update(len(batch))
+        batch = data.get("reviews", [])
+        if not batch:
+            break
             
-            new_cursor = data.get("cursor")
-            if not new_cursor or new_cursor == cursor:
-                break   
-            
-            cursor = new_cursor
-            time.sleep(0.5)
+        extracted_reviews.extend(batch)
+        
+        new_cursor = data.get("cursor")
+        if not new_cursor or new_cursor == cursor:
+            break   
+        
+        cursor = new_cursor
+        time.sleep(0.5)
             
     return extracted_reviews[:reviews_to_extract]
 

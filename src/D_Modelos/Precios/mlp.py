@@ -124,6 +124,7 @@ def _preprocess_test(df_X, df_y, transformers):
     df_X = df_X.fillna(0).reset_index(drop=True)
     df_y = df_y.reset_index(drop=True)
 
+    df_X = df_X.drop(columns=['price_range','total_games_by_developer','total_games_by_publisher'], errors='ignore')
     X_num_log = df_X[['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'ema_precio_developers', 'ema_precio_publishers', 'max_historico_precio_developers', 'max_historico_precio_publishers']]
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
