@@ -56,14 +56,14 @@ def new_configured_chromium_page():
 
     return ChromiumPage(co)
 
-def get_video_ids(session: ChromiumPage, game_name: str, date: str):
+def get_video_ids(sessionChromium: ChromiumPage, game_name: str, date: str):
     """
     Busca IDs de vídeos en YouTube filtrando por nombre de juego y fecha.
     Importante: la sesión que recibe debe estar configurada con TOR.\n
     start_tor()\n 
-    session = new_configured_chromium_page()
+    sessionChromium = new_configured_chromium_page()
     Args:
-        session: Sesión de ChromiumPage.
+        sessionChromium: Sesión de ChromiumPage.
         game_name: Nombre del juego.
         date: Fecha límite de búsqueda (YYYY-MM-DD).
 
@@ -74,10 +74,10 @@ def get_video_ids(session: ChromiumPage, game_name: str, date: str):
     query = f"%22{game_name.replace(" ", "+")}%22+Steam+game+before:{date}"
     url = f"https://www.youtube.com/results?search_query={query}&sp=CAM%253D"
 
-    session.get(url)
+    sessionChromium.get(url)
     
     try:
-        results_container = session.ele("tag:ytd-two-column-search-results-renderer")
+        results_container = sessionChromium.ele("tag:ytd-two-column-search-results-renderer")
         video_elements = results_container.eles("tag:ytd-video-renderer")
         video_ids = []
         
@@ -97,21 +97,21 @@ def test_get_video_ids():
     
     try:
         start_tor() 
-        session = new_configured_chromium_page()
-        video_ids = get_video_ids(session, game_name, release_date)
+        sessionChromium = new_configured_chromium_page()
+        video_ids = get_video_ids(sessionChromium, game_name, release_date)
         assert isinstance(video_ids, list), "El resultado debe ser una lista."
         print(f"Test exitoso: {video_ids}")
     except Exception as e:
         print(f"Test fallido: {e}")
     finally:
-        session.quit()
+        sessionChromium.quit()
 
 # --- SECCIÓN 2: API (Google API Client) ---
 def get_youtube_service():
     """Inicializa el cliente oficial de la API de YouTube."""
     return build('youtube', 'v3', developerKey=get_youtube_api_key())
 
-def request_youtube_stats(service, video_id_list):
+def request_youtube_stats(serviceYoutube, video_id_list):
     """
     Obtiene estadísticas y metadatos de una lista de vídeos mediante la API de YouTube.
 
@@ -129,7 +129,7 @@ def request_youtube_stats(service, video_id_list):
     if not ids_string:
         return []
 
-    response = service.videos().list(part="statistics,snippet", id=ids_string).execute()
+    response = serviceYoutube.videos().list(part="statistics,snippet", id=ids_string).execute()
 
     stats = []
     for item in response.get('items', []):
@@ -142,7 +142,7 @@ def request_youtube_stats(service, video_id_list):
 
     return stats
 
-def process_game_youtube_data(app_data, service):
+def process_game_youtube_data(app_data, serviceYoutube):
     """
     Orquesta la obtención de estadísticas de YouTube para un juego específico.
 
@@ -151,7 +151,7 @@ def process_game_youtube_data(app_data, service):
         service: Cliente de la API de YouTube.
 
     Returns:
-        dict: Diccionario con el appid, nombre y la lista de estadísticas obtenidas.
+        dict: Diccionario con el appid y la lista de estadísticas obtenidas.
     """
 
     video_ids = app_data.get("video_ids", [])
@@ -162,30 +162,23 @@ def process_game_youtube_data(app_data, service):
     }
 
     if video_ids:
-        result['video_statistics'] = request_youtube_stats(service, video_ids)
+        result['video_statistics'] = request_youtube_stats(serviceYoutube, video_ids)
         
     return result
 
 def test_process_game_youtube_data():
     print("Test process_game_youtube_data()--------------------")
-    app_data = {"appid": "1172470", "name": "Apex Legends", "video_statistics": []}
+    app_data = {"appid": "1172470", "video_ids": [{'id': 'QzfsGxrCD4o'}, {'id': 'KiVBoh71yqU'}]}
     try:
-        start_tor()
-        session = new_configured_chromium_page()
-        video_ids = get_video_ids(session, "Apex Legends", "2020-11-05")
-        app_data["video_statistics"] = video_ids
         service = get_youtube_service()
         result = process_game_youtube_data(app_data, service)
         assert isinstance(result, dict), "El resultado debe ser un diccionario."
         print(f"Test exitoso: {result}")
     except Exception as e:
         print(f"Test fallido: {e}")
-    finally:
-        session.quit()
-        service.close()
 
 # Límite de requests api de Steam
 REQUEST_LIMIT = 10000
 
 if __name__ == "__main__":
-    print(_parse_steam_date("10 Oct, 2007"))
+    test_process_game_youtube_data()

@@ -26,11 +26,11 @@ def main():
         print("No hay AppIDs pendientes por procesar en esta selección.")
         return
     
-    session = requests.Session()
+    sessionRequest = requests.Session()
     
     try:
         for appid in tqdm(appids_to_extract, desc="Extrayendo datos de Steam", unit="juego"):
-            details = get_appdetails(session, appid)
+            details = get_appdetails(sessionRequest, appid)
             
             if not details:
                 continue
@@ -41,7 +41,7 @@ def main():
             reviews_stats = None
 
             if release_timestamp:
-                reviews_stats = get_reviews_first_month(session, appid, release_timestamp)
+                reviews_stats = get_reviews_first_month(sessionRequest, appid, release_timestamp)
 
             full_game_data = {
                 "appid": appid,
@@ -55,7 +55,7 @@ def main():
     except KeyboardInterrupt:
         print("\nProceso interrumpido por el usuario. Progreso guardado.")
     finally:
-        session.close()
+        sessionRequest.close()
 
     relative_path = current_output_path.relative_to(project_root())
     print(f"Proceso finalizado. Datos guardados en: {relative_path}")
