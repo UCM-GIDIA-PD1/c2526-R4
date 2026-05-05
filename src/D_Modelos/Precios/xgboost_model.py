@@ -37,6 +37,9 @@ def unpack_embeddings(X):
     return np.vstack(X[:, 0])
 
 def transform_xgboost(df):
+    df['Free To Play'] = 0
+    df['es_primer_juego_publishers'] = df['num_juegos_previos_publishers'].apply(lambda x: 1 if x == 0 else 0)
+    df['es_primer_juego_developers'] = df['num_juegos_previos_developers'].apply(lambda x: 1 if x == 0 else 0)
     return df.copy()
 
 def predict_xgboost(model_data, test_df, train_df):

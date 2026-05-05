@@ -29,7 +29,7 @@ def predict_mlp(model_data, test_df, train_df):
     transformers_dict = model_data["transformers"]
     
     y = pd.Series(test_df['price_range'], name='price_range')
-    X = test_df.drop(columns=['price_range'])
+    X = test_df.drop(columns=['price_range','total_games_by_developer','total_games_by_publisher'], errors='ignore')
     
     X_test_mlp, Y_test_mlp = _preprocess_test(X, y.to_frame(), transformers_dict)
     X_test_mlp = X_test_mlp.reset_index(drop=True)
@@ -45,7 +45,9 @@ def predict_mlp(model_data, test_df, train_df):
     
     # Lista de características en el orden en que fue entrenado
     expected_cols = [
-        'num_languages', 'total_games_by_publisher', 'total_games_by_developer', 
+        'num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 
+        'ema_precio_developers', 'ema_precio_publishers', 'max_historico_precio_developers', 
+        'max_historico_precio_publishers', 
         'description_len', 'brillo', 'Action', 'Adventure', 'Casual', 'Early Access', 
         'Indie', 'RPG', 'Simulation', 'Strategy', 'Co-op', 'Full controller support', 
         'Multi-player', 'Online PvP', 'Partial Controller Support', 
@@ -81,11 +83,12 @@ def _preprocess_train(df_X, df_y):
     df_X = df_X.fillna(0).reset_index(drop=True)
     df_y = df_y.reset_index(drop=True)
 
+    df_X = df_X.drop(columns=['price_range','total_games_by_developer','total_games_by_publisher'], errors='ignore')
     # Separación de DataFrames en diferentes tipos de variables
-    X_num_log = df_X[['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers']]
+    X_num_log = df_X[['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'ema_precio_developers', 'ema_precio_publishers', 'max_historico_precio_developers', 'max_historico_precio_publishers']]
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
-    X_trans = df_X.drop(columns=['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'description_len', 'release_year', 'brillo'])
+    X_trans = df_X.drop(columns=['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'ema_precio_developers', 'ema_precio_publishers', 'max_historico_precio_developers', 'max_historico_precio_publishers', 'description_len', 'release_year', 'brillo'])
 
     # Transformación de variables
     pt = PowerTransformer(method='yeo-johnson')
@@ -121,15 +124,10 @@ def _preprocess_test(df_X, df_y, transformers):
     df_X = df_X.fillna(0).reset_index(drop=True)
     df_y = df_y.reset_index(drop=True)
 
-    X_num_log = df_X[['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers']]
-    # Renombramos columnas para que coincidan con los nombres que se usan en el entrenamiento
-    X_num_log = X_num_log.rename(columns={
-        'num_juegos_previos_publishers': 'total_games_by_publisher',
-        'num_juegos_previos_developers': 'total_games_by_developer'
-    })
+    X_num_log = df_X[['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'ema_precio_developers', 'ema_precio_publishers', 'max_historico_precio_developers', 'max_historico_precio_publishers']]
     X_num_std = df_X[['description_len', 'brillo']]
     X_num_minmax = df_X[['release_year']] # Fechas
-    X_trans = df_X.drop(columns=['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'description_len', 'release_year', 'brillo'])
+    X_trans = df_X.drop(columns=['num_languages', 'num_juegos_previos_publishers', 'num_juegos_previos_developers', 'ema_precio_developers', 'ema_precio_publishers', 'max_historico_precio_developers', 'max_historico_precio_publishers', 'description_len', 'release_year', 'brillo'])
 
     pt = transformers['pt']
     X_num_log_trans = pt.transform(X_num_log)
@@ -164,7 +162,7 @@ def _best_params_mlp(X_train, Y_train):
         'alpha': [0.0001, 0.01, 0.1],
         'learning_rate_init': [0.001, 0.01]
     }
-    """ MEJORES HIPERPARÁMETROS"""
+    """ MEJORES HIPERPARÁMETROS """
     param_grid = {
         'hidden_layer_sizes': [(64,32)],
         'activation': ['tanh'],

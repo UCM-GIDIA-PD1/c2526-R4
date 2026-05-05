@@ -75,6 +75,11 @@ models_precios = {
             "model_path": None,
             "prediction_function": predict_baseline_mode,
         },
+        "MLP GridSearchCV UMAP": {
+            "transform_function": transform_mlp_precios,
+            "model_path": precios_mlp_file,
+            "prediction_function": predict_mlp_precios,
+        },
         "XGBoost Umap": {
             "transform_function": transform_xgboost_precios,
             "model_path": precios_xgboostumap_file,
@@ -84,18 +89,19 @@ models_precios = {
             "transform_function": transform_knn_precios,
             "model_path": precios_knncompleteclusters_file,
             "prediction_function": predict_knn_precios,
-        },
-        "MLP GridSearchCV UMAP": {
-            "transform_function": transform_mlp_precios,
-            "model_path": precios_mlp_file,
-            "prediction_function": predict_mlp_precios,
-        },
+        }
+}
+
+"""
+Se excluye Logistic Regression de Z_evaluacion por problemas en la fase de fit que no
+merecen la pena resolver por el pobre rendimiento del modelo.
+
         "Logistic Regression": {
             "transform_function": transform_logistic_regression_precios,
             "model_path": precios_logistic_regression_file,
             "prediction_function": predict_logistic_regression_precios,
         }
-}
+"""
 
 # REVIEWS
 models_reviews = {
