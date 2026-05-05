@@ -48,8 +48,6 @@ def main():
     youtube_video_ids()
     youtube_video_stats()
     image_features()
-    # evita confusión cuando existen a la vez ficheros tipo steam_reviews_1.json y steam_reviews.json.gz
-    join_files()
     
     print("Ejecutando scripts de transformación")
     transform_reviews()
@@ -60,15 +58,15 @@ def main():
     
     if popularity_parquet.exists():
         shutil.move(popularity_parquet, new_popularity)
-        merge_and_save(old_popularity, new_popularity, final_popularity)
+        merge_and_save(old_popularity, new_popularity, final_popularity, id_col="id")
 
     if prices_parquet.exists():
         shutil.move(prices_parquet, new_prices)
-        merge_and_save(old_prices, new_prices, final_prices)
+        merge_and_save(old_prices, new_prices, final_prices, id_col="id")
 
     if reviews_parquet.exists():
         shutil.move(reviews_parquet, new_reviews)
-        merge_and_save(old_reviews, new_reviews, final_reviews)
+        merge_and_save(old_reviews, new_reviews, final_reviews, id_col=["appid", "text"])
 
     print("Pipeline finalizado")
 
