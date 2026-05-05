@@ -26,9 +26,9 @@ from src.B_Transformacion.E_info_imagenes_transformacion import reduct_dataframe
 from src.B_Transformacion.D2_limpieza_reviews import limpieza_inicial, detect_language, limpieza_final, to_dataframe
 
 def extract_new_appids():
-    #appid_list = read_file(appidlist_file)        
-    #last_appid = appid_list[-1]
-    new_appids = get_appids(50,last_appid=0)
+    appid_list = read_file(appidlist_file)        
+    last_appid = appid_list[-1]
+    new_appids = get_appids(50,last_appid=last_appid)
     write_to_file(new_appids, Path(pipelines_path() / "new_appid_list.json.gz"))
     return new_appids
 
