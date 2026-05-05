@@ -1,9 +1,13 @@
-FIXED_GENRES = [
-    "Action", "Adventure", "Casual", "Early Access", "Free to Play", 
-    "Indie", "RPG", "Simulation", "Strategy", "Sports", "Racing"
+# Géneros y categorías que queremos en nuestro modelo
+GENRES_SCHEMA = [
+    "Action", "Adventure", "Casual", "Early Access", "Free To Play", 
+    "Indie", "RPG", "Simulation", "Strategy"
 ]
 
-FIXED_CATEGORIES = [
-    "Single-player", "Multi-player", "PvP", "Online PvP", "Co-op", 
-    "Online Co-op", "Steam Achievements", "Steam Cloud", "Full controller support"
+CATEGORIES_SCHEMA = [
+    "Co-op", "Custom Volume Controls", "Family Sharing", "Full controller support",
+    "Multi-player", "Online Co-op", "Online PvP", "Partial Controller Support",
+    "Playable without Timed Input", "PvP", "Remote Play Together",
+    "Shared/Split Screen", "Single-player", "Steam Achievements",
+    "Steam Cloud", "Steam Leaderboards", "Steam Trading Cards"
 ]
