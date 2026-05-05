@@ -1,5 +1,5 @@
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
-![Status](https://img.shields.io/badge/status-en%20desarrollo-F39C12)
+![Status](https://img.shields.io/badge/status-En%20desarrollo-F39C12)
 ![UCM](https://img.shields.io/badge/UCM-Proyecto%20de%20Datos%20I-8E44AD)
 
 # Steam Predictor
@@ -31,7 +31,7 @@
 ### Objetivos
 - **Predictor de popularidad**: Usando como estimador de popularidad el número de reseñas que tiene un juego, predecimos este valor usando sobre todo el impacto social (relevancia en RRSS), pero también otros parametros como los elementos de la página de Steam del juego.
 - **Estimador de precios**: Predecir el precio de un juego en base a otros juegos similares y otros parámetros, pudiendo así clasificar por ejemplo juegos que pareciéndose en características a otros, se diferencien mucho en su precio. 
-- **Análisis de reseñas**: Sintetizar el feedback de la comunidad para ayudar a los desarrolladores a detectar puntos fuertes y débiles de su juego. Además ayudará a usuarios a explorar el catálogo de Steam destacando los juegos con las características deseadas.
+- **Análisis de reseñas**: Sintetizar el feedback de la comunidad para ayudar a los desarrolladores a detectar puntos fuertes y débiles de su juego. Además ayudará a usuarios a explorar el catálogo de Steam destacando los juegos con las características deseadas. También predecir si una reseña es negativa o positiva.
 
 ---
 
@@ -42,7 +42,7 @@
 ├── config_files/               # Configuraciones externas (TOR)
 ├── data/                       # Carpeta de datos (json, parquet)
 ├── models/                     # Carpeta de modelos (pkl)
-├── src/                        # Lógica del proyecto
+├── src/                        # Carpeta final que contiene toda la lógica del proyecto
 │   ├── A_Extraccion/
 │   ├── B_Transformacion/
 │   ├── C_Analisis/
@@ -53,6 +53,7 @@
 │   ├── E_pipeline/
 │   ├── main.py                 # Fichero para ejecutar el menú
 │   └── utils/                  # Funciones auxiliares
+├── src_2/                      # Propuesta alternativa no oficial de algunos scripts del Pipeline
 ├── Containerfile               # Configuración del contenedor (Podman)
 ├── pyproject.toml              # Gestión de dependencias y proyecto (uv)
 └── README.md
@@ -181,7 +182,7 @@ Desde estos submenús podrás elegir qué ficheros quieres ejecutar escribiendo 
 ### Predictor de popularidad
 El mejor modelo es MLP, con un MAE de 130 y RMSE de 1674. Estas métricas no son muy buena, siendo este el peor de nuestros modelos.
 ### Estimador de precios
-El mejor modelo es el de kNN con un F1 de 0.5092, *accuracy* de 0.65, *precision* de 0.65 y *recall* de 0.66, destacando que los precios mal predichos suelen ser de tan solo una categoría por encima o por debajo.  
+El mejor modelo es el de kNN con un F1 de 0.6415, *accuracy* de 0.659, *precision* de 0.6527 y *recall* de 0.659, destacando que los precios mal predichos suelen ser de tan solo una categoría por encima o por debajo.
 ### Análisis de reseñas
 En este apartado tenemos dos modelos, por una parte para saber si las reseñas son negativas o positivas tenemos un modelo de regresión logística con un balanced accuracy de 0.87 y F1 de 0.91. Por otra parte, para clasificar las reseñas por temáticas usamos un modelo de FASTopic al que no le hemos podido sacar métricas al no estar los datos etiquetados. Aun así este modelo parece funcionar bastante bien, dando siempre clasificaciones coherentes.
 
