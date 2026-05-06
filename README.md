@@ -143,13 +143,15 @@ sudo systemctl stop tor
 sudo systemctl disable tor
 ```
 ### Dependencia: ollama
-Únicamente para ejecutar el fichero C2 de extracción de datos hará falta descargar ollama y el modelo gemma4.
-Ollama es una herramienta para ejecutar modelos de IA generativa de forma local que utilizamos para saber si un video es o no es de un videojuego. Pasándo el título, el nombre del canal y otros parámetros gemma4 elige si usar o no usar el video para el entrenamiento.
+Para ejecutar el script C2 de extracción de datos, es necesario instalar Ollama y descargar el modelo qwen2.5:3b.
+Ollama es una herramienta que permite ejecutar modelos de IA generativa de forma local. En este proyecto lo utilizamos para clasificar si un vídeo de YouTube es o no de un videojuego: pasándole el título, el nombre del canal y otros parámetros, el modelo qwen2.5:3b decide si incluir el vídeo en el set de entrenamiento.
 
-Lo único que hay que hacer es descargar [ollama](https://ollama.com/download) y el modelo [gemma4](https://ollama.com/library/gemma4) o ejecutando:
-```shell
-ollama pull gemma4
-```
+1. Instala [ollama](https://ollama.com/download)
+
+2. descarga el modelo:
+    ```shell
+    ollama pull qwen2.5:3b
+    ```
 
 ---
 
