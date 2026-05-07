@@ -142,6 +142,16 @@ Para detener el proceso actual y deshabilitar el servicio permanentemente:
 sudo systemctl stop tor
 sudo systemctl disable tor
 ```
+### Dependencia: ollama
+Para ejecutar el script C2 de extracción de datos, es necesario instalar Ollama y descargar el modelo qwen2.5:3b.
+Ollama es una herramienta que permite ejecutar modelos de IA generativa de forma local. En este proyecto lo utilizamos para clasificar si un vídeo de YouTube es o no de un videojuego: pasándole el título, el nombre del canal y otros parámetros, el modelo qwen2.5:3b decide si incluir el vídeo en el set de entrenamiento.
+
+1. Instala [ollama](https://ollama.com/download)
+
+2. descarga el modelo:
+    ```shell
+    ollama pull qwen2.5:3b
+    ```
 
 ---
 
