@@ -1,6 +1,6 @@
 # Propuesta de arquitectura modular y pipeline incremental (v2)
 
-Este directorio contiene una propuesta de rediseño para el motor de datos del proyecto. El sistema busca mejorar la escalabilidad y permitir un crecimiento incremental de los datos sin procesar información redundante.
+Este directorio contiene una propuesta de rediseño para el pipeline ETL del proyecto. El sistema busca mejorar la escalabilidad y permitir un crecimiento incremental de los datos sin procesar información redundante.
 
 ## Estructura de módulos
 
@@ -22,13 +22,13 @@ La propuesta se organiza en los siguientes pasos secuenciales:
 *   **`s03_steam_details.py`**: Extrae detalles técnicos y estimación de reseñas del primer mes. Lee de la muestra de AppIDs generada en el paso anterior.
 *   **`s04_steam_reviews.py`**: Extrae reseñas de Steam en inglés para los modelos de lenguaje (NLP). Lee de la muestra de AppIDs.
 *   **`s05_youtube_video_ids.py`**: Busca IDs de vídeos en YouTube mediante *scraping* sobre la red TOR. Lee de los archivos de detalles de Steam (`steam_details*.jsonl.gz`).
-*   **`s06_youtube_video_stats.py`**: Obtiene estadísticas oficiales (vistas, likes) de los vídeos encontrados a través de la API de Google. Lee de los archivos de IDs de YouTube (`youtube_video_ids*.jsonl.gz`).
+*   **`s06_youtube_video_stats.py`**: Obtiene estadísticas oficiales de los vídeos encontrados a través de la API de Google. Lee de los archivos de IDs de YouTube (`youtube_video_ids*.jsonl.gz`).
 *   **`s07_image_features.py`**: Descarga los banners de los juegos y extrae vectores de características mediante redes neuronales (ResNet, ConvNeXt, CLIP). Lee de los archivos de detalles de Steam.
 
 ### Integración y transformación
-*   **`s00_consolidate_raw.py`**: Script encargado de unir los ficheros *raw* provenientes de la extracción distribuida del equipo. Por ejemplo, unifica todos los `steam_details_*.jsonl.gz` en un único `steam_details.jsonl.gz`.
+*   **`s00_join_extraction_files.py`**: Script encargado de unir los ficheros *raw* provenientes de la extracción distribuida del equipo. Por ejemplo, unifica todos los `steam_details_*.jsonl.gz` en un único `steam_details.jsonl.gz`.
 *   **`s08_transform_reviews.py`**: Procesa y limpia las reseñas de texto para generar el archivo `reviews.parquet`.
-*   **`s09_transform_popularity.py`**: Une todas las fuentes y calcula métricas (EMA, YT Score) para generar `popularity.parquet`.
+*   **`s09_transform_popularity.py`**: Une todas las fuentes y calcula métricas para generar `popularity.parquet`.
 *   **`s10_transform_prices.py`**: Filtra juegos de pago y genera el dataset de `prices.parquet`.
 
 ### Pipeline Principal
@@ -40,4 +40,4 @@ La propuesta se organiza en los siguientes pasos secuenciales:
 
 ---
 
-**Comentario final:** Este pipeline es una propuesta técnica independiente. Es capaz de generar los parquets finales con las mismas columnas que las utilizadas en los modelos oficiales, garantizando la compatibilidad pero mejorando la eficiencia del proceso.
+**Comentario final:** Este pipeline está integrada oficialmente con el proyecto, pero es capaz de generar los parquets finales con las mismas columnas que las utilizadas en los modelos oficiales.
