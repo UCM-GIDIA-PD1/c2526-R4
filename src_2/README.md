@@ -40,4 +40,4 @@ La propuesta se organiza en los siguientes pasos secuenciales:
 
 ---
 
-**Comentario final:** Este pipeline está integrada oficialmente con el proyecto, pero es capaz de generar los parquets finales con las mismas columnas que las utilizadas en los modelos oficiales.
+**Comentario final:** Este pipeline no está integrada oficialmente con el proyecto, pero es capaz de generar los parquets finales con las mismas columnas que las utilizadas en los modelos oficiales.
