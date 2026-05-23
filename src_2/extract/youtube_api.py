@@ -53,7 +53,7 @@ def new_configured_chromium_page():
     """
     co = ChromiumOptions()
     
-    co.set_browser_path(BROWSER_PATH)
+    # co.set_browser_path(BROWSER_PATH) # Opcional: Especifica la ruta del navegador si no se encuentra automáticamente
     co.set_user_agent(choice(USER_AGENTS))
     co.set_argument(f'--proxy-server={TOR_SOCKS_PROXY}')
     co.set_argument('--password-store=basic')
