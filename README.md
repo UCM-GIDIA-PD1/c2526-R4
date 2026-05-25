@@ -1,5 +1,5 @@
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
-![Status](https://img.shields.io/badge/status-En%20desarrollo-F39C12)
+![Status](https://img.shields.io/badge/status-Finalizado-F39C12)
 ![UCM](https://img.shields.io/badge/UCM-Proyecto%20de%20Datos%20I-8E44AD)
 
 # Steam Predictor
